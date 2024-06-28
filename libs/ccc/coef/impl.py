@@ -11,7 +11,8 @@ from numba import njit
 from numba.typed import List
 
 from ccc.pytorch.core import unravel_index_2d
-from ccc.sklearn.metrics_gpu import adjusted_rand_index as ari
+from ccc.sklearn.metrics import adjusted_rand_index as ari
+# from ccc.sklearn.metrics_gpu import adjusted_rand_index as ari
 from ccc.scipy.stats import rank
 from ccc.utils import chunker, DummyExecutor
 
@@ -642,6 +643,7 @@ def ccc(
     n_jobs = os.cpu_count() if n_jobs is None else n_jobs
     default_n_threads = (os.cpu_count() - n_jobs) if n_jobs < 0 else n_jobs
 
+    # Converts internal_n_clusters to a list of integers if it's provided.
     if internal_n_clusters is not None:
         _tmp_list = List()
 
