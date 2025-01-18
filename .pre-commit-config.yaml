@@ -18,3 +18,11 @@ repos:
         args: [--fix]
       - id: ruff-format  # Run the formatter.
         types_or: [python, pyi]
+  - repo: https://github.com/psf/black
+    rev: 24.2.0  # Replace with desired version
+    hooks:
+      - id: black
+        types_or: [python, pyi]
+      - id: black-jupyter
+        types_or: [python, pyi, jupyter]
+        additional_dependencies: [".[jupyter]"]
