@@ -6,7 +6,7 @@
 ### How to set up the development environment
 At the root of the repository, run:
 ```
-conda env create -f environment-cuda.yml
+conda env create -f environment-gpu.yml
 ```
 
 ### How to activate the development environment
@@ -21,7 +21,7 @@ This script can also be configured as a startup script in PyCharm so you don't h
 ### How to install this CUDA module
 At the root of the repository, run:
 ```
-conda activate ccc-cuda
+conda activate ccc-gpu
 # This will build the c++ module and install it with the Python package in the current environment
 pip install .
 ```
