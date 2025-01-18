@@ -12,7 +12,7 @@ conda env create -f environment-cuda.yml
 ### How to activate the development environment
 At the root of the repository, run:
 ```
-source ./setup_dev.sh
+source ./scripts/setup_dev.sh
 ```
 It will activate the conda environment and set up PYTHONPATH for the current shell session.
 
@@ -43,4 +43,9 @@ for test in build/test_*; do
     echo "Running $test..."
     ./$test
 done
+```
+
+### How to run both C++ tests and Python tests
+```
+bash ./scripts/run_tests.sh
 ```
