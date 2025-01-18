@@ -20,4 +20,4 @@ dependencies:
     - upsetplot==0.9.*
     - numpy==2.*
     - numba==0.60.*
-    
+    - pre-commit
