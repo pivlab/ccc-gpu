@@ -7,7 +7,6 @@
 #include <thrust/reduce.h>
 #include <thrust/functional.h>
 
-
 #include <iostream>
 #include <cmath>
 #include <assert.h>
@@ -22,12 +21,11 @@ namespace py = pybind11;
  * 3. use warp-level reduction
  */
 
-
 // Todo: Add CudaCheckError
-#define gpuErrorCheck(ans, abort) \
-{ \
-    gpuAssert((ans), __FILE__, __LINE__, abort); \
-}
+#define gpuErrorCheck(ans, abort)                    \
+    {                                                \
+        gpuAssert((ans), __FILE__, __LINE__, abort); \
+    }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
 {
     if (code != cudaSuccess)
@@ -43,7 +41,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 // gpuErrorCheck(cudaMalloc(...)); // if fails, print message and continue
 // gpuErrorCheck(cudaMalloc(...), true); // if fails, print message and abort
 
-
 bool check_shared_memory_size(const size_t s_mem_size)
 {
     cudaDeviceProp prop;
@@ -51,7 +48,6 @@ bool check_shared_memory_size(const size_t s_mem_size)
     const auto max_shared_mem = prop.sharedMemPerBlock;
     return s_mem_size <= max_shared_mem;
 }
-
 
 /**
  * @brief Unravel a flat index to the corresponding 2D indicis
@@ -131,7 +127,6 @@ __device__ void get_contingency_matrix(int *part0, int *part1, int n, int *share
     __syncthreads();
 }
 
-
 /**
  * @brief Compute the contingency matrix for two partitions using shared memory, by loading global memory data in batch
  * to process large input, i.e., when the input size is larger than the shared memory size
@@ -142,8 +137,8 @@ __device__ void get_contingency_matrix(int *part0, int *part1, int n, int *share
  * @param[out] shared_cont_mat Pointer to shared memory for storing the contingency matrix
  */
 // Todo: Add template for kernel configuration
-template<typename T>
-__device__ void get_contingency_matrix_batch(const T* part0, const T* part1, const int n_objs, const int k, T* shared_cont_mat)
+template <typename T>
+__device__ void get_contingency_matrix_batch(const T *part0, const T *part1, const int n_objs, const int k, T *shared_cont_mat)
 {
     // Define block and chunk sizes
     const int BLOCK_SIZE = 256;
@@ -178,29 +173,25 @@ __device__ void get_contingency_matrix_batch(const T* part0, const T* part1, con
     __syncthreads();
 
     // Process data chunk by chunk
-    for (int chunk = 0; chunk < numChunks; chunk++) {
+    for (int chunk = 0; chunk < numChunks; chunk++)
+    {
         // Calculate offset and valid items for this chunk
         const int chunkOffset = chunk * SHARED_MEMORY_SIZE;
         const int validItems = min(SHARED_MEMORY_SIZE, n_objs - chunkOffset);
-        
+
         // Load chunk from global memory
-        cub::BlockLoad<T, BLOCK_SIZE, ITEMS_PER_THREAD, cub::BLOCK_LOAD_STRIPED>(temp_storage_part0).Load(
-            part0 + chunkOffset,
-            threadData_part0,
-            validItems,
-            (T)0  // Default value for out-of-bounds items
+        cub::BlockLoad<T, BLOCK_SIZE, ITEMS_PER_THREAD, cub::BLOCK_LOAD_STRIPED>(temp_storage_part0).Load(part0 + chunkOffset, threadData_part0, validItems,
+                                                                                                          (T)0 // Default value for out-of-bounds items
         );
 
-        cub::BlockLoad<T, BLOCK_SIZE, ITEMS_PER_THREAD, cub::BLOCK_LOAD_STRIPED>(temp_storage_part1).Load(
-            part1 + chunkOffset,
-            threadData_part1,
-            validItems,
-            (T)0  // Default value for out-of-bounds items
+        cub::BlockLoad<T, BLOCK_SIZE, ITEMS_PER_THREAD, cub::BLOCK_LOAD_STRIPED>(temp_storage_part1).Load(part1 + chunkOffset, threadData_part1, validItems,
+                                                                                                          (T)0 // Default value for out-of-bounds items
         );
 
-        // Process thread-local data 
-        #pragma unroll
-        for (int i = 0; i < ITEMS_PER_THREAD; i++) {
+// Process thread-local data
+#pragma unroll
+        for (int i = 0; i < ITEMS_PER_THREAD; i++)
+        {
             // threadData[i] *= 2;
             const T p0_label = part0[i];
             const T p1_label = part1[i];
@@ -210,7 +201,7 @@ __device__ void get_contingency_matrix_batch(const T* part0, const T* part1, con
                 atomicAdd(&shared_cont_mat[p0_label * k + p1_label], 1);
             }
         }
-        
+
         // // Store processed data to shared memory
         // int threadOffset = threadIdx.x * ITEMS_PER_THREAD;
         // #pragma unroll
@@ -219,17 +210,17 @@ __device__ void get_contingency_matrix_batch(const T* part0, const T* part1, con
         //         sharedBuffer[threadOffset + i] = threadData[i];
         //     }
         // }
-        
+
         // __syncthreads();
-        
+
         // // Additional processing on shared memory data if needed
         // // For example, you could do a reduction or other block-wide operations here
-        
+
         // // Store results back to global memory
         // for (int i = threadIdx.x; i < validItems; i += BLOCK_SIZE) {
         //     output[chunkOffset + i] = sharedBuffer[i];
         // }
-        
+
         // __syncthreads();  // Ensure all threads are done before loading next chunk
     }
 
@@ -337,17 +328,15 @@ __device__ void get_pair_confusion_matrix(
  * @param k The max value of cluster number + 1
  * @param out Output array of ARIs
  */
-extern "C"
-__global__ void ari(int *parts,
-                    const int n_aris,
-                    const int n_features,
-                    const int n_parts,
-                    const int n_objs,
-                    const int n_elems_per_feat,
-                    const int n_part_mat_elems,
-                    const int k,
-                    float *out
-                    )
+extern "C" __global__ void ari(int *parts,
+                               const int n_aris,
+                               const int n_features,
+                               const int n_parts,
+                               const int n_objs,
+                               const int n_elems_per_feat,
+                               const int n_part_mat_elems,
+                               const int k,
+                               float *out)
 {
     /*
      * Step 0: Compute shared memory addresses
@@ -358,10 +347,10 @@ __global__ void ari(int *parts,
     // int *s_part1 = s_part0 + n_objs;                 // n_objs elements
     // int *s_contingency = s_part1 + n_objs;           // k * k elements
     // NOTE Ends
-    int *s_contingency = shared_mem;           // k * k elements
-    int *s_sum_rows = s_contingency + (k * k);       // k elements
-    int *s_sum_cols = s_sum_rows + k;                // k elements
-    int *s_pair_confusion_matrix = s_sum_cols + k;   // 4 elements
+    int *s_contingency = shared_mem;               // k * k elements
+    int *s_sum_rows = s_contingency + (k * k);     // k elements
+    int *s_sum_cols = s_sum_rows + k;              // k elements
+    int *s_pair_confusion_matrix = s_sum_cols + k; // 4 elements
 
     /*
      * Step 1: Each thead, unravel flat indices and load the corresponding data into shared memory
@@ -438,33 +427,96 @@ __global__ void ari(int *parts,
 }
 
 /**
- * @brief Internal lower-level ARI computation
+ * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device
  * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
  * @throws std::invalid_argument if "parts" is invalid
- * @return std::vector<float> ARI values for each pair of partitions
+ * @return std::unique_ptr to device vector containing ARI values
  */
-template <typename T>
-auto ari_core(const T* parts, 
-         const size_t n_features,
-         const size_t n_parts,
-         const size_t n_objs) -> std::vector<float> {
-    /*
-     * Notes for future bug fixing and optimization
-     */
-    // 1. GPU memory is not enough to store the partitions -> split the partitions into smaller chunks and do stream processing
+template <typename T, typename R>
+auto ari_core_device(const T *parts,
+                     const size_t n_features,
+                     const size_t n_parts,
+                     const size_t n_objs) -> std::unique_ptr<thrust::device_vector<R>>
+{
 
     // Input validation
-    if (!parts || n_features == 0 || n_parts == 0 || n_objs == 0) {
+    if (!parts || n_features == 0 || n_parts == 0 || n_objs == 0)
+    {
         throw std::invalid_argument("Invalid input parameters");
     }
 
     /*
      * Pre-computation
      */
-    // Todo: dynamically query types
+    using parts_dtype = T;
+    using out_dtype = R;
+    const auto n_feature_comp = n_features * (n_features - 1) / 2;
+    const auto n_aris = n_feature_comp * n_parts * n_parts;
+
+    /*
+     * Memory Allocation
+     */
+    // Create device vectors using unique_ptr
+    auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(
+        parts, parts + n_features * n_parts * n_objs);
+    auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(n_aris);
+
+    // Set up CUDA kernel configuration
+    const auto block_size = 256;
+    const auto grid_size = n_aris;
+
+    // Define shared memory size for each block
+    const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<parts_dtype>()) + 1;
+    const auto sz_parts_dtype = sizeof(parts_dtype);
+    // Compute shared memory size
+    // FIXME: Partition pair size should be fixed. Stream processing should be used for large input
+    // NOTE: Use global memory to fix the issue for now and then optimize with shared memory
+    // auto s_mem_size = 2 * n_objs * sz_parts_dtype;  // For the partition pair to be compared
+    auto s_mem_size = 0;
+    s_mem_size += k * k * sz_parts_dtype;       // For contingency matrix
+    s_mem_size += 2 * n_parts * sz_parts_dtype; // For the internal sum arrays
+    s_mem_size += 4 * sz_parts_dtype;           // For the 2 x 2 confusion matrix
+
+    // Check if shared memory size exceeds device limits
+    if (!check_shared_memory_size(s_mem_size))
+    {
+        throw std::runtime_error("Required shared memory exceeds device limits");
+    }
+
+    /*
+     * Launch the kernel
+     */
+    ari<<<grid_size, block_size, s_mem_size>>>(
+        thrust::raw_pointer_cast(d_parts->data()),
+        n_aris,
+        n_features,
+        n_parts,
+        n_objs,
+        n_parts * n_objs,
+        n_parts * n_parts,
+        k,
+        thrust::raw_pointer_cast(d_out->data()));
+
+    return d_out;
+}
+
+/**
+ * @brief Internal lower-level ARI computation
+ * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
+ * @throws std::invalid_argument if "parts" is invalid
+ * @return std::vector<float> ARI values for each pair of partitions
+ */
+template <typename T>
+auto ari_core(const T *parts,
+              const size_t n_features,
+              const size_t n_parts,
+              const size_t n_objs) -> std::vector<float>
+{
+    /*
+     * Pre-computation
+     */
     using parts_dtype = T;
     using out_dtype = float;
-    // Compute internal variables
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
@@ -473,57 +525,17 @@ auto ari_core(const T* parts,
      */
     // Allocate host memory
     thrust::host_vector<out_dtype> h_out(n_aris);
-    thrust::host_vector<parts_dtype> h_parts_pairs(n_aris * 2 * n_objs);
-    // Allocate device memory with thrust
-    // const int* parts_raw = parts[0][0].data();
-    thrust::device_vector<parts_dtype> d_parts(parts, parts + n_features * n_parts * n_objs);   // data is copied to device
-    thrust::device_vector<out_dtype> d_out(n_aris);
+    // thrust::host_vector<parts_dtype> h_parts_pairs(n_aris * 2 * n_objs);
 
-    // Set up CUDA kernel configuration
-    const auto block_size = 256; // Todo: query device for max threads per block, older devices only support 512 threads per 1D block
-    // Each block is responsible for one ARI computation
-    const auto grid_size = n_aris;
+    // Call the device function ari_core_device
+    auto d_out = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs);
 
-    // Define shared memory size for each block
-    // Compute k, the maximum value in d_parts + 1, used for shared memory allocation later
-    const auto k = thrust::reduce(d_parts.begin(), d_parts.end(), -1, thrust::maximum<parts_dtype>()) + 1;
-    const auto sz_parts_dtype = sizeof(parts_dtype);
-    // Compute shared memory size
-    // FIXME: Partition pair size should be fixed. Stream processing should be used for large input
-    // NOTE: Use global memory to fix the issue for now and then optimize with shared memory
-    // auto s_mem_size = 2 * n_objs * sz_parts_dtype;  // For the partition pair to be compared
-    auto s_mem_size = 0;
-    s_mem_size += k * k * sz_parts_dtype;           // For contingency matrix
-    s_mem_size += 2 * n_parts * sz_parts_dtype;     // For the internal sum arrays
-    s_mem_size += 4 * sz_parts_dtype;               // For the 2 x 2 confusion matrix
-
-    // Check if shared memory size exceeds device limits
-    if (!check_shared_memory_size(s_mem_size)) {
-        throw std::runtime_error("Required shared memory exceeds device limits");
-    }
-    
-    /*
-     * Launch the kernel
-     */
-    ari<<<grid_size, block_size, s_mem_size>>>(
-        thrust::raw_pointer_cast(d_parts.data()),
-        n_aris,
-        n_features,
-        n_parts,
-        n_objs,
-        n_parts * n_objs,
-        n_parts * n_parts,
-        k,
-        thrust::raw_pointer_cast(d_out.data()));
-    
-    // Copy data back to host
-    thrust::copy(d_out.begin(), d_out.end(), h_out.begin());
+    // Copy data back to host using -> operator since d_out is a unique_ptr
+    thrust::copy(d_out->begin(), d_out->end(), h_out.begin());
 
     // Copy data to std::vector
     std::vector<out_dtype> res;
     thrust::copy(h_out.begin(), h_out.end(), std::back_inserter(res));
-
-    // Free device memory
 
     // Return the ARI values
     return res;
@@ -536,10 +548,11 @@ auto ari_core(const T* parts,
  * @return std::vector<float> ARI values for each pair of partitions
  */
 template <typename T>
-auto ari(const py::array_t<T, py::array::c_style>& parts, 
-             const size_t n_features,
-             const size_t n_parts,
-             const size_t n_objs) -> std::vector<float> {
+auto ari(const py::array_t<T, py::array::c_style> &parts,
+         const size_t n_features,
+         const size_t n_parts,
+         const size_t n_objs) -> std::vector<float>
+{
     // Edge cases:
     // 1. GPU memory is not enough to store the partitions -> split the partitions into smaller chunks and do stream processing
 
@@ -558,11 +571,45 @@ auto ari(const py::array_t<T, py::array::c_style>& parts,
     auto result = py::array_t<T>(buffer.size);
 
     // Obtain numpy.ndarray data pointer
-    const auto parts_ptr = static_cast<T*>(buffer.ptr);
+    const auto parts_ptr = static_cast<T *>(buffer.ptr);
 
     return ari_core(parts_ptr, n_features, n_parts, n_objs);
 }
 
+/**
+ * @brief API exposed to Python for computing ARI using CUDA upon a 3D Numpy NDArray of partitions
+ * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_parts, n_objs)
+ * @throws std::invalid_argument if "parts" is invalid
+ * @return float ARI value for each pair of partitions
+ */
+template <typename T>
+auto ari_reduced(const py::array_t<T, py::array::c_style> &parts,
+                 const size_t n_features,
+                 const size_t n_parts,
+                 const size_t n_objs) -> float
+{
+    // Edge cases:
+    // 1. GPU memory is not enough to store the partitions -> split the partitions into smaller chunks and do stream processing
+
+    // Input processing
+    // Request a buffer descriptor from Python
+    py::buffer_info buffer = parts.request();
+
+    // Some basic validation checks ...
+    if (buffer.format != py::format_descriptor<T>::format())
+        throw std::runtime_error("Incompatible format: expected an int array!");
+
+    if (buffer.ndim != 3)
+        throw std::runtime_error("Incompatible buffer dimension!");
+
+    // Apply resources
+    auto result = py::array_t<T>(buffer.size);
+
+    // Obtain numpy.ndarray data pointer
+    const auto parts_ptr = static_cast<T *>(buffer.ptr);
+
+    return ari_core(parts_ptr, n_features, n_parts, n_objs);
+}
 
 // Below is the explicit instantiation of the ari template function.
 //
@@ -571,5 +618,5 @@ auto ari(const py::array_t<T, py::array::c_style>& parts,
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
 
-template auto ari<int>(const py::array_t<int, py::array::c_style>& parts, const size_t n_features, const size_t n_parts, const size_t n_objs) -> std::vector<float>;
-template auto ari_core<int>(const int* parts, const size_t n_features, const size_t n_parts, const size_t n_objs) -> std::vector<float>;
+template auto ari<int>(const py::array_t<int, py::array::c_style> &parts, const size_t n_features, const size_t n_parts, const size_t n_objs) -> std::vector<float>;
+template auto ari_core<int>(const int *parts, const size_t n_features, const size_t n_parts, const size_t n_objs) -> std::vector<float>;
