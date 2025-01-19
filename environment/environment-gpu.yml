@@ -4,20 +4,21 @@ channels:
   - conda-forge
   - nvidia
 dependencies:
-  - rapids=24.08
   - cuda-version>=12.0,<=12.5
   - cupy=13.*
+  - minepy
   - pip
   - python=3.10
-  - minepy
+  - rapids=24.08
   - pip:
-    - sphinx==8.*
-    - numba==0.60.*
-    - pytest==8.*
-    - pybind11==2.*
     - ipython==8.*
-    - seaborn==0.13.*
-    - upsetplot==0.9.*
-    - numpy==2.*
     - numba==0.60.*
+    - numpy==1.25.*
+    - pandas==1.3.*
     - pre-commit
+    - pybind11==2.*
+    - pytest==8.*
+    - scipy==1.15.*
+    - seaborn==0.13.*
+    - sphinx==8.*
+    - upsetplot==0.9.*

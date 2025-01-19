@@ -6,7 +6,7 @@
 ### How to set up the development environment
 At the root of the repository, run:
 ```
-conda env create -f environment-gpu.yml
+conda env create -f environment/environment-gpu.yml
 ```
 
 ### How to activate the development environment
