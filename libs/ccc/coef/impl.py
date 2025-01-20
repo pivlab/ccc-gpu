@@ -165,6 +165,55 @@ def get_feature_parts(params):
         A 2d array with the partitions (rows) for the selected features and number of
         clusters.
     """
+    # Let's say we have:
+    # 2 features: one numerical (temperature) and one categorical (color)
+    # 3 data points
+    # Want to try k=2 and k=3 clusters
+    # Example setup
+    # X = [
+    #     np.array([20, 25, 30]),         # temperature (numerical)
+    #     np.array(['red', 'blue', 'red']) # color (categorical)
+    # ]
+    # X_numerical_type = [True, False]  # temperature is numerical, color is categorical
+
+    # # This would create params like this:
+    # params = [
+    #     # Chunk 1 (temperature feature)
+    #     [
+    #         (
+    #             (0, 0, 2),              # (feature_idx=0, cluster_idx=0, k=2)
+    #             np.array([20, 25, 30]),  # temperature data
+    #             True                     # is numerical
+    #         ),
+    #         (
+    #             (0, 1, 3),              # (feature_idx=0, cluster_idx=1, k=3)
+    #             np.array([20, 25, 30]),  # temperature data
+    #             True                     # is numerical
+    #         )
+    #     ],
+    #     # Chunk 2 (color feature)
+    #     [
+    #         (
+    #             (1, 0, 2),                           # (feature_idx=1, cluster_idx=0, k=2)
+    #             np.array(['red', 'blue', 'red']),    # color data
+    #             False                                # is categorical
+    #         ),
+    #         (
+    #             (1, 1, 3),                           # (feature_idx=1, cluster_idx=1, k=3)
+    #             np.array(['red', 'blue', 'red']),    # color data
+    #             False                                # is categorical
+    #         )
+    #     ]
+    # ]
+
+    # # The function would process this and might return something like:
+    # parts = [
+    #     [0, 1, 1],    # temperature split into 2 clusters
+    #     [0, 1, 2],    # temperature split into 3 clusters
+    #     [0, 1, 0],    # color split into 2 clusters (categorical)
+    #     [-1, -1, -1]  # ignored because categorical features only need one partition
+    # ]
+    
     n_objects = params[0][1].shape[0]
     parts = np.zeros((len(params), n_objects), dtype=np.int16) - 1
 
@@ -726,20 +775,65 @@ def ccc(
             n_workers,
             n_chunks_threads_ratio,
         )
+        # For example, if you have:
+        # 2 features (n_features = 2)
+        # range_n_clusters = [2, 3, 4]
+        # You'll get pairs like:
+        # [
+        #     (0, 0, 2),  # (feature 0, first k, k=2)
+        #     (0, 1, 3),  # (feature 0, second k, k=3)
+        #     (0, 2, 4),  # (feature 0, third k, k=4)
+        #     (1, 0, 2),  # (feature 1, first k, k=2)
+        #     (1, 1, 3),  # (feature 1, second k, k=3)
+        #     (1, 2, 4)   # (feature 1, third k, k=4)
+        # ]
 
-        # then, flatten the list of features-k pairs into a list that is divided into
+        # then, flatten the list of features-k tuples into a list that is divided into
         # chunks that will be used to parallelize the partitioning step.
         inputs = [
             [
                 (
-                    feature_k_pair,
-                    X[feature_k_pair[0]],
-                    X_numerical_type[feature_k_pair[0]],
+                    feature_k_pair, # Original (f_idx, c_idx, k) tuple
+                    X[feature_k_pair[0]], # Actual feature data using f_idx
+                    X_numerical_type[feature_k_pair[0]], # Data type info for this feature
                 )
                 for feature_k_pair in chunk
             ]
             for chunk in inputs
         ]
+        # Let's say we have:
+        # 2 features (indices 0, 1)
+        # range_n_clusters = [2, 3]
+        # 2 chunks for parallel processing
+        # The inputs would look like this:
+        # inputs = [
+        # Chunk 1
+        #     [
+        #         (
+        #             (0, 0, 2),           # (feature 0, first k, k=2)
+        #             X[0],                # Data for feature 0
+        #             X_numerical_type[0]  # Type info for feature 0
+        #         ),
+        #         (
+        #             (0, 1, 3),           # (feature 0, second k, k=3)
+        #             X[0],                # Data for feature 0
+        #             X_numerical_type[0]  # Type info for feature 0
+        #         )
+        #     ],
+        # Chunk 2
+        #     [
+        #         (
+        #             (1, 0, 2),           # (feature 1, first k, k=2)
+        #             X[1],                # Data for feature 1
+        #             X_numerical_type[1]  # Type info for feature 1
+        #         ),
+        #         (
+        #             (1, 1, 3),           # (feature 1, second k, k=3)
+        #             X[1],                # Data for feature 1
+        #             X_numerical_type[1]  # Type info for feature 1
+        #         )
+        #     ]
+        # ]
 
         for params, ps in zip(inputs, map_func(get_feature_parts, inputs)):
             # get the set of feature indexes and cluster indexes
@@ -786,7 +880,7 @@ def ccc(
         ]
 
         for params, (max_ari_list, max_part_idx_list, pvalues) in zip(
-            inputs, map_func(compute_coef, inputs)
+            inputs, map_func(compute_coef, inputs) # Apply compute_coef to each input
         ):
             f_idx = params[0]
 
