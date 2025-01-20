@@ -191,5 +191,3 @@ def test_ccc_gpu_2d_simple(seed: int, shape: Tuple[int, int]):
     assert np.allclose(
         c1, c2, rtol=1e-5, atol=1e-5
     ), f"Results differ for shape={shape}, seed={seed}"
-
-    return gpu_time, cpu_time
