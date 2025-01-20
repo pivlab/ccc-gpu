@@ -16,8 +16,7 @@
  * @endcode
  */
 
-#ifndef CCC_CUDA_EXT_UTILS_CUH
-#define CCC_CUDA_EXT_UTILS_CUH
+#pragma once
 
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -170,5 +169,3 @@ inline size_t getMaxSharedMemoryPerBlock(int device_id = 0)
 // - Device property queries
 // - Stream management utilities
 // - Kernel launch helpers
-
-#endif // CCC_CUDA_EXT_UTILS_CUH
