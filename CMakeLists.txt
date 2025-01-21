@@ -44,7 +44,7 @@ enable_testing()
 # Function to automatically add tests from a directory
 function(add_tests_from_directory TEST_DIR)
     # Find all test files in the directory
-    file(GLOB_RECURSE TEST_FILES 
+    file(GLOB_RECURSE TEST_FILES
         "${TEST_DIR}/*_test.cpp"    # Files ending with _test.cpp
         "${TEST_DIR}/*_tests.cpp"   # Files ending with _tests.cpp
         "${TEST_DIR}/test_*.cpp"    # Files starting with test_
@@ -54,15 +54,15 @@ function(add_tests_from_directory TEST_DIR)
     foreach(TEST_FILE ${TEST_FILES})
         # Get the filename without extension
         get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-        
+
         # Create an executable for this test
-        add_executable(${TEST_NAME} ${TEST_FILE} ${CUDA_EXT_DIR}/metrics.cu)
+        add_executable(${TEST_NAME} ${TEST_FILE} ${CUDA_EXT_DIR}/metrics.cu ${CUDA_EXT_DIR}/coef.cu)
 
         # target_include_directories(${TEST_NAME} PRIVATE
         #     ${PROJECT_INCLUDE_DIR}  # Add this line
         #     ${Python_INCLUDE_DIRS}
         # )
-        
+
         # Link against gtest and your project libraries
         target_link_libraries(${TEST_NAME} PRIVATE
             GTest::gtest_main
@@ -76,7 +76,7 @@ function(add_tests_from_directory TEST_DIR)
 
         # Add the test to CTest
         add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
-        
+
         # Set test properties (optional)
         # Set test properties (optional)
         set_tests_properties(${TEST_NAME} PROPERTIES
@@ -95,6 +95,11 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 
 # Set up binding then do compilation and installation
-pybind11_add_module(${CUDA_EXT_MODULE_NAME} ${CUDA_EXT_DIR}/binder.cu ${CUDA_EXT_DIR}/metrics.cu)
+pybind11_add_module(${CUDA_EXT_MODULE_NAME}
+    ${CUDA_EXT_DIR}/binder.cu
+    ${CUDA_EXT_DIR}/metrics.cu
+    ${CUDA_EXT_DIR}/coef.cu
+)
+
 
 install(TARGETS ${CUDA_EXT_MODULE_NAME} LIBRARY DESTINATION .)
