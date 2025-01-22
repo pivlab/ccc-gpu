@@ -22,7 +22,7 @@ auto ari_core(const T* parts,
 
 // Declaration of the device function
 template <typename T, typename R>
-auto ari_core_device(const T *parts,
+auto ari_core_device(const py::array_t<int, py::array::c_style> &parts,
                     const size_t n_features,
                     const size_t n_parts,
                     const size_t n_objs) -> std::unique_ptr<thrust::device_vector<R>>;

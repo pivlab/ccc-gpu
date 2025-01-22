@@ -42,6 +42,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+# include_directories("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
+
 # Setup Gtest
 enable_testing()
 # Function to automatically add tests from a directory
