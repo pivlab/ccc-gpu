@@ -24,7 +24,7 @@ int main() {
 
         // Call the ccc function
         py::object result = ccc_module.attr("adjusted_rand_index")(np_part0, np_part1);
-        
+
         // Convert result to C++ double
         const auto correlation = result.cast<double>();
 

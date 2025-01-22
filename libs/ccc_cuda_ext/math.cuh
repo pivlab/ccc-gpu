@@ -36,8 +36,8 @@ __device__ __host__ inline void unravel_index(unsigned int flat_idx, unsigned in
                                               unsigned int &row, unsigned int &col)
 {
     // change int to uint32_t
-    *row = flat_idx / num_cols; // Compute row index
-    *col = flat_idx % num_cols; // Compute column index
+    row = flat_idx / num_cols; // Compute row index
+    col = flat_idx % num_cols; // Compute column index
 }
 
 /**
@@ -73,7 +73,7 @@ __device__ __host__ inline void get_coords_from_index(unsigned int n_obj, unsign
     float discriminant = b * b - 8 * idx;
     float x_float = floor((-b - sqrt(discriminant)) / 2);
     // Assign the integer part of 'x'
-    *x = static_cast<int>(x_float);
+    x = static_cast<int>(x_float);
     // Calculate 'y' based on 'x' and the index
-    *y = static_cast<int>(idx + (*x) * (b + (*x) + 2) / 2 + 1);
+    y = static_cast<int>(idx + (x) * (b + (x) + 2) / 2 + 1);
 }

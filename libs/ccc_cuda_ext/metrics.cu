@@ -501,6 +501,37 @@ auto ari_core_device(const T *parts,
 }
 
 /**
+ * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device
+ * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
+ * @throws std::invalid_argument if "parts" is invalid
+ * @return std::unique_ptr to thrust device vector containing ARI values
+ */
+template <typename T, typename R>
+auto ari_core_device(const py::array_t<int, py::array::c_style> &parts,
+                     const size_t n_features,
+                     const size_t n_parts,
+                     const size_t n_objs) -> std::unique_ptr<thrust::device_vector<R>>
+{
+    // Request a buffer descriptor from Python
+    py::buffer_info buffer = parts.request();
+
+    // Some basic validation checks ...
+    if (buffer.format != py::format_descriptor<T>::format())
+        throw std::runtime_error("Incompatible format: expected an int array!");
+
+    if (buffer.ndim != 3)
+        throw std::runtime_error("Incompatible buffer dimension!");
+
+    // Apply resources
+    auto result = py::array_t<T>(buffer.size);
+
+    // Obtain numpy.ndarray data pointer
+    const auto parts_ptr = static_cast<T *>(buffer.ptr);
+
+    return ari_core_device<T, R>(parts_ptr, n_features, n_parts, n_objs);
+}
+
+/**
  * @brief Internal lower-level ARI computation
  * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
  * @throws std::invalid_argument if "parts" is invalid
@@ -631,7 +662,7 @@ template auto ari_core<int>(
     const size_t n_objs) -> std::vector<float>;
 
 template auto ari_core_device<int, float>(
-    const int *parts,
+    const py::array_t<int, py::array::c_style> &parts,
     const size_t n_features,
     const size_t n_parts,
     const size_t n_objs) -> std::unique_ptr<thrust::device_vector<float>>;

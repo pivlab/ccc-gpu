@@ -128,4 +128,4 @@ template auto compute_coef<int>(const py::array_t<int, py::array::c_style> &part
                                 const size_t n_parts,
                                 const size_t n_objs,
                                 const bool return_parts,
-                                std::optional<unsigned int> pvalue_n_perms = std::nullopt) -> py::object;
+                                std::optional<unsigned int> pvalue_n_perms) -> py::object;
