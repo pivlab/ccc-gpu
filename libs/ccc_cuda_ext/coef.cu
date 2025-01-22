@@ -45,15 +45,12 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     const auto d_aris = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs);
 
     // Allocate host memory
-    std::vector<out_dtype> h_aris;
+    std::vector<out_dtype> h_aris(n_aris);
     std::vector<out_dtype> cm_values(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
     std::vector<out_dtype> cm_pvalues(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
     std::vector<unsigned int> max_parts(n_feature_comp * 2, 0);
-    // Copy the aris to the host
-    thrust::host_vector<out_dtype> h_aris_thrust(n_aris);
-    thrust::copy(d_aris->begin(), d_aris->end(), h_aris_thrust.begin());
-    // Copy the aris to h_aris
-    std::copy(h_aris_thrust.begin(), h_aris_thrust.end(), std::back_inserter(h_aris));
+    // Copy data back to host using -> operator since d_aris is a unique_ptr
+    thrust::copy(d_aris->begin(), d_aris->end(), h_aris.begin());
 
     // Iterate over all feature comparison pairs
     const auto reduce_range = n_objs * n_objs;
@@ -75,16 +72,11 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         max_parts[comp_idx * 2 + 1] = n;
     }
 
-    // Move data from host_vector to std::vector
-    std::vector<out_dtype> cm_values_res(cm_values.begin(), cm_values.end());
-    std::vector<out_dtype> cm_pvalues_res(cm_pvalues.begin(), cm_pvalues.end());
-    std::vector<unsigned int> max_parts_res(max_parts.begin(), max_parts.end());
-
     // Return the results as a tuple
     return py::make_tuple(
-        py::cast(cm_values_res),
-        py::cast(cm_pvalues_res),
-        py::cast(max_parts_res)
+        py::cast(h_aris),
+        py::cast(cm_pvalues),
+        py::cast(max_parts)
     );
 }
 
