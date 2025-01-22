@@ -50,9 +50,8 @@ enable_testing()
 function(add_tests_from_directory TEST_DIR)
     # Find all test files in the directory
     file(GLOB_RECURSE TEST_FILES
-        "${TEST_DIR}/*_test.cpp"    # Files ending with _test.cpp
-        "${TEST_DIR}/*_tests.cpp"   # Files ending with _tests.cpp
-        "${TEST_DIR}/test_*.cpp"    # Files starting with test_
+        "${TEST_DIR}/*_test.cu"    # Files ending with _test.cu
+        "${TEST_DIR}/test_*.cu"    # Files starting with test_
     )
 
     # Loop through each test file
