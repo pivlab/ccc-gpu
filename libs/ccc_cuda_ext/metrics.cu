@@ -430,7 +430,7 @@ extern "C" __global__ void ari(int *parts,
  * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device
  * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
  * @throws std::invalid_argument if "parts" is invalid
- * @return std::unique_ptr to device vector containing ARI values
+ * @return std::unique_ptr to thrust device vector containing ARI values
  */
 template <typename T, typename R>
 auto ari_core_device(const T *parts,
@@ -618,5 +618,20 @@ auto ari_reduced(const py::array_t<T, py::array::c_style> &parts,
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
 
-template auto ari<int>(const py::array_t<int, py::array::c_style> &parts, const size_t n_features, const size_t n_parts, const size_t n_objs) -> std::vector<float>;
-template auto ari_core<int>(const int *parts, const size_t n_features, const size_t n_parts, const size_t n_objs) -> std::vector<float>;
+template auto ari<int>(
+    const py::array_t<int, py::array::c_style> &parts,
+    const size_t n_features,
+    const size_t n_parts,
+    const size_t n_objs) -> std::vector<float>;
+
+template auto ari_core<int>(
+    const int *parts,
+    const size_t n_features,
+    const size_t n_parts,
+    const size_t n_objs) -> std::vector<float>;
+
+template auto ari_core_device<int, float>(
+    const int *parts,
+    const size_t n_features,
+    const size_t n_parts,
+    const size_t n_objs) -> std::unique_ptr<thrust::device_vector<float>>;

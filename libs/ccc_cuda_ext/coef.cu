@@ -1,24 +1,23 @@
 #include <cuda_runtime.h>
-#include <cub/block/block_load.cuh>
 
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
-#include <thrust/extrema.h>
 #include <thrust/reduce.h>
-#include <thrust/functional.h>
 
 #include <iostream>
 #include <cmath>
 #include <limits>
 #include <optional>
-#include <assert.h>
-#include "utils.cuh"
-#include "math.cuh"
-
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 #include <optional>
 #include <vector>
+#include <algorithm>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+#include "coef.cuh"
+#include "metrics.cuh"
+// #include "utils.cuh"
+#include "math.cuh"
 
 namespace py = pybind11;
 
@@ -28,63 +27,71 @@ namespace py = pybind11;
 //  * @throws std::invalid_argument if "parts" is invalid
 //  * @return float ARI value for each pair of partitions
 //  */
-// template <typename T>
-// auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
-//                  const size_t n_features,
-//                  const size_t n_parts,
-//                  const size_t n_objs,
-//                  const bool return_parts,
-//                  std::optional<unsigned int> pvalue_n_perms = std::nullopt) -> void
-// {
-//     /*
-//      * Pre-computation
-//      */
-//     using parts_dtype = T;
-//     using out_dtype = float;
-//     const auto n_feature_comp = n_features * (n_features - 1) / 2;
-//     const auto n_aris = n_feature_comp * n_parts * n_parts;
+template <typename T>
+auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
+                 const size_t n_features,
+                 const size_t n_parts,
+                 const size_t n_objs,
+                 const bool return_parts,
+                 std::optional<unsigned int> pvalue_n_perms) -> py::object
+{
+    // Pre-computation
+    using parts_dtype = T;
+    using out_dtype = float;
+    const auto n_feature_comp = n_features * (n_features - 1) / 2;
+    const auto n_aris = n_feature_comp * n_parts * n_parts;
 
-//     /*
-//      * Memory Allocation
-//      */
-//     // Allocate host memory
-//     thrust::host_vector<out_dtype> h_aris(n_aris);
-//     thrust::host_vector<out_dtype> cm_values(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
-//     thrust::host_vector<out_dtype> cm_pvalues(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
-//     thrust::host_vector<unsigned int> max_parts(n_feature_comp * 2, 0);
+    // Compute the aris across all features
+    const auto d_aris = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs);
 
-//     /*
-//      * Compute the CCC values
-//      */
-//     // Compute the aris across all features
-//     const auto d_aris = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs);
+    // Allocate host memory
+    std::vector<out_dtype> h_aris;
+    std::vector<out_dtype> cm_values(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
+    std::vector<out_dtype> cm_pvalues(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
+    std::vector<unsigned int> max_parts(n_feature_comp * 2, 0);
+    // Copy the aris to the host
+    thrust::host_vector<out_dtype> h_aris_thrust(n_aris);
+    thrust::copy(d_aris->begin(), d_aris->end(), h_aris_thrust.begin());
+    // Copy the aris to h_aris
+    std::copy(h_aris_thrust.begin(), h_aris_thrust.end(), std::back_inserter(h_aris));
 
-//     // Copy the aris to the host
-//     thrust::copy(d_aris->begin(), d_aris->end(), h_aris.begin());
+    // Iterate over all feature comparison pairs
+    const auto reduce_range = n_objs * n_objs;
+    for (unsigned int comp_idx = 0; comp_idx < n_feature_comp; comp_idx++)
+    {
+        const auto reduce_start_idx = comp_idx * reduce_range;
+        const auto reduce_start_iter = h_aris.begin() + reduce_start_idx;
+        const auto reduce_end_iter = h_aris.begin() + reduce_start_idx + reduce_range;
 
-//     const auto reduce_range = n_objs * n_objs;
-//     for (unsigned int comp_idx = 0; comp_idx < n_feature_comp; comp_idx++)
-//     {
-//         const auto reduce_start_idx = comp_idx * reduce_range;
-//         const auto reduce_start_iter = h_aris.begin() + reduce_start_idx;
-//         const auto reduce_end_iter = h_aris.begin() + reduce_start_idx + reduce_range;
+        // Compute the maximum ARI value for the current feature pair
+        const auto max_ari = std::max_element(reduce_start_iter, reduce_end_iter);
+        // Get the flattened index of the maximum ARI value
+        const auto max_part_pair_flat_idx = std::distance(h_aris.begin(), max_ari);
+        cm_values[comp_idx] = *max_ari;
+        // Get the unraveled indices of the partitions
+        unsigned int m, n;
+        unravel_index(max_part_pair_flat_idx, n_parts, m, n);
+        max_parts[comp_idx * 2] = m;
+        max_parts[comp_idx * 2 + 1] = n;
+    }
 
-//         // Compute the maximum ARI value for the current feature pair
-//         const auto max_ari = thrust::reduce(reduce_start_iter, reduce_end_iter, std::numeric_limits<out_dtype>::quiet_NaN(), thrust::maximum<out_dtype>());
-//         // Get the flattened index of the maximum ARI value
-//         const auto max_part_pair_flat_idx = thrust::distance(h_aris.begin(), thrust::max_element(reduce_start_iter, reduce_end_iter));
-//         cm_values[comp_idx] = max_ari;
-//         // Get the unraveled indices of the partitions
-//         unsigned int m, n;
-//         unravel_index(max_part_pair_flat_idx, n_parts, &m, &n);
-//         max_parts[comp_idx * 2] = m;
-//         max_parts[comp_idx * 2 + 1] = n;
-//     }
-// }
+    // Move data from host_vector to std::vector
+    std::vector<out_dtype> cm_values_res(cm_values.begin(), cm_values.end());
+    std::vector<out_dtype> cm_pvalues_res(cm_pvalues.begin(), cm_pvalues.end());
+    std::vector<unsigned int> max_parts_res(max_parts.begin(), max_parts.end());
 
-auto example_return_optional_vectors(bool include_first = true,
-                                        bool include_second = true,
-                                        bool include_third = true) -> py::object{
+    // Return the results as a tuple
+    return py::make_tuple(
+        py::cast(cm_values_res),
+        py::cast(cm_pvalues_res),
+        py::cast(max_parts_res)
+    );
+}
+
+auto example_return_optional_vectors(bool include_first,
+                                        bool include_second,
+                                        bool include_third) -> py::object
+{
     // Example vectors
     std::optional<std::vector<float>> vec1;
     std::optional<std::vector<int>> vec2;
@@ -116,3 +123,9 @@ auto example_return_optional_vectors(bool include_first = true,
 // separate the implementation into a .cpp file to make things clearer. In order to make the compiler know the
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
+template auto compute_coef<int>(const py::array_t<int, py::array::c_style> &parts,
+                                const size_t n_features,
+                                const size_t n_parts,
+                                const size_t n_objs,
+                                const bool return_parts,
+                                std::optional<unsigned int> pvalue_n_perms = std::nullopt) -> py::object;
