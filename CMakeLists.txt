@@ -8,6 +8,9 @@ set(PROJECT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/libs)
 set(CUDA_EXT_MODULE_NAME ccc_cuda_ext)
 set(CUDA_EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs/${CUDA_EXT_MODULE_NAME})
 
+file(GLOB headers ${CUDA_EXT_DIR}/*.cuh)
+file(GLOB sources ${CUDA_EXT_DIR}/*.cu)
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -56,14 +59,13 @@ function(add_tests_from_directory TEST_DIR)
         get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
 
         # Create an executable for this test
-        add_executable(${TEST_NAME} ${TEST_FILE} ${CUDA_EXT_DIR}/metrics.cu ${CUDA_EXT_DIR}/coef.cu)
+        add_executable(${TEST_NAME} ${TEST_FILE} ${headers} ${sources})
 
         # target_include_directories(${TEST_NAME} PRIVATE
         #     ${PROJECT_INCLUDE_DIR}  # Add this line
         #     ${Python_INCLUDE_DIRS}
         # )
 
-        # Link against gtest and your project libraries
         target_link_libraries(${TEST_NAME} PRIVATE
             GTest::gtest_main
             GTest::gtest
