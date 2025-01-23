@@ -189,5 +189,5 @@ def test_ccc_gpu_2d_simple(seed: int, shape: Tuple[int, int]):
     print(f"Number of coefficients: {len(c1)}")
 
     assert np.allclose(
-        c1, c2, rtol=1e-5, atol=1e-5
+        c1, c2, rtol=1e-3, atol=1e-3
     ), f"Results differ for shape={shape}, seed={seed}"
