@@ -73,9 +73,11 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     }
 
     // Return the results as a tuple
+    // TODO: return optional if cm_pvalues is not requested
     return py::make_tuple(
         py::cast(cm_values),
         py::cast(cm_pvalues),
+        // TODO: max_parts should be a 2D array
         py::cast(max_parts));
 }
 

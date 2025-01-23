@@ -62,12 +62,14 @@ def test_example_return_optional_vectors_types():
 @pytest.mark.parametrize(
     "parts, expected_ari",
     [
-        (np.array([[[0, 0, 1, 2]], [[0, 0, 1, 1]]], dtype=np.int32), 0.57),
+        (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 2]]], dtype=np.int32), 0.57),
         (np.array([[[0, 0, 1, 1]], [[0, 1, 0, 1]]], dtype=np.int32), -0.5),
         (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 1]]], dtype=np.int32), 1.0),
         (np.array([[[0, 0, 1, 1]], [[1, 1, 0, 0]]], dtype=np.int32), 1.0),
+        (np.array([[[0, 0, 1, 1]], [[2, 1, 2, 0]]], dtype=np.int32), -0.287),
         (np.array([[[0, 0, 0, 0]], [[0, 1, 2, 3]]], dtype=np.int32), 0.0),
         (np.array([[[0, 1, 0, 1]], [[1, 1, 0, 0]]], dtype=np.int32), -0.5),
+        (np.array([[[1, 1, 0, 0]], [[0, 0, 1, 2]]], dtype=np.int32), 0.57),
     ],
 )
 def test_compute_coef_simple_2_1_4(parts, expected_ari):
@@ -106,3 +108,52 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
     print(res)
     cm_values, cm_pvalues, max_parts = res
     assert np.allclose(cm_values, expected_ari, atol=1e-2)
+
+
+@pytest.mark.parametrize(
+    "parts, expected_ari",
+    [
+        (
+            np.array(
+                [
+                    [[0, 0, 1, 1], [1, 1, 0, 0]],  # Feature 0 with 2 partitions
+                    [[0, 1, 0, 1], [2, 1, 2, 0]],  # Feature 1 with 2 partitions
+                    [[0, 1, 0, 1], [0, 0, 1, 2]],  # Feature 2 with 2 partitions
+                ],
+                dtype=np.int32,
+            ),
+            np.array(
+                [
+                    -0.287,  # Feature 0 vs 1 (partition 0,0)
+                    0.57,  # Feature 0 vs 2 (partition 0,0)
+                    1.0,  # Feature 1 vs 2 (partition 0,1)
+                ]
+            ),
+        ),
+    ],
+)
+def test_compute_coef_simple_3_2_4(parts, expected_ari):
+    """
+    Test case with parts of shape (3, 2, 4), 3 features, 2 partitions, 4 objects
+
+    The test case includes:
+    - Perfect correlation (1.0): Features 0 and 1 with partition 0
+    - Anti-correlation (-0.5): Features 0 and 2 with partition 0
+    - Perfect correlation (1.0): Features 1 and 2 with partition 0
+    """
+    n_features, n_parts, n_objs = parts.shape
+    res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs)
+    print(f"Result: {res}")
+
+    cm_values, cm_pvalues, max_parts = res
+    assert np.allclose(cm_values, expected_ari, atol=1e-2)
+
+    # Check max_parts shape
+    n_feature_comp = n_features * (n_features - 1) / 2
+    # Convert max_parts from list to numpy array
+    max_parts = np.array(max_parts)
+    assert max_parts.shape[0] == n_feature_comp * 2
+
+    # Check that max_parts contains valid partition indices
+    assert np.all(max_parts >= 0)
+    assert np.all(max_parts < n_parts)
