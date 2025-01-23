@@ -38,8 +38,8 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     // Pre-computation
     using parts_dtype = T;
     using out_dtype = float;
-    const auto n_feature_comp = n_features * (n_features - 1) / 2;
-    const auto n_aris = n_feature_comp * n_parts * n_parts;
+    const int n_feature_comp = n_features * (n_features - 1) / 2;
+    const int n_aris = n_feature_comp * n_parts * n_parts;
 
     // Compute the aris across all features
     const auto d_aris = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs);
@@ -52,7 +52,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     // Copy data back to host using -> operator since d_aris is a unique_ptr
     thrust::copy(d_aris->begin(), d_aris->end(), h_aris.begin());
 
-    // Iterate over all feature comparison pairs
+    // Iterate over all feature comparison pairs to perform reduction
     const auto reduce_range = n_parts * n_parts;
     for (unsigned int comp_idx = 0; comp_idx < n_feature_comp; comp_idx++)
     {
@@ -72,13 +72,16 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         max_parts[comp_idx * 2 + 1] = n;
     }
 
+    // Allocate py::array for max_parts
+    py::array_t<unsigned int> max_parts_py = py::array_t<unsigned int>(max_parts.size(), max_parts.data());
+    max_parts_py = max_parts_py.reshape({n_feature_comp, 2});
+
     // Return the results as a tuple
     // TODO: return optional if cm_pvalues is not requested
     return py::make_tuple(
         py::cast(cm_values),
         py::cast(cm_pvalues),
-        // TODO: max_parts should be a 2D array
-        py::cast(max_parts));
+        max_parts_py);
 }
 
 auto example_return_optional_vectors(bool include_first,

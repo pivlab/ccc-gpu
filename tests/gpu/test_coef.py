@@ -111,14 +111,14 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
 
 
 @pytest.mark.parametrize(
-    "parts, expected_ari",
+    "parts, expected_ari, expected_max_parts",
     [
         (
             np.array(
                 [
                     [[0, 0, 1, 1], [1, 1, 0, 0]],  # Feature 0 with 2 partitions
                     [[0, 1, 0, 1], [2, 1, 2, 0]],  # Feature 1 with 2 partitions
-                    [[0, 1, 0, 1], [0, 0, 1, 2]],  # Feature 2 with 2 partitions
+                    [[0, 0, 1, 2], [0, 1, 0, 1]],  # Feature 2 with 2 partitions
                 ],
                 dtype=np.int32,
             ),
@@ -129,31 +129,34 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
                     1.0,  # Feature 1 vs 2 (partition 0,1)
                 ]
             ),
+            np.array(
+                [
+                    [0, 1],
+                    [0, 0],
+                    [0, 1],
+                ],
+                dtype=np.int32,
+            ),
         ),
     ],
 )
-def test_compute_coef_simple_3_2_4(parts, expected_ari):
+def test_compute_coef_simple_3_2_4(parts, expected_ari, expected_max_parts):
     """
     Test case with parts of shape (3, 2, 4), 3 features, 2 partitions, 4 objects
-
-    The test case includes:
-    - Perfect correlation (1.0): Features 0 and 1 with partition 0
-    - Anti-correlation (-0.5): Features 0 and 2 with partition 0
-    - Perfect correlation (1.0): Features 1 and 2 with partition 0
     """
     n_features, n_parts, n_objs = parts.shape
     res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs)
-    print(f"Result: {res}")
 
     cm_values, cm_pvalues, max_parts = res
     assert np.allclose(cm_values, expected_ari, atol=1e-2)
 
     # Check max_parts shape
-    n_feature_comp = n_features * (n_features - 1) / 2
+    n_feature_comp = int(n_features * (n_features - 1) / 2)
     # Convert max_parts from list to numpy array
     max_parts = np.array(max_parts)
-    assert max_parts.shape[0] == n_feature_comp * 2
+    assert max_parts.shape == (n_feature_comp, 2)
 
     # Check that max_parts contains valid partition indices
     assert np.all(max_parts >= 0)
     assert np.all(max_parts < n_parts)
+    assert np.all(max_parts == expected_max_parts)
