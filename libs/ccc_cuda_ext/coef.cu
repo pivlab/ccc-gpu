@@ -23,15 +23,15 @@ namespace py = pybind11;
 
 // /**
 //  * @brief API exposed to Python for computing the correlation coefficient and p values using CUDA
-//  * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_parts, n_objs)
+//  * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_clusters, n_objects)
 //  * @throws std::invalid_argument if "parts" is invalid
 //  * @return float ARI value for each pair of partitions
 //  */
 template <typename T>
 auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const size_t n_features,
-                  const size_t n_parts,
-                  const size_t n_objs,
+                  const size_t n_clusters,
+                  const size_t n_objects,
                   const bool return_parts,
                   std::optional<unsigned int> pvalue_n_perms) -> py::object
 {
@@ -39,10 +39,10 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     using parts_dtype = T;
     using out_dtype = float;
     const int n_feature_comp = n_features * (n_features - 1) / 2;
-    const int n_aris = n_feature_comp * n_parts * n_parts;
+    const int n_aris = n_feature_comp * n_clusters * n_clusters;
 
     // Compute the aris across all features
-    const auto d_aris = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs);
+    const auto d_aris = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_clusters, n_objects);
 
     // Allocate host memory
     std::vector<out_dtype> h_aris(n_aris);
@@ -53,7 +53,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     thrust::copy(d_aris->begin(), d_aris->end(), h_aris.begin());
 
     // Iterate over all feature comparison pairs to perform reduction
-    const auto reduce_range = n_parts * n_parts;
+    const auto reduce_range = n_clusters * n_clusters;
     for (unsigned int comp_idx = 0; comp_idx < n_feature_comp; comp_idx++)
     {
         const auto reduce_start_idx = comp_idx * reduce_range;
@@ -67,7 +67,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         cm_values[comp_idx] = *max_ari;
         // Get the unraveled indices of the partitions
         unsigned int m, n;
-        unravel_index(max_part_pair_flat_idx, n_parts, m, n);
+        unravel_index(max_part_pair_flat_idx, n_clusters, m, n);
         max_parts[comp_idx * 2] = m;
         max_parts[comp_idx * 2 + 1] = n;
     }
@@ -123,7 +123,7 @@ auto example_return_optional_vectors(bool include_first,
 // by the linker.
 template auto compute_coef<int>(const py::array_t<int, py::array::c_style> &parts,
                                 const size_t n_features,
-                                const size_t n_parts,
-                                const size_t n_objs,
+                                const size_t n_clusters,
+                                const size_t n_objects,
                                 const bool return_parts,
                                 std::optional<unsigned int> pvalue_n_perms) -> py::object;
