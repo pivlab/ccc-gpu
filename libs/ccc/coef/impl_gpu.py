@@ -1,13 +1,15 @@
 """
 Contains function that implement the Clustermatch Correlation Coefficient (CCC).
 """
+
 from __future__ import annotations
 
 import os
+import numpy as np
+import ccc_cuda_ext
+
 from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
 from typing import Iterable, Union
-
-import numpy as np
 from numpy.typing import NDArray
 from numba import njit
 from numba.typed import List
@@ -15,7 +17,7 @@ from numba.typed import List
 from ccc.pytorch.core import unravel_index_2d
 from ccc.sklearn.metrics import adjusted_rand_index as ari
 from ccc.scipy.stats import rank
-from ccc.utils import chunker, DummyExecutor
+from ccc.utils import chunker
 
 
 @njit(cache=True, nogil=True)
@@ -732,14 +734,15 @@ def ccc(
 
     # get matrix of partitions for each object pair
     range_n_clusters = get_range_n_clusters(n_objects, internal_n_clusters)
+    n_clusters = range_n_clusters.shape[0]
 
-    if range_n_clusters.shape[0] == 0:
+    if n_clusters == 0:
         raise ValueError(f"Data has too few objects: {n_objects}")
 
     # store a set of partitions per row (object) in X as a multidimensional
     # array, where the second dimension is the number of partitions per object.
     parts = (
-        np.zeros((n_features, range_n_clusters.shape[0], n_objects), dtype=np.int16) - 1
+        np.zeros((n_features, n_clusters, n_objects), dtype=np.int16) - 1
     )
 
     # cm_values stores the CCC coefficients
@@ -850,43 +853,55 @@ def ccc(
         # we have several feature pairs to compare), because parallelization is
         # already performed at this level. Otherwise, more threads than
         # specified by the user are started.
-        map_func = map
-        cdist_executor = False
-        inner_executor = DummyExecutor()
+        
+        #
+        # The following code is commented out because it's not used in the current implementation
+        #
+        
+        # map_func = map
+        # cdist_executor = False
+        # inner_executor = DummyExecutor()
 
-        if n_workers > 1:
-            if n_features_comp == 1:
-                map_func = map
-                cdist_executor = executor
-                inner_executor = pexecutor
+        # if n_workers > 1:
+        #     if n_features_comp == 1:
+        #         map_func = map
+        #         cdist_executor = executor
+        #         inner_executor = pexecutor
 
-            else:
-                map_func = pexecutor.map
+        #     else:
+        #         map_func = pexecutor.map
 
-        # iterate over all chunks of object pairs and compute the coefficient
-        inputs = get_chunks(n_features_comp, n_workers, n_chunks_threads_ratio)
-        inputs = [
-            (
-                i,
-                n_features,
-                parts,
-                pvalue_n_perms,
-                n_workers,
-                n_chunks_threads_ratio,
-                cdist_executor,
-                inner_executor,
-            )
-            for i in inputs
-        ]
+        # # iterate over all chunks of object pairs and compute the coefficient
+        # inputs = get_chunks(n_features_comp, n_workers, n_chunks_threads_ratio)
+        # inputs = [
+        #     (
+        #         i,
+        #         n_features,
+        #         parts,
+        #         pvalue_n_perms,
+        #         n_workers,
+        #         n_chunks_threads_ratio,
+        #         cdist_executor,
+        #         inner_executor,
+        #     )
+        #     for i in inputs
+        # ]
 
-        for params, (max_ari_list, max_part_idx_list, pvalues) in zip(
-            inputs, map_func(compute_coef, inputs) # Apply compute_coef to each input
-        ):
-            f_idx = params[0]
+        # for params, (max_ari_list, max_part_idx_list, pvalues) in zip(
+        #     inputs, map_func(compute_coef, inputs) # Apply compute_coef to each input
+        # ):
+        #     f_idx = params[0]
 
-            cm_values[f_idx] = max_ari_list
-            max_parts[f_idx, :] = max_part_idx_list
-            cm_pvalues[f_idx] = pvalues
+        #     cm_values[f_idx] = max_ari_list
+        #     max_parts[f_idx, :] = max_part_idx_list
+        #     cm_pvalues[f_idx] = pvalues
+        
+        #
+        # The commented code above is the original implementation of the CCC coefficient calculation.
+        #
+    
+    coef = ccc_cuda_ext.compute_coef(parts, n_features, n_clusters, n_objects, return_parts, pvalue_n_perms)
+    cm_values, cm_pvalues, max_parts = coef
 
     # return an array of values or a single scalar, depending on the input data
     if cm_values.shape[0] == 1:
