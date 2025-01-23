@@ -59,7 +59,6 @@ def test_example_return_optional_vectors_types():
     )  # third vector should be doubles/floats
 
 
-# Test cases taken from sklearn.metrics.adjusted_rand_score
 @pytest.mark.parametrize(
     "parts, expected_ari",
     [
@@ -68,10 +67,42 @@ def test_example_return_optional_vectors_types():
         (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 1]]], dtype=np.int32), 1.0),
         (np.array([[[0, 0, 1, 1]], [[1, 1, 0, 0]]], dtype=np.int32), 1.0),
         (np.array([[[0, 0, 0, 0]], [[0, 1, 2, 3]]], dtype=np.int32), 0.0),
+        (np.array([[[0, 1, 0, 1]], [[1, 1, 0, 0]]], dtype=np.int32), -0.5),
     ],
 )
-def test_simple_ari_results(parts, expected_ari):
+def test_compute_coef_simple_2_1_4(parts, expected_ari):
+    """
+    Test case with parts of shape (2, 1, 4), 2 features, 1 part, 4 objects
+    """
+    n_features, n_parts, n_objs = parts.shape
+    res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs)
+    cm_values, cm_pvalues, max_parts = res
+    assert np.isclose(cm_values[0], expected_ari, atol=1e-2)
+
+
+@pytest.mark.parametrize(
+    "parts, expected_ari",
+    [
+        (
+            np.array(
+                [
+                    [[0, 0, 1, 1]],
+                    [[0, 0, 1, 1]],
+                    [[0, 1, 0, 1]],
+                    [[1, 1, 0, 0]],
+                ],
+                dtype=np.int32,
+            ),
+            np.array([1.0, -0.5, 1.0, -0.5, 1.0, -0.5]),
+        ),
+    ],
+)
+def test_compute_coef_simple_4_1_4(parts, expected_ari):
+    """
+    Test case with parts of shape (4, 1, 4), 4 features, 1 part, 4 objects
+    """
     n_features, n_parts, n_objs = parts.shape
     res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs)
     print(res)
-    assert np.isclose(res[0][0], expected_ari, atol=1e-2)
+    cm_values, cm_pvalues, max_parts = res
+    assert np.allclose(cm_values, expected_ari, atol=1e-2)
