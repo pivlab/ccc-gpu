@@ -29,11 +29,11 @@ namespace py = pybind11;
 //  */
 template <typename T>
 auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
-                 const size_t n_features,
-                 const size_t n_parts,
-                 const size_t n_objs,
-                 const bool return_parts,
-                 std::optional<unsigned int> pvalue_n_perms) -> py::object
+                  const size_t n_features,
+                  const size_t n_parts,
+                  const size_t n_objs,
+                  const bool return_parts,
+                  std::optional<unsigned int> pvalue_n_perms) -> py::object
 {
     // Pre-computation
     using parts_dtype = T;
@@ -53,17 +53,17 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     thrust::copy(d_aris->begin(), d_aris->end(), h_aris.begin());
 
     // Iterate over all feature comparison pairs
-    const auto reduce_range = n_objs * n_objs;
+    const auto reduce_range = n_parts * n_parts;
     for (unsigned int comp_idx = 0; comp_idx < n_feature_comp; comp_idx++)
     {
         const auto reduce_start_idx = comp_idx * reduce_range;
         const auto reduce_start_iter = h_aris.begin() + reduce_start_idx;
-        const auto reduce_end_iter = h_aris.begin() + reduce_start_idx + reduce_range;
+        const auto reduce_end_iter = reduce_start_iter + reduce_range;
 
         // Compute the maximum ARI value for the current feature pair
         const auto max_ari = std::max_element(reduce_start_iter, reduce_end_iter);
         // Get the flattened index of the maximum ARI value
-        const auto max_part_pair_flat_idx = std::distance(h_aris.begin(), max_ari);
+        const auto max_part_pair_flat_idx = std::distance(reduce_start_iter, max_ari);
         cm_values[comp_idx] = *max_ari;
         // Get the unraveled indices of the partitions
         unsigned int m, n;
@@ -74,15 +74,14 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 
     // Return the results as a tuple
     return py::make_tuple(
-        py::cast(h_aris),
+        py::cast(cm_values),
         py::cast(cm_pvalues),
-        py::cast(max_parts)
-    );
+        py::cast(max_parts));
 }
 
 auto example_return_optional_vectors(bool include_first,
-                                        bool include_second,
-                                        bool include_third) -> py::object
+                                     bool include_second,
+                                     bool include_third) -> py::object
 {
     // Example vectors
     std::optional<std::vector<float>> vec1;
@@ -90,13 +89,16 @@ auto example_return_optional_vectors(bool include_first,
     std::optional<std::vector<double>> vec3;
 
     // Fill vectors if included
-    if (include_first) {
+    if (include_first)
+    {
         vec1 = std::vector<float>{1.0f, 2.0f, 3.0f};
     }
-    if (include_second) {
+    if (include_second)
+    {
         vec2 = std::vector<int>{4, 5, 6};
     }
-    if (include_third) {
+    if (include_third)
+    {
         vec3 = std::vector<double>{7.0, 8.0, 9.0};
     }
 
