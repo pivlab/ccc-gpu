@@ -77,10 +77,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     max_parts_py = max_parts_py.reshape({n_feature_comp, 2});
 
     // Return the results as a tuple
-    // TODO: return optional if cm_pvalues is not requested
     return py::make_tuple(
         py::cast(cm_values),
-        py::cast(cm_pvalues),
+        pvalue_n_perms.has_value() ? py::cast(cm_pvalues) : py::none(),
         max_parts_py);
 }
 
