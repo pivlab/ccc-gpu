@@ -191,3 +191,49 @@ def test_ccc_gpu_2d_simple(seed: int, shape: Tuple[int, int]):
     assert np.allclose(
         c1, c2, rtol=1e-3, atol=1e-3
     ), f"Results differ for shape={shape}, seed={seed}"
+
+
+@pytest.mark.parametrize("seed", [42])
+@pytest.mark.parametrize(
+    "shape",
+    [
+        (5000, 1000),
+    ],
+)
+@pytest.mark.parametrize("n_cpu_cores", [1, 24, 48])
+@clean_gpu_memory
+def test_ccc_gpu_2d_large(seed: int, shape: Tuple[int, int], n_cpu_cores: int):
+    """
+    Test 2D CCC implementation with various data shapes and random seeds.
+
+    Args:
+        seed: Random seed for reproducibility
+        shape: Tuple of (n_features, n_samples)
+    """
+    np.random.seed(seed)
+    print(f"\nTesting with {shape[0]} features, {shape[1]} samples, seed {seed}")
+    df = np.random.rand(*shape)
+
+    # Time GPU version
+    start_gpu = time.time()
+    c1 = ccc_gpu(df)
+    end_gpu = time.time()
+    gpu_time = end_gpu - start_gpu
+
+    # Time CPU version
+    start_cpu = time.time()
+    c2 = ccc(df, n_jobs=n_cpu_cores)
+    end_cpu = time.time()
+    cpu_time = end_cpu - start_cpu
+
+    # Calculate speedup
+    speedup = cpu_time / gpu_time
+
+    print(f"GPU time: {gpu_time:.4f} seconds")
+    print(f"CPU time: {cpu_time:.4f} seconds")
+    print(f"Speedup: {speedup:.2f}x")
+    print(f"Number of coefficients: {len(c1)}")
+
+    assert np.allclose(
+        c1, c2, rtol=1e-3, atol=1e-3
+    ), f"Results differ for shape={shape}, seed={seed}"
