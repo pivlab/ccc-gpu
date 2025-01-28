@@ -35,7 +35,7 @@
  */
 #define CUDA_CHECK(ans, abort)                       \
     {                                                \
-        gpuAssert((ans), __FILE__, __LINE__, abort); \
+        gpu_assert((ans), __FILE__, __LINE__, abort); \
     }
 
 /**
@@ -65,7 +65,7 @@
  * @param line Line number where the error occurred
  * @param abort Whether to terminate the program on error
  */
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
+inline void gpu_assert(cudaError_t code, const char *file, int line, bool abort = true)
 {
     if (code != cudaSuccess)
     {
@@ -88,12 +88,12 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
  * Example:
  * @code
  * int main() {
- *     checkCudaDevice();  // Verify CUDA device availability
+ *     check_cuda_device();  // Verify CUDA device availability
  *     // ... rest of the program
  * }
  * @endcode
  */
-inline void checkCudaDevice()
+inline void check_cuda_device()
 {
     int deviceCount;
     CUDA_CHECK_MANDATORY(cudaGetDeviceCount(&deviceCount));
@@ -119,13 +119,13 @@ inline void checkCudaDevice()
  * Example:
  * @code
  * size_t needed_shared_mem = 1024 * sizeof(float);
- * if (!checkSharedMemorySize(needed_shared_mem)) {
+ * if (!check_shared_memory_size(needed_shared_mem)) {
  *     fprintf(stderr, "Insufficient shared memory available\n");
  *     return false;
  * }
  * @endcode
  */
-inline bool checkSharedMemorySize(const size_t requested_size, int device_id = 0)
+inline bool check_shared_memory_size(const size_t requested_size, int device_id = 0)
 {
     cudaDeviceProp prop;
     CUDA_CHECK_MANDATORY(cudaGetDeviceProperties(&prop, device_id));
@@ -157,7 +157,7 @@ inline bool checkSharedMemorySize(const size_t requested_size, int device_id = 0
  *
  * @throws Exits if unable to query device properties
  */
-inline size_t getMaxSharedMemoryPerBlock(int device_id = 0)
+inline size_t get_max_shared_memory_per_block(int device_id = 0)
 {
     cudaDeviceProp prop;
     CUDA_CHECK_MANDATORY(cudaGetDeviceProperties(&prop, device_id));

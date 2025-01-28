@@ -11,6 +11,7 @@
 #include <cmath>
 #include <assert.h>
 #include "metrics.cuh"
+#include "utils.cuh"
 
 namespace py = pybind11;
 
@@ -20,34 +21,6 @@ namespace py = pybind11;
  * 2. optimized on locality
  * 3. use warp-level reduction
  */
-
-// Todo: Add CudaCheckError
-#define gpuErrorCheck(ans, abort)                    \
-    {                                                \
-        gpuAssert((ans), __FILE__, __LINE__, abort); \
-    }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
-{
-    if (code != cudaSuccess)
-    {
-        fprintf(stderr, "assert: %s %s %d\n", cudaGetErrorString(code), file, line);
-        if (abort)
-        {
-            exit(code);
-        }
-    }
-}
-// // call like this
-// gpuErrorCheck(cudaMalloc(...)); // if fails, print message and continue
-// gpuErrorCheck(cudaMalloc(...), true); // if fails, print message and abort
-
-bool check_shared_memory_size(const size_t s_mem_size)
-{
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    const auto max_shared_mem = prop.sharedMemPerBlock;
-    return s_mem_size <= max_shared_mem;
-}
 
 /**
  * @brief Unravel a flat index to the corresponding 2D indicis
@@ -430,7 +403,7 @@ extern "C" __global__ void ari(int *parts,
  * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device
  * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
  * @throws std::invalid_argument if "parts" is invalid
- * @return std::unique_ptr to thrust device vector containing ARI values
+ * @return std::unique_ptr to thrust device vector containing ARI values with type R
  */
 template <typename T, typename R>
 auto ari_core_device(const T *parts,
@@ -438,6 +411,10 @@ auto ari_core_device(const T *parts,
                      const size_t n_parts,
                      const size_t n_objs) -> std::unique_ptr<thrust::device_vector<R>>
 {
+    /*
+     * Show debugging and device information
+    */
+    printf("Max shared memory per block: %zu bytes\n", get_max_shared_memory_per_block());
 
     // Input validation
     if (!parts || n_features == 0 || n_parts == 0 || n_objs == 0)
@@ -457,15 +434,12 @@ auto ari_core_device(const T *parts,
      * Memory Allocation
      */
     // Create device vectors using unique_ptr
-    auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(
-        parts, parts + n_features * n_parts * n_objs);
+    const auto n_elems = n_features * n_parts * n_objs;
+    auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(parts, parts + n_elems);
     auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(n_aris);
 
-    // Set up CUDA kernel configuration
-    const auto block_size = 256;
-    const auto grid_size = n_aris;
-
     // Define shared memory size for each block
+    // Pre-compute the max value of the partitions
     const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<parts_dtype>()) + 1;
     const auto sz_parts_dtype = sizeof(parts_dtype);
     // Compute shared memory size
@@ -474,7 +448,7 @@ auto ari_core_device(const T *parts,
     // auto s_mem_size = 2 * n_objs * sz_parts_dtype;  // For the partition pair to be compared
     auto s_mem_size = 0;
     s_mem_size += k * k * sz_parts_dtype;       // For contingency matrix
-    s_mem_size += 2 * n_parts * sz_parts_dtype; // For the internal sum arrays
+    s_mem_size += 2 * n_parts * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed
     s_mem_size += 4 * sz_parts_dtype;           // For the 2 x 2 confusion matrix
 
     // Check if shared memory size exceeds device limits
@@ -486,6 +460,9 @@ auto ari_core_device(const T *parts,
     /*
      * Launch the kernel
      */
+    // Set up CUDA kernel configuration
+    const auto block_size = 256;
+    const auto grid_size = n_aris;
     ari<<<grid_size, block_size, s_mem_size>>>(
         thrust::raw_pointer_cast(d_parts->data()),
         n_aris,
@@ -565,8 +542,8 @@ auto ari_core(const T *parts,
     thrust::copy(d_out->begin(), d_out->end(), h_out.begin());
 
     // Copy data to std::vector
-    std::vector<out_dtype> res;
-    thrust::copy(h_out.begin(), h_out.end(), std::back_inserter(res));
+    std::vector<out_dtype> res(n_aris);
+    thrust::copy(h_out.begin(), h_out.end(), res.begin());
 
     // Return the ARI values
     return res;
@@ -591,15 +568,11 @@ auto ari(const py::array_t<T, py::array::c_style> &parts,
     // Request a buffer descriptor from Python
     py::buffer_info buffer = parts.request();
 
-    // Some basic validation checks ...
+    // Some basic validation checks
     if (buffer.format != py::format_descriptor<T>::format())
         throw std::runtime_error("Incompatible format: expected an int array!");
-
     if (buffer.ndim != 3)
         throw std::runtime_error("Incompatible buffer dimension!");
-
-    // Apply resources
-    auto result = py::array_t<T>(buffer.size);
 
     // Obtain numpy.ndarray data pointer
     const auto parts_ptr = static_cast<T *>(buffer.ptr);
