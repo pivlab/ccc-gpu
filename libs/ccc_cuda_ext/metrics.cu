@@ -68,17 +68,18 @@ __device__ __host__ inline void get_coords_from_index(int n_obj, int idx, int *x
  * @brief Compute the contingency matrix for two partitions using shared memory
  * @param[in] part0 Pointer to the first partition array, global memory
  * @param[in] part1 Pointer to the second partition array, global memory
- * @param[in] n Number of elements in each partition array
+ * @param[in] n_objs Number of elements in each partition array
  * @param[out] shared_cont_mat Pointer to shared memory for storing the contingency matrix
  * @param[in] k Maximum number of clusters (size of contingency matrix is k x k)
  */
-__device__ void get_contingency_matrix(int *part0, int *part1, int n, int *shared_cont_mat, int k)
+__device__ void get_contingency_matrix(int *part0, int *part1, int n_objs, int *shared_cont_mat, int k)
 {
     int tid = threadIdx.x;
     int num_threads = blockDim.x;
     int size = k * k;
 
     // Initialize shared memory
+    assert(num_threads >= size);
     for (int i = tid; i < size; i += num_threads)
     {
         shared_cont_mat[i] = 0;
@@ -86,16 +87,14 @@ __device__ void get_contingency_matrix(int *part0, int *part1, int n, int *share
     __syncthreads();
 
     // Process elements with bounds checking
-    for (int i = tid; i < n; i += num_threads)
+    for (int i = tid; i < n_objs; i += num_threads)
     {
         int row = part0[i];
         int col = part1[i];
 
         // Add bounds checking
-        if (row >= 0 && row < k && col >= 0 && col < k)
-        {
-            atomicAdd(&shared_cont_mat[row * k + col], 1);
-        }
+        assert (row >= 0 && row < k && col >= 0 && col < k);
+        atomicAdd(&shared_cont_mat[row * k + col], 1);
     }
     __syncthreads();
 }
@@ -292,12 +291,13 @@ __device__ void get_pair_confusion_matrix(
 
 /**
  * @brief Main ARI kernel. Now only compare a pair of ARIs
+ * @param parts Device pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
+ * @param n_aris Number of ARIs to compute
+ * @param n_features Number of features
  * @param n_parts Number of partitions of each feature
  * @param n_objs Number of objects in each partitions
- * @param n_part_mat_elems Number of elements in the square partition matrix
  * @param n_elems_per_feat Number of elements for each feature, i.e., part[i].x * part[i].y
- * @param parts 3D Array of partitions with shape of (n_features, n_parts, n_objs)
- * @param n_aris Number of ARIs to compute
+ * @param n_part_mat_elems Number of elements in the square partition matrix
  * @param k The max value of cluster number + 1
  * @param out Output array of ARIs
  */
@@ -334,16 +334,29 @@ extern "C" __global__ void ari(int *parts,
     int feature_comp_flat_idx = ari_block_idx / n_part_mat_elems; // flat comparison pair index for two features
     int part_pair_flat_idx = ari_block_idx % n_part_mat_elems;    // flat comparison pair index for two partitions of one feature pair
     int i, j;
-    // unravel the feature indices
+
+    // Unravel the feature indices
+    // For example, if n_features = 3, n_feature_comp = n_features * (n_features - 1) / 2 = 3
+    // The feature indices of the pair being compared are (0, 1), (0, 2), (1, 2)
+    // i.e., the pairs being compared are feature0-feature1, feature0-feature2, feature1-feature2
+    // The range of the flattened index is [0, n_feature_comp - 1] = [0, 2]
+    // Given the flat index, we compute the corresponding feature indices
     get_coords_from_index(n_features, feature_comp_flat_idx, &i, &j);
     assert(i < n_features && j < n_features);
     assert(i >= 0 && j >= 0);
-    // unravel the partition indices
+
+    // Unravel the partition indices within the feature pair
+    // For example, if n_parts = 3, n_part_mat_elems = n_parts * n_parts = 9
+    // The partition indices of the pair being compared are (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)
+    // i.e., the pairs being compared are part0-part1, part0-part2, part1-part0, part1-part1, part1-part2, part2-part0, part2-part1, part2-part2
+    // The range of the flattened index is [0, n_part_mat_elems - 1] = [0, 8]
+    // Given the flat index, we compute the corresponding partition indices
     int m, n;
     unravel_index(part_pair_flat_idx, n_parts, &m, &n);
-    // Make pointers to select the parts and unique counts for the feature pair
+    // Make pointers to select the partitions from `parts` and unique counts for the feature pair
     // Todo: Use int4*?
-    int *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs; // t_ for thread
+    // Prefix `t_` for data hold by a thread
+    int *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
     int *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
 
     // Load gmem data into smem by using different threads
@@ -448,7 +461,7 @@ auto ari_core_device(const T *parts,
     // auto s_mem_size = 2 * n_objs * sz_parts_dtype;  // For the partition pair to be compared
     auto s_mem_size = 0;
     s_mem_size += k * k * sz_parts_dtype;       // For contingency matrix
-    s_mem_size += 2 * n_parts * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed
+    s_mem_size += 2 * n_parts * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed?
     s_mem_size += 4 * sz_parts_dtype;           // For the 2 x 2 confusion matrix
 
     // Check if shared memory size exceeds device limits
@@ -461,8 +474,8 @@ auto ari_core_device(const T *parts,
      * Launch the kernel
      */
     // Set up CUDA kernel configuration
-    const auto block_size = 256;
-    const auto grid_size = n_aris;
+    const auto block_size = 256;    // FIXME: should be scaled on different GPUs
+    const auto grid_size = n_aris;  // Each logical block is responsible for one ARI computation
     ari<<<grid_size, block_size, s_mem_size>>>(
         thrust::raw_pointer_cast(d_parts->data()),
         n_aris,
