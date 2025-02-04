@@ -1517,7 +1517,7 @@ def test_cm_two_features_input_with_n_jobs_using_process_for_partitioning():
     elapsed_time_single_thread = time.time() - start_time
 
     start_time = time.time()
-    res1 = ccc(x, y, n_jobs=2, partitioning_executor="process")
+    res1 = ccc(x, y, n_jobs=4, partitioning_executor="process")
     elapsed_time_multi_thread = time.time() - start_time
 
     # Validate
@@ -1561,25 +1561,50 @@ def test_cm_with_too_few_objects():
     assert "too few objects" in str(e.value)
 
 
-
-@pytest.mark.parametrize("n_jobs, cpu_count, expected", [
-    (None, 4, 4),
-    (2, 4, 2),
-    (-1, 4, 3),
-    (6, 4, 6),
-])
+@pytest.mark.parametrize(
+    "n_jobs, cpu_count, expected",
+    [
+        (None, 4, 4),
+        (2, 4, 2),
+        (-1, 4, 3),
+        (6, 4, 6),
+    ],
+)
 def test_get_n_workers_valid(n_jobs, cpu_count, expected):
-    with patch('os.cpu_count', return_value=cpu_count):
+    with patch("os.cpu_count", return_value=cpu_count):
         assert get_n_workers(n_jobs) == expected
 
 
-@pytest.mark.parametrize("n_jobs, cpu_count, error_type, error_message", [
-    (0, 4, ValueError, "The number of threads/processes to use must be greater than 0. Got 0"),
-    (-5, 4, ValueError, "The number of threads/processes to use must be greater than 0. Got -1"),
-    (2, None, ValueError, "Could not determine the number of CPU cores. Please specify a positive value of n_jobs"),
-    (None, None, ValueError, "Could not determine the number of CPU cores. Please specify a positive value of n_jobs"),
-])
+@pytest.mark.parametrize(
+    "n_jobs, cpu_count, error_type, error_message",
+    [
+        (
+            0,
+            4,
+            ValueError,
+            "The number of threads/processes to use must be greater than 0. Got 0",
+        ),
+        (
+            -5,
+            4,
+            ValueError,
+            "The number of threads/processes to use must be greater than 0. Got -1",
+        ),
+        (
+            2,
+            None,
+            ValueError,
+            "Could not determine the number of CPU cores. Please specify a positive value of n_jobs",
+        ),
+        (
+            None,
+            None,
+            ValueError,
+            "Could not determine the number of CPU cores. Please specify a positive value of n_jobs",
+        ),
+    ],
+)
 def test_get_n_workers_invalid(n_jobs, cpu_count, error_type, error_message):
-    with patch('os.cpu_count', return_value=cpu_count):
+    with patch("os.cpu_count", return_value=cpu_count):
         with pytest.raises(error_type, match=error_message):
             get_n_workers(n_jobs)
