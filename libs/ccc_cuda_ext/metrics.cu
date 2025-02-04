@@ -427,7 +427,7 @@ auto ari_core_device(const T *parts,
     /*
      * Show debugging and device information
     */
-    printf("Max shared memory per block: %zu bytes\n", get_max_shared_memory_per_block());
+    // printf("Max shared memory per block: %zu bytes\n", get_max_shared_memory_per_block());
 
     // Input validation
     if (!parts || n_features == 0 || n_parts == 0 || n_objs == 0)
