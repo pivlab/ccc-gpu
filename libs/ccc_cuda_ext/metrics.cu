@@ -254,7 +254,7 @@ __device__ void get_pair_confusion_matrix(
         sum_squares = 0;
         for (int i = 0; i < k * k; ++i)
         {
-            sum_squares += (contingency[i]) * contingency[i];
+            sum_squares += (contingency[i] * contingency[i]);
         }
     }
     __syncthreads();
@@ -394,18 +394,18 @@ extern "C" __global__ void ari(int *parts,
      */
     if (threadIdx.x == 0)
     {
-        int tn = static_cast<float>(s_pair_confusion_matrix[0]);
-        int fp = static_cast<float>(s_pair_confusion_matrix[1]);
-        int fn = static_cast<float>(s_pair_confusion_matrix[2]);
-        int tp = static_cast<float>(s_pair_confusion_matrix[3]);
-        float ari = 0.0;
+        float tn = s_pair_confusion_matrix[0];
+        float fp = s_pair_confusion_matrix[1];
+        float fn = s_pair_confusion_matrix[2];
+        float tp = s_pair_confusion_matrix[3];
+        float ari = 0.0f;
         if (fn == 0 && fp == 0)
         {
-            ari = 1.0;
+            ari = 1.0f;
         }
         else
         {
-            ari = 2.0 * (tp * tn - fn * fp) / ((tp + fn) * (fn + tn) + (tp + fp) * (fp + tn));
+            ari = 2.0f * (tp * tn - fn * fp) / ((tp + fn) * (fn + tn) + (tp + fp) * (fp + tn));
         }
         out[ari_block_idx] = ari;
     }
@@ -461,7 +461,7 @@ auto ari_core_device(const T *parts,
     // auto s_mem_size = 2 * n_objs * sz_parts_dtype;  // For the partition pair to be compared
     auto s_mem_size = 0;
     s_mem_size += k * k * sz_parts_dtype;       // For contingency matrix
-    s_mem_size += 2 * n_parts * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed?
+    s_mem_size += 2 * k * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed?
     s_mem_size += 4 * sz_parts_dtype;           // For the 2 x 2 confusion matrix
 
     // Check if shared memory size exceeds device limits
