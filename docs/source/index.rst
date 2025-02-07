@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-ccc-gpu documentation
+CCC-GPU Documentation
 =====================
 
 Add your content using ``reStructuredText`` syntax. See the
@@ -16,6 +16,6 @@ documentation for details.
    :caption: Contents:
 
    introduction
-   apis
+   usage
    algorithms
    development/index
