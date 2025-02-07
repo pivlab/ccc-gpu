@@ -15,3 +15,7 @@ documentation for details.
    :maxdepth: 2
    :caption: Contents:
 
+   introduction
+   apis
+   algorithms
+   development/index
