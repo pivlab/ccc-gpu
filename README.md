@@ -1,51 +1,34 @@
 # Clustermatch Correlation Coefficient GPU (CCC-GPU)
 
-## Development
-[Scikit-build](https://scikit-build-core.readthedocs.io/en/latest/getting_started.html) is used to build the C++ CUDA extension module and its tests.
-
-### How to set up the development environment
+## Development environment setup
 At the root of the repository, run:
 ```
 conda env create -f environment/environment-gpu.yml
 ```
 
-### How to activate the development environment
-At the root of the repository, run:
+Then, you can use the following script to activate the conda environment and set up PYTHONPATH and other configurations for the current shell session:
 ```
 source ./scripts/setup_dev.sh
 ```
-It will activate the conda environment and set up PYTHONPATH for the current shell session.
 
 This script can also be configured as a startup script in PyCharm so you don't have to run it manually every time.
 
-### How to install this CUDA module
-At the root of the repository, run:
+## Installation
+Now the package can only be installed from source. At the root of the repository, run:
 ```
-conda activate ccc-gpu
-# This will build the c++ module and install it with the Python package in the current environment
-pip install .
+pip install -e .
 ```
 
-### How to only build the C++ CUDA extension module and its tests
+Then you can import the package in your Python scripts.
+
+## Documentation
+Currently, this repository is not publicly accessible, making tools like ReadTheDocs not able to scan the codebase to build and publish the documentation. Thus, the documentation needs to be built locally:
+
 ```
-# Clean up the build directory
-rm -rf build
-# Read ./CMakeLists.txt, configure the project, generate the build system files in the ./build directory
-cmake -S . -B build
-# Compile the project, generate the executable files in the ./build directory
-cmake --build build
+cd docs
+make html
 ```
 
-### How to run C++ tests in tests/cuda_ext
-The CMakeLists.txt file in the root directory will pick up the tests in tests/cuda_ext and build them.
-```
-for test in build/test_*; do
-    echo "Running $test..."
-    ./$test
-done
-```
+Then you can access the html file `docs/build/html/index.html` to view the documentation.
 
-### How to run both C++ tests and Python tests
-```
-bash ./scripts/run_tests.sh
-```
+If you are using VsCode, it's convenient to use the `Live Preview` extension to view the webpage within the code editor.
