@@ -1,28 +1,11 @@
 # Clustermatch Correlation Coefficient GPU (CCC-GPU)
 
-## Development environment setup
-At the root of the repository, run:
-```
-conda env create -f environment/environment-gpu.yml
-```
+The Clustermatch Correlation Coefficient (CCC) is a highly-efficient, next-generation not-only-linear correlation coefficient that can work on numerical and categorical data types. This repository contains the code of CCC and instructions to install and use it. It also has all the scripts/notebooks to run the analyses associated with the manuscript, where we applied CCC on gene expression data.
 
-Then, you can use the following script to activate the conda environment and set up PYTHONPATH and other configurations for the current shell session:
-```
-source ./scripts/setup_dev.sh
-```
-
-This script can also be configured as a startup script in PyCharm so you don't have to run it manually every time.
-
-## Installation
-Now the package can only be installed from source. At the root of the repository, run:
-```
-pip install -e .
-```
-
-Then you can import the package in your Python scripts.
+CCC-GPU is a GPU-accelerated version of CCC that can work on large datasets. It now supports the CUDA backend.
 
 ## Documentation
-Currently, this repository is not publicly accessible, making tools like ReadTheDocs not able to scan the codebase to build and publish the documentation. Thus, the documentation needs to be built locally:
+Currently, this repository is not publicly accessible, making tools like ReadTheDocs not able to scan the codebase to build and publish the documentation. Thus, the documentation needs to be built and viewed locally:
 
 ```
 cd docs
