@@ -327,10 +327,10 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(
         AriTestParams(2, 2, 100, 10),
         AriTestParams(5, 10, 200, 10),
-        // AriTestParams(2, 1, 1000, 10),  // FIXME: wrong results, maybe test is not correct
+        AriTestParams(2, 1, 1000, 10),
         AriTestParams(100, 20, 100, 10)
-        // Document known issues
-        // AriTestParams(100, 20, 1000, 10),  // FIXME: wrong results, maybe test is not correct
+        // Large inputs, skipped
+        // AriTestParams(100, 20, 1000, 10),  //  slow to run as a unit test
         // AriTestParams(200, 20, 300, 10),   // slow to run as a unit test
         // AriTestParams(1000, 10, 300, 10)  // slow to run as a unit test
     ),
