@@ -2,6 +2,7 @@ import time
 import pytest
 import numpy as np
 from typing import Tuple
+import os
 
 from ccc.coef.impl_gpu import ccc as ccc_gpu
 from ccc.coef.impl import ccc
@@ -39,12 +40,16 @@ def test_ccc_gpu_2d(
         n_cpu_cores: Number of CPU cores to use
         max_not_close_percentage: Maximum allowed percentage of coefficients that can differ
     """
+    # Create logs directory if it doesn't exist
+    logs_dir = os.path.join("tests", "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+
     # Create base filename from test parameters
     base_filename = f"test_ccc_gpu_{seed}_f{shape[0]}_n{shape[1]}_c{n_cpu_cores}"
-    log_filename = f"{base_filename}.log"
-    gpu_results_filename = f"{base_filename}_gpu_results.txt"
-    cpu_results_filename = f"{base_filename}_cpu_results.txt"
-    input_data_filename = f"{base_filename}_input_data.txt"
+    log_filename = os.path.join(logs_dir, f"{base_filename}.log")
+    gpu_results_filename = os.path.join(logs_dir, f"{base_filename}_gpu_results.txt")
+    cpu_results_filename = os.path.join(logs_dir, f"{base_filename}_cpu_results.txt")
+    input_data_filename = os.path.join(logs_dir, f"{base_filename}_input_data.txt")
 
     print("Writing test output to:")
     print(f"  - Log: {log_filename}")
