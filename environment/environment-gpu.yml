@@ -5,21 +5,24 @@ channels:
   - nvidia
 dependencies:
   - cmake>=3.15
-  - cuda-version>=12.0,<=12.5
+  - cuda=12.5 # We can refer to Cupy to see how they handle this CUDA dependency, that way we can make ccc-gpu also a pip package
   - cupy=13.*
   - minepy
-  - pip
   - python=3.10
-  - rapids=24.08
-  - pip:
-    - ipython==8.*
-    - numba==0.60.*
-    - numpy==1.25.*
-    - pandas==1.3.*
-    - pre-commit
-    - pybind11==2.*
-    - pytest==8.*
-    - scipy==1.15.*
-    - seaborn==0.13.*
-    - sphinx==8.*
-    - upsetplot==0.9.*
+  - pip
+  # - rapids=24.08 # Maybe usefull in future optimization
+  - ipython=8.*
+  - numba=0.60.*
+  - numpy=1.25.*
+  - pandas=1.3.*
+  - pre-commit=4.*
+  - pybind11=2.*
+  - pytest=8.*
+  - scipy=1.15.*
+  - scikit-learn=1.6.*
+  - seaborn=0.13.*
+  - sphinx=8.*
+  - upsetplot=0.9.*
+platforms:
+  - linux-64
+    # - win-64
