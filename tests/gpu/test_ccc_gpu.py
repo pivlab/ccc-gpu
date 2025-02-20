@@ -173,3 +173,36 @@ def test_ccc_gpu_with_numerical_input(
         not_close_percentage <= max_not_close_percentage
     ), f"Results differ for shape={shape}, seed={seed}"
 
+
+@pytest.mark.parametrize(
+    "seed", [42]
+)  # More seeds for simple cases, only 42 for large cases
+@pytest.mark.parametrize(
+    "shape, n_categories, str_length",
+    [
+        # Simple cases
+        ((10, 100), 10, 2),
+        # ((20, 200), 50, 3),
+        # ((30, 300), 3, 2),
+        # ((9, 10000), 3, 2),
+        # Large cases
+        # ((100, 1000), 0.008), # Skipped, too slow for a unit test
+        # ((5000, 1000), 0.008), # Skipped, too slow for a unit test
+    ],
+)
+@pytest.mark.parametrize("n_cpu_cores", [48])
+@clean_gpu_memory
+def test_ccc_gpu_with_categorical_input(
+    seed: int, shape: Tuple[int, int], n_categories: int, str_length: int, n_cpu_cores: int,
+):
+    n_features, n_samples = shape
+    df = generate_categorical_data(n_features, n_samples, n_categories, str_length=str_length, random_state=seed)
+    res_cpu = ccc(df, n_jobs=n_cpu_cores)
+    print(res_cpu)
+    print(len(res_cpu))
+    return
+
+
+@clean_gpu_memory
+def test_ccc_gpu_with_mixed_input():
+    return
