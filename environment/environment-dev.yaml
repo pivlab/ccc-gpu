@@ -1,0 +1,10 @@
+name: cccgpu-dev
+channels:
+  - conda-forge
+dependencies:
+  - sphinx=8.*
+  - mamba
+  - conda-lock
+platforms:
+  - linux-64
+    # - win-64
