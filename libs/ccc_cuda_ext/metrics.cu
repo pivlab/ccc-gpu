@@ -359,6 +359,13 @@ extern "C" __global__ void ari(int *parts,
     int *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
     int *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
 
+    // Check on categorical partition marker, if the first object of either partition is -1 (actually all the objects are -1),
+    // then skip the computation for this feature pair
+    if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
+    {
+        return;
+    }
+
     // Load gmem data into smem by using different threads
     // extern __shared__ int shared_mem[];
     // int *s_part0 = shared_mem;
@@ -449,7 +456,7 @@ auto ari_core_device(const T *parts,
     // Create device vectors using unique_ptr
     const auto n_elems = n_features * n_parts * n_objs;
     auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(parts, parts + n_elems);
-    auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(n_aris);
+    auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(n_aris, 0.0f);
 
     // Define shared memory size for each block
     // Pre-compute the max value of the partitions
