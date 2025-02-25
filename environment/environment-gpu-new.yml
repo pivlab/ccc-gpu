@@ -1,0 +1,29 @@
+name: ccc-gpu-new
+channels:
+  - rapidsai
+  - conda-forge
+  - nvidia
+dependencies:
+  - cmake>=3.15
+  - cuda=12.5 # We can refer to Cupy to see how they handle this CUDA dependency, that way we can make ccc-gpu also a pip package
+  - cupy=13.*
+  # - minepy
+  - cuml=25.02
+  - python=3.10
+  - pip
+  # - rapids=24.08 # Maybe usefull in future optimization
+  - ipython=8.*
+  - numba=0.60.*
+  - numpy=2.0.*
+  - pandas=2.2.*
+  - pre-commit=4.*
+  - pybind11=2.*
+  - pytest=8.*
+  - scipy=1.15.*
+  - scikit-learn=1.6.*
+  - seaborn=0.13.*
+  - sphinx=8.*
+  - upsetplot=0.9.*
+platforms:
+  - linux-64
+    # - win-64
