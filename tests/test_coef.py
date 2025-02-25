@@ -1508,8 +1508,8 @@ def test_cm_two_features_input_with_n_jobs_using_process_for_partitioning():
     np.random.seed(123)
 
     # here I force
-    x = np.random.rand(100000)
-    y = np.random.rand(100000)
+    x = np.random.rand(1000000)
+    y = np.random.rand(1000000)
 
     # Run
     start_time = time.time()
@@ -1517,7 +1517,7 @@ def test_cm_two_features_input_with_n_jobs_using_process_for_partitioning():
     elapsed_time_single_thread = time.time() - start_time
 
     start_time = time.time()
-    res1 = ccc(x, y, n_jobs=4, partitioning_executor="process")
+    res1 = ccc(x, y, n_jobs=2, partitioning_executor="process")
     elapsed_time_multi_thread = time.time() - start_time
 
     # Validate
