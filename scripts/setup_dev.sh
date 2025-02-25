@@ -19,7 +19,6 @@ PYBIND11_DIR=$(find ~/ -type d -path "*/anaconda3/pkgs/*/pybind11/share/cmake/py
 export CMAKE_PREFIX_PATH=$PYBIND11_DIR:$CMAKE_PREFIX_PATH
 
 # Set the CUDA_HOME and LD_LIBRARY_PATH
-# Set the CUDA_HOME and LD_LIBRARY_PATH
-export LD_LIBRARY_PATH="~/anaconda3/envs/ccc-cuda/lib/:$LD_LIBRARY_PATH"
-export LIBRARY_PATH="~/anaconda3/envs/ccc-cuda/lib/:$LD_LIBRARY_PATH"
-export CUDA_HOME="~/anaconda3/envs/ccc-cuda"
+export LD_LIBRARY_PATH="$CONDA_PREFIX/lib/:$LD_LIBRARY_PATH"
+export LIBRARY_PATH="$CONDA_PREFIX/lib/:$LIBRARY_PATH"
+export CUDA_HOME="$CONDA_PREFIX"
