@@ -5,19 +5,20 @@ Contains function that implement the Clustermatch Correlation Coefficient (CCC).
 from __future__ import annotations
 
 import os
-import numpy as np
-import ccc_cuda_ext
+from collections.abc import Iterable
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from typing import Union
 
-from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
-from typing import Iterable, Union
-from numpy.typing import NDArray
+import ccc_cuda_ext
 from numba import njit
 from numba.typed import List
 
+import numpy as np
 from ccc.pytorch.core import unravel_index_2d
-from ccc.sklearn.metrics import adjusted_rand_index as ari
 from ccc.scipy.stats import rank
-from ccc.utils import chunker
+from ccc.sklearn.metrics import adjusted_rand_index as ari
+from ccc.utils import DummyExecutor, chunker
+from numpy.typing import NDArray
 
 
 @njit(cache=True, nogil=True)
@@ -215,7 +216,7 @@ def get_feature_parts(params):
     #     [0, 1, 0],    # color split into 2 clusters (categorical)
     #     [-1, -1, -1]  # ignored because categorical features only need one partition
     # ]
-    
+
     n_objects = params[0][1].shape[0]
     parts = np.zeros((len(params), n_objects), dtype=np.int16) - 1
 
@@ -276,8 +277,8 @@ def cdist_parts_basic(x: NDArray, y: NDArray) -> NDArray[float]:
         for j in range(res.shape[1]):
             if y[j, 0] < 0:
                 continue
-
             res[i, j] = ari(x[i], y[j])
+            # res[i, j] = adjusted_rand_score(x[i], y[j])
 
     return res
 
@@ -477,7 +478,7 @@ def compute_coef(params):
             between the number of chunks and the number of threads, 7) the
             executor to use for cdist parallelization, and 8) the executor to use
             for parallelization of permutations.
-
+        X_numerical_type: a boolean array indicating if each feature is numerical
     Returns:
         Returns a tuple with three arrays. The first array has the CCC
         coefficients, the second array has the indexes of the partitions that
@@ -492,6 +493,7 @@ def compute_coef(params):
         n_chunks_threads_ratio,
         cdist_executor,
         executor,
+        X_numerical_type,
     ) = params
 
     cdist_func = cdist_parts_basic
@@ -507,6 +509,10 @@ def compute_coef(params):
 
     for idx, data_idx in enumerate(idx_list):
         i, j = get_coords_from_index(n_features, data_idx)
+        # Check if the features i and j are both numerical
+        if X_numerical_type[i] and X_numerical_type[j]:
+            # This feature pair is computed using the GPU
+            continue
 
         # get partitions for the pair of objects
         obji_parts, objj_parts = parts[i], parts[j]
@@ -579,7 +585,9 @@ def get_n_workers(n_jobs: int | None) -> int:
     """
     n_cpu_cores = os.cpu_count()
     if n_cpu_cores is None:
-        raise ValueError("Could not determine the number of CPU cores. Please specify a positive value of n_jobs")
+        raise ValueError(
+            "Could not determine the number of CPU cores. Please specify a positive value of n_jobs"
+        )
 
     n_workers = n_cpu_cores
     if n_jobs is None:
@@ -588,8 +596,10 @@ def get_n_workers(n_jobs: int | None) -> int:
     n_workers = os.cpu_count() + n_jobs if n_jobs < 0 else n_jobs
 
     if n_workers < 1:
-        raise ValueError(f"The number of threads/processes to use must be greater than 0. Got {n_workers}."
-                         "Please check the n_jobs argument provided")
+        raise ValueError(
+            f"The number of threads/processes to use must be greater than 0. Got {n_workers}."
+            "Please check the n_jobs argument provided"
+        )
 
     return n_workers
 
@@ -674,6 +684,8 @@ def ccc(
     n_features = None
     # this is a boolean array of size n_features with True if the feature is numerical and False otherwise
     X_numerical_type = None
+    # Flag indicating if the data has categorical features
+    X_has_cat_features = False
     if x.ndim == 1 and (y is not None and y.ndim == 1):
         # both x and y are 1d arrays
         if not x.shape == y.shape:
@@ -694,8 +706,10 @@ def ccc(
 
         if isinstance(x, np.ndarray):
             if not get_feature_type_and_encode(x[0, :])[1]:
-                raise ValueError("If data is a 2d numpy array, it has to be numerical. Use pandas.DataFrame if "
-                                 "you need to mix features with different data types")
+                raise ValueError(
+                    "If data is a 2d numpy array, it has to be numerical. Use pandas.DataFrame if "
+                    "you need to mix features with different data types"
+                )
             n_objects = x.shape[1]
             n_features = x.shape[0]
 
@@ -717,6 +731,9 @@ def ccc(
                 )
     else:
         raise ValueError("Wrong combination of parameters x and y")
+
+    # Check if any feature has categorical data
+    X_has_cat_features = np.any(X_numerical_type == False)
 
     # get number of cores to use
     n_workers = get_n_workers(n_jobs)
@@ -741,9 +758,7 @@ def ccc(
 
     # store a set of partitions per row (object) in X as a multidimensional
     # array, where the second dimension is the number of partitions per object.
-    parts = (
-        np.zeros((n_features, n_clusters, n_objects), dtype=np.int16) - 1
-    )
+    parts = np.zeros((n_features, n_clusters, n_objects), dtype=np.int16) - 1
 
     # cm_values stores the CCC coefficients
     n_features_comp = (n_features * (n_features - 1)) // 2
@@ -796,9 +811,11 @@ def ccc(
         inputs = [
             [
                 (
-                    feature_k_pair, # Original (f_idx, c_idx, k) tuple
-                    X[feature_k_pair[0]], # Actual feature data using f_idx
-                    X_numerical_type[feature_k_pair[0]], # Data type info for this feature
+                    feature_k_pair,  # Original (f_idx, c_idx, k) tuple
+                    X[feature_k_pair[0]],  # Actual feature data using f_idx
+                    X_numerical_type[
+                        feature_k_pair[0]
+                    ],  # Data type info for this feature
                 )
                 for feature_k_pair in chunk
             ]
@@ -846,6 +863,29 @@ def ccc(
             # update the partitions for each feature-k pair
             parts[f_idxs, c_idxs] = ps
 
+    # Compute the CCC coefficient for all feature pairs
+    # Handle cases where the data has categorical features
+    if X_has_cat_features:
+        # Select from parts the features that are numerical
+        parts_numerical = parts[X_numerical_type]
+        n_features_numerical = parts_numerical.shape[0]
+        # Compute the CCC coefficient for the numerical features using the GPU
+        if n_features_numerical > 0:
+            coef_gpu = ccc_cuda_ext.compute_coef(
+                parts_numerical,
+                n_features_numerical,
+                n_clusters,
+                n_objects,
+                return_parts,
+                pvalue_n_perms,
+            )
+            num_cm_values, num_cm_pvalues, num_max_parts = coef_gpu
+        else:
+            num_cm_values = np.array([])
+            num_cm_pvalues = np.array([])
+            num_max_parts = np.array([])
+
+        # Compute the CCC coefficient for the categorical features using the CPU
         # Below, there are two layers of parallelism: 1) parallel execution
         # across feature pairs and 2) the cdist_parts_parallel function, which
         # also runs several threads to compare partitions using ari. In 2) we
@@ -853,76 +893,77 @@ def ccc(
         # we have several feature pairs to compare), because parallelization is
         # already performed at this level. Otherwise, more threads than
         # specified by the user are started.
-        
-        #
-        # The following code is commented out because it's not used in the current implementation
-        #
-        
-        # map_func = map
-        # cdist_executor = False
-        # inner_executor = DummyExecutor()
 
-        # if n_workers > 1:
-        #     if n_features_comp == 1:
-        #         map_func = map
-        #         cdist_executor = executor
-        #         inner_executor = pexecutor
+        map_func = map
+        cdist_executor = False
+        inner_executor = DummyExecutor()
 
-        #     else:
-        #         map_func = pexecutor.map
+        if n_workers > 1:
+            if n_features_comp == 1:
+                map_func = map
+                cdist_executor = executor
+                inner_executor = pexecutor
 
-        # # iterate over all chunks of object pairs and compute the coefficient
-        # inputs = get_chunks(n_features_comp, n_workers, n_chunks_threads_ratio)
-        # inputs = [
-        #     (
-        #         i,
-        #         n_features,
-        #         parts,
-        #         pvalue_n_perms,
-        #         n_workers,
-        #         n_chunks_threads_ratio,
-        #         cdist_executor,
-        #         inner_executor,
-        #     )
-        #     for i in inputs
-        # ]
+            else:
+                map_func = pexecutor.map
 
-        # for params, (max_ari_list, max_part_idx_list, pvalues) in zip(
-        #     inputs, map_func(compute_coef, inputs) # Apply compute_coef to each input
-        # ):
-        #     f_idx = params[0]
+        # iterate over all chunks of object pairs and compute the coefficient
+        inputs = get_chunks(n_features_comp, n_workers, n_chunks_threads_ratio)
+        inputs = [
+            (
+                i,
+                n_features,
+                parts,
+                pvalue_n_perms,
+                n_workers,
+                n_chunks_threads_ratio,
+                cdist_executor,
+                inner_executor,
+                X_numerical_type,
+            )
+            for i in inputs
+        ]
 
-        #     cm_values[f_idx] = max_ari_list
-        #     max_parts[f_idx, :] = max_part_idx_list
-        #     cm_pvalues[f_idx] = pvalues
-        
-        #
-        # The commented code above is the original implementation of the CCC coefficient calculation.
-        #
-    
-    coef = ccc_cuda_ext.compute_coef(parts, n_features, n_clusters, n_objects, return_parts, pvalue_n_perms)
-    cm_values, cm_pvalues, max_parts = coef
+        for params, (max_ari_list, max_part_idx_list, pvalues) in zip(
+            inputs,
+            map_func(compute_coef, inputs),  # Apply compute_coef to each input
+        ):
+            f_idx = params[0]
+
+            cm_values[f_idx] = max_ari_list
+            max_parts[f_idx, :] = max_part_idx_list
+            cm_pvalues[f_idx] = pvalues
+
+        # Combine the results from the GPU and CPU computations
+        num_coef_idx = 0
+        for coef_idx, coef in enumerate(cm_values):
+            if np.isnan(coef):
+                cm_values[coef_idx] = num_cm_values[num_coef_idx]
+                # cm_pvalues[coef_idx] = num_cm_pvalues[num_coef_idx]
+                # max_parts[coef_idx, :] = num_max_parts[num_coef_idx, :]
+                num_coef_idx += 1
+
+    else:
+        # Use the original implementation for numerical features
+        coef = ccc_cuda_ext.compute_coef(
+            parts, n_features, n_clusters, n_objects, return_parts, pvalue_n_perms
+        )
+        cm_values, cm_pvalues, max_parts = coef
 
     # return an array of values or a single scalar, depending on the input data
     if cm_values.shape[0] == 1:
         if return_parts:
             if pvalue_n_perms is not None and pvalue_n_perms > 0:
                 return (cm_values[0], cm_pvalues[0]), max_parts[0], parts
-            else:
-                return cm_values[0], max_parts[0], parts
-        else:
-            if pvalue_n_perms is not None and pvalue_n_perms > 0:
-                return cm_values[0], cm_pvalues[0]
-            else:
-                return cm_values[0]
+            return cm_values[0], max_parts[0], parts
+        if pvalue_n_perms is not None and pvalue_n_perms > 0:
+            return cm_values[0], cm_pvalues[0]
+        return cm_values[0]
 
     if return_parts:
         if pvalue_n_perms is not None and pvalue_n_perms > 0:
             return (cm_values, cm_pvalues), max_parts, parts
-        else:
-            return cm_values, max_parts, parts
-    else:
-        if pvalue_n_perms is not None and pvalue_n_perms > 0:
-            return cm_values, cm_pvalues
-        else:
-            return cm_values
+        return cm_values, max_parts, parts
+    if pvalue_n_perms is not None and pvalue_n_perms > 0:
+        return cm_values, cm_pvalues
+    return cm_values
