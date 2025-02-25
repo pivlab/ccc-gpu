@@ -13,7 +13,7 @@
 version: 1
 metadata:
   content_hash:
-    linux-64: 17f7d1cf0f8956340cf2106220b5af8f949bdcaa5c25681c15b05db4487974e8
+    linux-64: ef13e620f5a168f0d218b88025bcf33e45772813fb930a8176edffcbbc0cb8cd
   channels:
   - url: rapidsai
     used_env_vars: []
@@ -671,26 +671,26 @@ package:
   category: main
   optional: false
 - name: cmake
-  version: 3.31.5
+  version: 3.31.6
   manager: conda
   platform: linux-64
   dependencies:
     __glibc: '>=2.17,<3.0.a0'
     bzip2: '>=1.0.8,<2.0a0'
-    libcurl: '>=8.11.1,<9.0a0'
+    libcurl: '>=8.12.1,<9.0a0'
     libexpat: '>=2.6.4,<3.0a0'
     libgcc: '>=13'
-    liblzma: '>=5.6.3,<6.0a0'
+    liblzma: '>=5.6.4,<6.0a0'
     libstdcxx: '>=13'
     libuv: '>=1.50.0,<2.0a0'
     libzlib: '>=1.3.1,<2.0a0'
     ncurses: '>=6.5,<7.0a0'
     rhash: '>=1.4.5,<2.0a0'
-    zstd: '>=1.5.6,<1.6.0a0'
-  url: https://conda.anaconda.org/conda-forge/linux-64/cmake-3.31.5-h74e3db0_0.conda
+    zstd: '>=1.5.7,<1.6.0a0'
+  url: https://conda.anaconda.org/conda-forge/linux-64/cmake-3.31.6-h74e3db0_0.conda
   hash:
-    md5: 9913704374f264a9880af3fbaf99f7f1
-    sha256: e9c3cb0dde572670b334e5b753264af96c957dba6c9fda4725ba9594eab0dabf
+    md5: d6e0e094315ee3e99ca153663e7fa669
+    sha256: 82372b404995a92fecfef38e9f1cb4977e71b785a728db5a9ed6f1aec49d547c
   category: main
   optional: false
 - name: colorama
@@ -4083,6 +4083,21 @@ package:
     sha256: 78c1bbe1723449c52b7a9df1af2ee5f005209f67e40b6e1d3c7619127c43b1c7
   category: main
   optional: false
+- name: minepy
+  version: 1.2.6
+  manager: conda
+  platform: linux-64
+  dependencies:
+    libgcc-ng: '>=10.3.0'
+    numpy: '>=1.3.0'
+    python: '>=3.10,<3.11.0a0'
+    python_abi: 3.10.*
+  url: https://conda.anaconda.org/conda-forge/linux-64/minepy-1.2.6-py310h5764c6d_2.tar.bz2
+  hash:
+    md5: 20feeddbfade77a241aae4e2cfc043c7
+    sha256: 33bb20d1549fd94a9ab794bd80f82f123a80b43560af2cd2544c9ad2fd5b6129
+  category: main
+  optional: false
 - name: msgpack-python
   version: 1.1.0
   manager: conda
@@ -4274,22 +4289,21 @@ package:
   category: main
   optional: false
 - name: numpy
-  version: 2.0.2
+  version: 1.26.4
   manager: conda
   platform: linux-64
   dependencies:
-    __glibc: '>=2.17,<3.0.a0'
     libblas: '>=3.9.0,<4.0a0'
     libcblas: '>=3.9.0,<4.0a0'
-    libgcc: '>=13'
+    libgcc-ng: '>=12'
     liblapack: '>=3.9.0,<4.0a0'
-    libstdcxx: '>=13'
+    libstdcxx-ng: '>=12'
     python: '>=3.10,<3.11.0a0'
     python_abi: 3.10.*
-  url: https://conda.anaconda.org/conda-forge/linux-64/numpy-2.0.2-py310hd6e36ab_1.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/numpy-1.26.4-py310hb13e2d6_0.conda
   hash:
-    md5: 57358466a280269a77f9539010a9d888
-    sha256: e62a7ea73120834e711becbd5c844ac5aba5b5a3a689a5335a1a0221214c43f2
+    md5: 6593de64c935768b6bad3e19b3e978be
+    sha256: 028fe2ea8e915a0a032b75165f11747770326f3d767e642880540c60a3256425
   category: main
   optional: false
 - name: nvcomp
