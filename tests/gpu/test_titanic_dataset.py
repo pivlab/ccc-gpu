@@ -1,6 +1,7 @@
 import pandas as pd
-
+import numpy as np
 from ccc.coef.impl import ccc
+from ccc.coef.impl_gpu import ccc as ccc_gpu
 from utils import clean_gpu_memory
 
 
@@ -12,13 +13,6 @@ def test_ccc():
     )
     titanic_df = pd.read_csv(titanic_url)
     titanic_df = titanic_df.dropna(subset=["embarked"]).dropna(axis=1)
-    print(titanic_df)
-    # convert to numpy array
-    # titanic_df = titanic_df.to_numpy()
-    cpu_corrs, _, cou_parts = ccc(titanic_df, return_parts=True)
-    print(cou_parts)
-
-    # gpu_corrs, _, gpu_parts = ccc_gpu(titanic_df, return_parts=True)
-    # print(gpu_parts)
-    # assert np.alltrue(cou_parts == gpu_parts)
-    # print(ccc_corrs_gpu)
+    cpu_corrs = ccc(titanic_df)
+    gpu_corrs = ccc_gpu(titanic_df)
+    assert np.allclose(cpu_corrs, gpu_corrs)

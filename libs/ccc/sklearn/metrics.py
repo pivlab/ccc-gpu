@@ -35,8 +35,12 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-import numpy as np
+
+from __future__ import annotations
+
 from numba import njit
+
+import numpy as np
 
 
 @njit(cache=True, nogil=True)
@@ -69,7 +73,7 @@ def get_contingency_matrix(part0: np.ndarray, part1: np.ndarray) -> np.ndarray:
     return cont_mat
 
 
-# @njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True)
 def get_pair_confusion_matrix(part0: np.ndarray, part1: np.ndarray) -> np.ndarray:
     """
     Returns the pair confusion matrix from two clustering partitions. It is an

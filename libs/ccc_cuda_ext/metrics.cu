@@ -520,7 +520,7 @@ auto ari_core_device(const py::array_t<int, py::array::c_style> &parts,
         throw std::runtime_error("Incompatible buffer dimension!");
 
     // Apply resources
-    auto result = py::array_t<T>(buffer.size);
+    // auto result = py::array_t<T>(buffer.size);
 
     // Obtain numpy.ndarray data pointer
     const auto parts_ptr = static_cast<T *>(buffer.ptr);
