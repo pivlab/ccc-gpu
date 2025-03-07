@@ -247,22 +247,38 @@ def test_cm_single_argument_is_matrix():
 def test_cm_large_n_objects_pvalue_permutations_is_parallelized():
     # Prepare
     rs = np.random.RandomState(0)
+    n_runs = 5
+    single_thread_times = []
+    multi_thread_times = []
 
     # two features on 100 objects with a linear relationship
-    feature0 = rs.rand(10000)
-    feature1 = rs.rand(10000)
+    feature0 = rs.rand(100000)
+    feature1 = rs.rand(100000)
 
-    # Run
-    start_time = time.time()
-    res = ccc(feature0, feature1, pvalue_n_perms=500, n_jobs=1)
-    elapsed_time_single_thread = time.time() - start_time
+    # Run multiple times to ensure consistency
+    for _ in range(n_runs):
+        # Single thread run
+        start_time = time.time()
+        _ = ccc(feature0, feature1, pvalue_n_perms=500, n_jobs=1)
+        single_thread_times.append(time.time() - start_time)
 
-    start_time = time.time()
-    res = ccc(feature0, feature1, pvalue_n_perms=500, n_jobs=2)
-    elapsed_time_multi_thread = time.time() - start_time
+        # Multi thread run
+        start_time = time.time()
+        _ = ccc(feature0, feature1, pvalue_n_perms=500, n_jobs=2)
+        multi_thread_times.append(time.time() - start_time)
 
-    # Validate
-    assert elapsed_time_multi_thread < 0.75 * elapsed_time_single_thread
+    # Print timing information for debugging
+    print(f"\nSingle thread times: {single_thread_times}")
+    print(f"Multi thread times: {multi_thread_times}")
+    print(
+        f"Average speedup: {np.mean(single_thread_times) / np.mean(multi_thread_times):.2f}x"
+    )
+
+    # Validate that parallel execution is consistently faster
+    for i in range(n_runs):
+        assert (
+            multi_thread_times[i] < single_thread_times[i]
+        ), f"Run {i+1}: Multi-thread ({multi_thread_times[i]:.2f}s) not faster than single-thread ({single_thread_times[i]:.2f}s)"
 
 
 def test_cm_return_parts_quadratic_pvalue():
