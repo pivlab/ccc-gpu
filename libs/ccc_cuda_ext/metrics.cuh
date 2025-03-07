@@ -7,6 +7,7 @@
 
 namespace py = pybind11;
 
+// Used for external python testing
 template <typename T>
 auto ari(const py::array_t<T, py::array::c_style>& parts,
          const size_t n_features,
@@ -15,12 +16,12 @@ auto ari(const py::array_t<T, py::array::c_style>& parts,
 
 // Used for internal c++ testing
 template <typename T>
-auto ari_core(const T* parts,
+auto ari_core_host(const T* parts,
          const size_t n_features,
          const size_t n_parts,
          const size_t n_objs) -> std::vector<float>;
 
-// Declaration of the device function
+// Used in the coef API
 template <typename T, typename R>
 auto ari_core_device(const py::array_t<int, py::array::c_style> &parts,
                     const size_t n_features,
