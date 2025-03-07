@@ -54,6 +54,9 @@ if [ $# -eq 0 ]; then
     usage
 fi
 
+# Exit immediately if a command exits with a non-zero status
+set -e
+
 # Setup environment
 source ./scripts/setup_dev.sh
 
@@ -66,7 +69,10 @@ fi
 
 # Install cccgpu with the cuda extension module
 echo -e "\033[34mInstalling cccgpu with the cuda extension module...\033[0m"
-pip install .
+if ! pip install .; then
+    echo -e "\033[31mFailed to install cccgpu. Exiting...\033[0m"
+    exit 1
+fi
 
 # Process arguments
 for arg in "$@"; do
