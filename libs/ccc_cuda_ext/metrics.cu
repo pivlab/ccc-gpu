@@ -23,6 +23,13 @@ namespace py = pybind11;
  */
 
 /**
+ * Future optimizations
+ * 1. GPU memory is not enough to store the partitions -> split the partitions into smaller chunks
+ *    and do stream processing
+ * 2.
+ */
+
+/**
  * @brief Unravel a flat index to the corresponding 2D indicis
  * @param[in] flat_idx The flat index to unravel
  * @param[in] num_cols Number of columns in the 2D array
@@ -93,7 +100,7 @@ __device__ void get_contingency_matrix(int *part0, int *part1, int n_objs, int *
         int col = part1[i];
 
         // Add bounds checking
-        assert (row >= 0 && row < k && col >= 0 && col < k);
+        assert(row >= 0 && row < k && col >= 0 && col < k);
         atomicAdd(&shared_cont_mat[row * k + col], 1);
     }
     __syncthreads();
@@ -301,15 +308,15 @@ __device__ void get_pair_confusion_matrix(
  * @param k The max value of cluster number + 1
  * @param out Output array of ARIs
  */
-extern "C" __global__ void ari(int *parts,
-                               const int n_aris,
-                               const int n_features,
-                               const int n_parts,
-                               const int n_objs,
-                               const int n_elems_per_feat,
-                               const int n_part_mat_elems,
-                               const int k,
-                               float *out)
+extern "C" __global__ void ari_kernel(int *parts,
+                                      const int n_aris,
+                                      const int n_features,
+                                      const int n_parts,
+                                      const int n_objs,
+                                      const int n_elems_per_feat,
+                                      const int n_part_mat_elems,
+                                      const int k,
+                                      float *out)
 {
     /*
      * Step 0: Compute shared memory addresses
@@ -420,6 +427,26 @@ extern "C" __global__ void ari(int *parts,
 }
 
 /**
+ * @brief Helper function to process and validate input numpy array
+ * @param parts Input numpy array to process
+ * @return Pointer to the underlying data
+ */
+template <typename T>
+T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
+{
+    py::buffer_info buffer = parts.request();
+    if (buffer.format != py::format_descriptor<T>::format())
+    {
+        throw std::runtime_error("Incompatible format: expected an int array!");
+    }
+    if (buffer.ndim != 3)
+    {
+        throw std::runtime_error("Incompatible buffer dimension!");
+    }
+    return static_cast<T *>(buffer.ptr);
+}
+
+/**
  * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device
  * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
  * @throws std::invalid_argument if "parts" is invalid
@@ -433,7 +460,7 @@ auto ari_core_device(const T *parts,
 {
     /*
      * Show debugging and device information
-    */
+     */
     // printf("Max shared memory per block: %zu bytes\n", get_max_shared_memory_per_block());
 
     // Input validation
@@ -467,9 +494,9 @@ auto ari_core_device(const T *parts,
     // NOTE: Use global memory to fix the issue for now and then optimize with shared memory
     // auto s_mem_size = 2 * n_objs * sz_parts_dtype;  // For the partition pair to be compared
     auto s_mem_size = 0;
-    s_mem_size += k * k * sz_parts_dtype;       // For contingency matrix
+    s_mem_size += k * k * sz_parts_dtype; // For contingency matrix
     s_mem_size += 2 * k * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed?
-    s_mem_size += 4 * sz_parts_dtype;           // For the 2 x 2 confusion matrix
+    s_mem_size += 4 * sz_parts_dtype;     // For the 2 x 2 confusion matrix
 
     // Check if shared memory size exceeds device limits
     if (!check_shared_memory_size(s_mem_size))
@@ -481,9 +508,9 @@ auto ari_core_device(const T *parts,
      * Launch the kernel
      */
     // Set up CUDA kernel configuration
-    const auto block_size = 256;    // FIXME: should be scaled on different GPUs
-    const auto grid_size = n_aris;  // Each logical block is responsible for one ARI computation
-    ari<<<grid_size, block_size, s_mem_size>>>(
+    const auto block_size = 256;   // FIXME: should be scaled on different GPUs
+    const auto grid_size = n_aris; // Each logical block is responsible for one ARI computation
+    ari_kernel<<<grid_size, block_size, s_mem_size>>>(
         thrust::raw_pointer_cast(d_parts->data()),
         n_aris,
         n_features,
@@ -498,8 +525,8 @@ auto ari_core_device(const T *parts,
 }
 
 /**
- * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device
- * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
+ * @brief Overloaded ari_core_device function. Takes a numpy.ndarray as input
+ * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_parts, n_objs)
  * @throws std::invalid_argument if "parts" is invalid
  * @return std::unique_ptr to thrust device vector containing ARI values
  */
@@ -509,22 +536,7 @@ auto ari_core_device(const py::array_t<int, py::array::c_style> &parts,
                      const size_t n_parts,
                      const size_t n_objs) -> std::unique_ptr<thrust::device_vector<R>>
 {
-    // Request a buffer descriptor from Python
-    py::buffer_info buffer = parts.request();
-
-    // Some basic validation checks ...
-    if (buffer.format != py::format_descriptor<T>::format())
-        throw std::runtime_error("Incompatible format: expected an int array!");
-
-    if (buffer.ndim != 3)
-        throw std::runtime_error("Incompatible buffer dimension!");
-
-    // Apply resources
-    // auto result = py::array_t<T>(buffer.size);
-
-    // Obtain numpy.ndarray data pointer
-    const auto parts_ptr = static_cast<T *>(buffer.ptr);
-
+    const auto parts_ptr = process_input_array(parts);
     return ari_core_device<T, R>(parts_ptr, n_features, n_parts, n_objs);
 }
 
@@ -532,10 +544,10 @@ auto ari_core_device(const py::array_t<int, py::array::c_style> &parts,
  * @brief Internal lower-level ARI computation
  * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
  * @throws std::invalid_argument if "parts" is invalid
- * @return std::vector<float> ARI values for each pair of partitions
+ * @return std::vector<float> ARI values for each pair of partitions stored in host memory
  */
 template <typename T>
-auto ari_core(const T *parts,
+auto ari_core_host(const T *parts,
               const size_t n_features,
               const size_t n_parts,
               const size_t n_objs) -> std::vector<float>
@@ -569,11 +581,15 @@ auto ari_core(const T *parts,
     return res;
 }
 
+/**********************
+  API Implementations
+ **********************/
+
 /**
  * @brief API exposed to Python for computing ARI using CUDA upon a 3D Numpy NDArray of partitions
  * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_parts, n_objs)
  * @throws std::invalid_argument if "parts" is invalid
- * @return std::vector<float> ARI values for each pair of partitions
+ * @return std::vector<float> All ARI values for each pair of partitions
  */
 template <typename T>
 auto ari(const py::array_t<T, py::array::c_style> &parts,
@@ -581,58 +597,24 @@ auto ari(const py::array_t<T, py::array::c_style> &parts,
          const size_t n_parts,
          const size_t n_objs) -> std::vector<float>
 {
-    // Edge cases:
-    // 1. GPU memory is not enough to store the partitions -> split the partitions into smaller chunks and do stream processing
-
-    // Input processing
-    // Request a buffer descriptor from Python
-    py::buffer_info buffer = parts.request();
-
-    // Some basic validation checks
-    if (buffer.format != py::format_descriptor<T>::format())
-        throw std::runtime_error("Incompatible format: expected an int array!");
-    if (buffer.ndim != 3)
-        throw std::runtime_error("Incompatible buffer dimension!");
-
-    // Obtain numpy.ndarray data pointer
-    const auto parts_ptr = static_cast<T *>(buffer.ptr);
-
-    return ari_core(parts_ptr, n_features, n_parts, n_objs);
+    const auto parts_ptr = process_input_array(parts);
+    return ari_core_host(parts_ptr, n_features, n_parts, n_objs);
 }
 
 /**
  * @brief API exposed to Python for computing ARI using CUDA upon a 3D Numpy NDArray of partitions
  * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_parts, n_objs)
  * @throws std::invalid_argument if "parts" is invalid
- * @return float ARI value for each pair of partitions
+ * @return std::vector<float> Reduced(max) ARI value for each pair of partitions
  */
 template <typename T>
 auto ari_reduced(const py::array_t<T, py::array::c_style> &parts,
                  const size_t n_features,
                  const size_t n_parts,
-                 const size_t n_objs) -> float
+                 const size_t n_objs) -> std::vector<float>
 {
-    // Edge cases:
-    // 1. GPU memory is not enough to store the partitions -> split the partitions into smaller chunks and do stream processing
-
-    // Input processing
-    // Request a buffer descriptor from Python
-    py::buffer_info buffer = parts.request();
-
-    // Some basic validation checks ...
-    if (buffer.format != py::format_descriptor<T>::format())
-        throw std::runtime_error("Incompatible format: expected an int array!");
-
-    if (buffer.ndim != 3)
-        throw std::runtime_error("Incompatible buffer dimension!");
-
-    // Apply resources
-    auto result = py::array_t<T>(buffer.size);
-
-    // Obtain numpy.ndarray data pointer
-    const auto parts_ptr = static_cast<T *>(buffer.ptr);
-
-    return ari_core(parts_ptr, n_features, n_parts, n_objs);
+    const auto parts_ptr = process_input_array(parts);
+    throw std::logic_error("Function not yet implemented");
 }
 
 // Below is the explicit instantiation of the ari template function.
@@ -642,18 +624,21 @@ auto ari_reduced(const py::array_t<T, py::array::c_style> &parts,
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
 
+// Used for external python testing
 template auto ari<int>(
     const py::array_t<int, py::array::c_style> &parts,
     const size_t n_features,
     const size_t n_parts,
     const size_t n_objs) -> std::vector<float>;
 
-template auto ari_core<int>(
+// Used for internal c++ testing
+template auto ari_core_host<int>(
     const int *parts,
     const size_t n_features,
     const size_t n_parts,
     const size_t n_objs) -> std::vector<float>;
 
+// Used in the coef API
 template auto ari_core_device<int, float>(
     const py::array_t<int, py::array::c_style> &parts,
     const size_t n_features,

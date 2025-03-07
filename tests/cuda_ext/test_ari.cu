@@ -64,7 +64,7 @@ TEST_P(CudaAriTest, CheckSingleResult)
         }
     }
 
-    auto h_out = ari_core<int>(h_parts, n_features, n_parts, n_objs)[0];
+    auto h_out = ari_core_host<int>(h_parts, n_features, n_parts, n_objs)[0];
 
     // Check if the result are close
     EXPECT_NEAR(h_out, expected_result, 1e-2);

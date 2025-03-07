@@ -290,7 +290,7 @@ TEST_P(PairwiseAriTest, RandomPartitions) {
         params.n_features, params.n_parts, params.n_objs, params.k);
 
     // Get CUDA results
-    auto res_aris = ari_core<int>(parts.data(),
+    auto res_aris = ari_core_host<int>(parts.data(),
         params.n_features, params.n_parts, params.n_objs);
 
     // Generate reference results
