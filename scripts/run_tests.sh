@@ -57,6 +57,13 @@ fi
 # Setup environment
 source ./scripts/setup_dev.sh
 
+# Check if cccgpu is installed and uninstall if it exists
+echo -e "\033[34mChecking for existing cccgpu installation...\033[0m"
+if pip show cccgpu > /dev/null 2>&1; then
+    echo -e "\033[33mUninstalling existing cccgpu...\033[0m"
+    pip uninstall -y cccgpu
+fi
+
 # Install cccgpu with the cuda extension module
 echo -e "\033[34mInstalling cccgpu with the cuda extension module...\033[0m"
 pip install .
@@ -80,7 +87,3 @@ for arg in "$@"; do
             ;;
     esac
 done
-
-# Uninstall cccgpu
-echo -e "\033[34mUninstalling cccgpu...\033[0m"
-pip uninstall cccgpu -y
