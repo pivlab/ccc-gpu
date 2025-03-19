@@ -1,21 +1,23 @@
 """
 Contains function that implement the Clustermatch Correlation Coefficient (CCC).
 """
+
 from __future__ import annotations
 
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
-from typing import Iterable, Union
+from collections.abc import Iterable
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from typing import Union
 
-import numpy as np
-from numpy.typing import NDArray
 from numba import njit
 from numba.typed import List
 
+import numpy as np
 from ccc.pytorch.core import unravel_index_2d
-from ccc.sklearn.metrics import adjusted_rand_index as ari
 from ccc.scipy.stats import rank
-from ccc.utils import chunker, DummyExecutor
+from ccc.sklearn.metrics import adjusted_rand_index as ari
+from ccc.utils import DummyExecutor, chunker
+from numpy.typing import NDArray
 
 
 @njit(cache=True, nogil=True)
@@ -213,7 +215,7 @@ def get_feature_parts(params):
     #     [0, 1, 0],    # color split into 2 clusters (categorical)
     #     [-1, -1, -1]  # ignored because categorical features only need one partition
     # ]
-    
+
     n_objects = params[0][1].shape[0]
     parts = np.zeros((len(params), n_objects), dtype=np.int16) - 1
 
@@ -250,20 +252,6 @@ def cdist_parts_basic(x: NDArray, y: NDArray) -> NDArray[float]:
 
         cdist(x, y, metric=ari)
 
-    Only partitions with positive labels (> 0) are compared. This means that
-    partitions marked as "singleton" or "empty" (categorical data) are not
-    compared. This has the effect of leaving an ARI of 0.0 (zero).
-
-    Args:
-        x: a 2d array with m_x clustering partitions in rows and n objects in
-          columns.
-        y: a 2d array with m_y clustering partitions in rows and n objects in
-          columns.
-
-    Returns:
-        A 2d array with m_x rows and m_y columns and the ARI between each
-        partition pair. Each ij entry is equal to ari(x[i], y[j]) for each i
-        and j.
     """
     res = np.zeros((x.shape[0], y.shape[0]))
 
@@ -577,7 +565,9 @@ def get_n_workers(n_jobs: int | None) -> int:
     """
     n_cpu_cores = os.cpu_count()
     if n_cpu_cores is None:
-        raise ValueError("Could not determine the number of CPU cores. Please specify a positive value of n_jobs")
+        raise ValueError(
+            "Could not determine the number of CPU cores. Please specify a positive value of n_jobs"
+        )
 
     n_workers = n_cpu_cores
     if n_jobs is None:
@@ -586,8 +576,10 @@ def get_n_workers(n_jobs: int | None) -> int:
     n_workers = os.cpu_count() + n_jobs if n_jobs < 0 else n_jobs
 
     if n_workers < 1:
-        raise ValueError(f"The number of threads/processes to use must be greater than 0. Got {n_workers}."
-                         "Please check the n_jobs argument provided")
+        raise ValueError(
+            f"The number of threads/processes to use must be greater than 0. Got {n_workers}."
+            "Please check the n_jobs argument provided"
+        )
 
     return n_workers
 
@@ -692,8 +684,10 @@ def ccc(
 
         if isinstance(x, np.ndarray):
             if not get_feature_type_and_encode(x[0, :])[1]:
-                raise ValueError("If data is a 2d numpy array, it has to be numerical. Use pandas.DataFrame if "
-                                 "you need to mix features with different data types")
+                raise ValueError(
+                    "If data is a 2d numpy array, it has to be numerical. Use pandas.DataFrame if "
+                    "you need to mix features with different data types"
+                )
             n_objects = x.shape[1]
             n_features = x.shape[0]
 
@@ -793,9 +787,11 @@ def ccc(
         inputs = [
             [
                 (
-                    feature_k_pair, # Original (f_idx, c_idx, k) tuple
-                    X[feature_k_pair[0]], # Actual feature data using f_idx
-                    X_numerical_type[feature_k_pair[0]], # Data type info for this feature
+                    feature_k_pair,  # Original (f_idx, c_idx, k) tuple
+                    X[feature_k_pair[0]],  # Actual feature data using f_idx
+                    X_numerical_type[
+                        feature_k_pair[0]
+                    ],  # Data type info for this feature
                 )
                 for feature_k_pair in chunk
             ]
@@ -880,7 +876,8 @@ def ccc(
         ]
 
         for params, (max_ari_list, max_part_idx_list, pvalues) in zip(
-            inputs, map_func(compute_coef, inputs) # Apply compute_coef to each input
+            inputs,
+            map_func(compute_coef, inputs),  # Apply compute_coef to each input
         ):
             f_idx = params[0]
 
@@ -893,21 +890,15 @@ def ccc(
         if return_parts:
             if pvalue_n_perms is not None and pvalue_n_perms > 0:
                 return (cm_values[0], cm_pvalues[0]), max_parts[0], parts
-            else:
-                return cm_values[0], max_parts[0], parts
-        else:
-            if pvalue_n_perms is not None and pvalue_n_perms > 0:
-                return cm_values[0], cm_pvalues[0]
-            else:
-                return cm_values[0]
+            return cm_values[0], max_parts[0], parts
+        if pvalue_n_perms is not None and pvalue_n_perms > 0:
+            return cm_values[0], cm_pvalues[0]
+        return cm_values[0]
 
     if return_parts:
         if pvalue_n_perms is not None and pvalue_n_perms > 0:
             return (cm_values, cm_pvalues), max_parts, parts
-        else:
-            return cm_values, max_parts, parts
-    else:
-        if pvalue_n_perms is not None and pvalue_n_perms > 0:
-            return cm_values, cm_pvalues
-        else:
-            return cm_values
+        return cm_values, max_parts, parts
+    if pvalue_n_perms is not None and pvalue_n_perms > 0:
+        return cm_values, cm_pvalues
+    return cm_values

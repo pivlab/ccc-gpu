@@ -1,3 +1,4 @@
+import time
 import pytest
 import numpy as np
 import ccc_cuda_ext
@@ -59,16 +60,60 @@ def test_pairwise_ari(n_features, n_parts, n_objs, k, seed):
     ref_aris = np.zeros(n_aris, dtype=np.float32)
     # Get partition pairs
     pairs = generate_pairwise_combinations(parts)
-    # Use map-reduce to compute ARIs for all pairs of partitions
+
     for i, (part0, part1) in enumerate(pairs):
         ari = adjusted_rand_index(part0, part1)
         ref_aris[i] = ari
     # Compute ARIs using CUDA
     res_aris = ccc_cuda_ext.ari_int32(parts, n_features, n_parts, n_objs)
 
-    # Report number of mismatches
-    mismatches = np.sum(res_aris != ref_aris)
-    print(f"Number of mismatches: {mismatches}")
-
-    print(f"\nres_aris: {res_aris}, ref_aris: {ref_aris}")
+    # print(f"\nres_aris: {res_aris}, ref_aris: {ref_aris}")
     assert np.allclose(res_aris, ref_aris)
+
+
+@pytest.mark.parametrize(
+    "n_features, n_parts, n_objs, k, seed",
+    [
+        (100, 10, 300, 10, 42),
+        (100, 20, 300, 10, 42),
+        # (1000, 20, 300, 10, 42),
+        # (100000, 2, 10, 10, 42),
+    ],
+)
+def test_pairwise_ari_benchmark_features(n_features, n_parts, n_objs, k, seed):
+    # Set random seed for reproducibility
+    np.random.seed(seed)
+
+    parts = np.random.randint(0, k, size=(n_features, n_parts, n_objs), dtype=np.int32)
+    # Create test inputs
+    n_feature_comp = n_features * (n_features - 1) // 2
+    n_aris = n_feature_comp * n_parts * n_parts
+    ref_aris = np.zeros(n_aris, dtype=np.float32)
+    # Get partition pairs
+    pairs = generate_pairwise_combinations(parts)
+
+    # Time CPU version
+    start_cpu = time.time()
+    for i, (part0, part1) in enumerate(pairs):
+        ari = adjusted_rand_index(part0, part1)
+        ref_aris[i] = ari
+    end_cpu = time.time()
+    cpu_time = end_cpu - start_cpu
+
+    start_gpu = time.time()
+    res_aris = ccc_cuda_ext.ari_int32(parts, n_features, n_parts, n_objs)
+    end_gpu = time.time()
+    gpu_time = end_gpu - start_gpu
+
+    assert np.allclose(res_aris, ref_aris)
+
+    # Report benchmark results
+    print(
+        f"Testing with n_features={n_features}, n_parts={n_parts}, n_objs={n_objs}, k={k}, seed={seed}"
+    )
+    print(f"GPU time: {gpu_time:.4f} seconds")
+    print(f"CPU time: {cpu_time:.4f} seconds")
+    speedup = cpu_time / gpu_time
+    print(f"Speedup: {speedup:.2f}x")
+    num_coefs = n_aris
+    print(f"Number of coefficients: {num_coefs}")
