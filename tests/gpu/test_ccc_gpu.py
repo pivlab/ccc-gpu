@@ -24,7 +24,7 @@ from utils import clean_gpu_memory, generate_categorical_data
         # ((100, 1000), 0.008), # Skipped, too slow for a unit test
         # ((5000, 1000), 0.008), # Skipped, too slow for a unit test
         # Benchmark cases
-        # ((5000, 1000), 0.6, True),
+        ((5000, 1000), 0.6, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])

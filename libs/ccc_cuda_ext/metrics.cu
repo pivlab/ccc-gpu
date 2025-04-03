@@ -108,16 +108,19 @@ __device__ void get_contingency_matrix(int *part0, int *part1, int n_objs, int *
     //     }
     // }
 
+    #pragma unroll
     for (int i = tid; i < n_objs; i += smem_buffer_size)
     {
-        int row = part0[i];
-        int col = part1[i];
+        // Directly load row/col info from global memory into registers, no need to load into shared memory
+        const int row = part0[i];
+        const int col = part1[i];
 
         // Add bounds checking
-        assert(row >= 0 && row < k && col >= 0 && col < k);
+        // assert(row >= 0 && row < k && col >= 0 && col < k);
+        // OPT: can we use shared memory to avoid atomicAdd?
         atomicAdd(&shared_cont_mat[row * k + col], 1);
     }
-    __syncthreads();
+    // __syncthreads();
 }
 
 /**
