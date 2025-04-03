@@ -78,23 +78,37 @@ __device__ __host__ inline void get_coords_from_index(int n_obj, int idx, int *x
  * @param[in] n_objs Number of elements in each partition array
  * @param[out] shared_cont_mat Pointer to shared memory for storing the contingency matrix
  * @param[in] k Maximum number of clusters (size of contingency matrix is k x k)
+ * @param[out] s_part0 Pointer to shared memory for storing the first partition
+ * @param[out] s_part1 Pointer to shared memory for storing the second partition
+ * @param[in] smem_buffer_size Size of the shared memory used for buffering (part of) one partition
  */
-__device__ void get_contingency_matrix(int *part0, int *part1, int n_objs, int *shared_cont_mat, int k)
+__device__ void get_contingency_matrix(int *part0, int *part1, int n_objs, int *shared_cont_mat, int k, int *s_part0, int *s_part1, int smem_buffer_size)
 {
-    int tid = threadIdx.x;
-    int num_threads = blockDim.x;
-    int size = k * k;
+    const int tid = threadIdx.x;
+    const int cont_mat_size = k * k;
 
     // Initialize shared memory
-    assert(num_threads >= size);
-    for (int i = tid; i < size; i += num_threads)
-    {
-        shared_cont_mat[i] = 0;
+    if (tid < cont_mat_size) {
+        shared_cont_mat[tid] = 0;
     }
     __syncthreads();
 
-    // Process elements with bounds checking
-    for (int i = tid; i < n_objs; i += num_threads)
+
+    // for (int n_processed_objs = 0; n_processed_objs < n_objs; n_processed_objs += smem_buffer_size) {
+    //     if (n_processed_objs + tid < n_objs) {
+    //         // Load data into shared memory
+    //         s_part0[tid] = part0[n_processed_objs + tid];
+    //         s_part1[tid] = part1[n_processed_objs + tid];
+    //         __syncthreads();
+
+    //         // Process elements with bounds checking
+    //         const auto row = s_part0[tid];
+    //         const auto col = s_part1[tid];
+    //         atomicAdd(&shared_cont_mat[row * k + col], 1);
+    //     }
+    // }
+
+    for (int i = tid; i < n_objs; i += smem_buffer_size)
     {
         int row = part0[i];
         int col = part1[i];
@@ -306,8 +320,10 @@ __device__ void get_pair_confusion_matrix(
  * @param n_elems_per_feat Number of elements for each feature, i.e., part[i].x * part[i].y
  * @param n_part_mat_elems Number of elements in the square partition matrix
  * @param k The max value of cluster number + 1
+ * @param n_obj_in_smem Number of objects in the shared memory for one feature's objects
  * @param out Output array of ARIs
  */
+// TODO: Parameterize the int type to allow using narrower int types for memory efficiency
 extern "C" __global__ void ari_kernel(int *parts,
                                       const int n_aris,
                                       const int n_features,
@@ -316,6 +332,7 @@ extern "C" __global__ void ari_kernel(int *parts,
                                       const int n_elems_per_feat,
                                       const int n_part_mat_elems,
                                       const int k,
+                                      const int n_obj_in_smem,
                                       float *out)
 {
     /*
@@ -331,6 +348,8 @@ extern "C" __global__ void ari_kernel(int *parts,
     int *s_sum_rows = s_contingency + (k * k);     // k elements
     int *s_sum_cols = s_sum_rows + k;              // k elements
     int *s_pair_confusion_matrix = s_sum_cols + k; // 4 elements
+    int *s_part0 = s_pair_confusion_matrix + 4;     // n_obj_in_smem elements
+    int *s_part1 = s_part0 + n_obj_in_smem;        // n_obj_in_smem elements
 
     /*
      * Step 1: Each thead, unravel flat indices and load the corresponding data into shared memory
@@ -393,7 +412,7 @@ extern "C" __global__ void ari_kernel(int *parts,
      */
     // shared mem address for the contingency matrix
     // int *s_contingency = shared_mem + 2 * n_objs;
-    get_contingency_matrix(t_data_part0, t_data_part1, n_objs, s_contingency, k);
+    get_contingency_matrix(t_data_part0, t_data_part1, n_objs, s_contingency, k, s_part0, s_part1, n_obj_in_smem);
 
     /*
      * Step 3: Construct pair confusion matrix
@@ -493,22 +512,23 @@ auto ari_core_device(const T *parts,
     // FIXME: Partition pair size should be fixed. Stream processing should be used for large input
     // NOTE: Use global memory to fix the issue for now and then optimize with shared memory
     // auto s_mem_size = 2 * n_objs * sz_parts_dtype;  // For the partition pair to be compared
+    const auto block_size = 128;   // Todo: change this to template parameter for performance tuning
     auto s_mem_size = 0;
     s_mem_size += k * k * sz_parts_dtype; // For contingency matrix
     s_mem_size += 2 * k * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed?
     s_mem_size += 4 * sz_parts_dtype;     // For the 2 x 2 confusion matrix
+    s_mem_size += 2 * block_size * sz_parts_dtype; // For the partition pair to be compared and loaded into shared memory
 
     // Check if shared memory size exceeds device limits
-    if (!check_shared_memory_size(s_mem_size))
-    {
-        throw std::runtime_error("Required shared memory exceeds device limits");
+    auto [is_valid, message] = check_shared_memory_size(s_mem_size);
+    if (!is_valid){
+        throw std::runtime_error(message);
     }
 
     /*
      * Launch the kernel
      */
     // Set up CUDA kernel configuration
-    const auto block_size = 256;   // FIXME: should be scaled on different GPUs
     const auto grid_size = n_aris; // Each logical block is responsible for one ARI computation
     ari_kernel<<<grid_size, block_size, s_mem_size>>>(
         thrust::raw_pointer_cast(d_parts->data()),
@@ -519,6 +539,7 @@ auto ari_core_device(const T *parts,
         n_parts * n_objs,
         n_parts * n_parts,
         k,
+        block_size,
         thrust::raw_pointer_cast(d_out->data()));
 
     return d_out;
