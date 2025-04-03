@@ -20,6 +20,8 @@
 
 #include <cuda_runtime.h>
 #include <stdio.h>
+#include <tuple>
+#include <string>
 
 /**
  * @brief Main error checking macro for CUDA operations
@@ -33,8 +35,8 @@
  * CUDA_CHECK(cudaDeviceSynchronize(), false); // Will only print error on failure
  * @endcode
  */
-#define CUDA_CHECK(ans, abort)                       \
-    {                                                \
+#define CUDA_CHECK(ans, abort)                        \
+    {                                                 \
         gpu_assert((ans), __FILE__, __LINE__, abort); \
     }
 
@@ -112,20 +114,23 @@ inline void check_cuda_device()
  *
  * @param requested_size The amount of shared memory needed (in bytes)
  * @param device_id The CUDA device ID to check (defaults to 0)
- * @return true if the requested size is within limits, false otherwise
+ * @return std::tuple<bool, std::string> containing validation status and any warning/error message
  *
  * @throws Exits if unable to query device properties
  *
  * Example:
  * @code
  * size_t needed_shared_mem = 1024 * sizeof(float);
- * if (!check_shared_memory_size(needed_shared_mem)) {
- *     fprintf(stderr, "Insufficient shared memory available\n");
- *     return false;
+ * auto [is_valid, message] = check_shared_memory_size(needed_shared_mem);
+ * if (!is_valid) {
+ *     throw std::runtime_error(message);
+ * }
+ * if (!message.empty()) {
+ *     std::cerr << message << std::endl;  // Handle warning
  * }
  * @endcode
  */
-inline bool check_shared_memory_size(const size_t requested_size, int device_id = 0)
+inline std::tuple<bool, std::string> check_shared_memory_size(const size_t requested_size, int device_id = 0)
 {
     cudaDeviceProp prop;
     CUDA_CHECK_MANDATORY(cudaGetDeviceProperties(&prop, device_id));
@@ -134,19 +139,20 @@ inline bool check_shared_memory_size(const size_t requested_size, int device_id 
 
     if (requested_size > max_shared_mem)
     {
-        fprintf(stderr, "Required shared memory (%zu bytes) exceeds device limit (%zu bytes)\n",
-                requested_size, max_shared_mem);
-        return false;
+        return std::make_tuple(false,
+                               std::string("Required shared memory (") + std::to_string(requested_size) +
+                                   " bytes) exceeds device limit (" + std::to_string(max_shared_mem) + " bytes)");
     }
 
     // Optionally warn if close to limit (e.g., using more than 90%)
     if (requested_size > (max_shared_mem * 0.9))
     {
-        fprintf(stderr, "Warning: Shared memory usage (%zu bytes) is close to device limit (%zu bytes)\n",
-                requested_size, max_shared_mem);
+        return std::make_tuple(true,
+                               std::string("Warning: Shared memory usage (") + std::to_string(requested_size) +
+                                   " bytes) is close to device limit (" + std::to_string(max_shared_mem) + " bytes)");
     }
 
-    return true;
+    return std::make_tuple(true, "");
 }
 
 /**
