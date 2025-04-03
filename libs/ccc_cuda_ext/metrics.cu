@@ -93,21 +93,6 @@ __device__ void get_contingency_matrix(int *part0, int *part1, int n_objs, int *
     }
     __syncthreads();
 
-
-    // for (int n_processed_objs = 0; n_processed_objs < n_objs; n_processed_objs += smem_buffer_size) {
-    //     if (n_processed_objs + tid < n_objs) {
-    //         // Load data into shared memory
-    //         s_part0[tid] = part0[n_processed_objs + tid];
-    //         s_part1[tid] = part1[n_processed_objs + tid];
-    //         __syncthreads();
-
-    //         // Process elements with bounds checking
-    //         const auto row = s_part0[tid];
-    //         const auto col = s_part1[tid];
-    //         atomicAdd(&shared_cont_mat[row * k + col], 1);
-    //     }
-    // }
-
     #pragma unroll
     for (int i = tid; i < n_objs; i += smem_buffer_size)
     {
@@ -120,118 +105,6 @@ __device__ void get_contingency_matrix(int *part0, int *part1, int n_objs, int *
         // OPT: can we use shared memory to avoid atomicAdd?
         atomicAdd(&shared_cont_mat[row * k + col], 1);
     }
-    // __syncthreads();
-}
-
-/**
- * @brief Compute the contingency matrix for two partitions using shared memory, by loading global memory data in batch
- * to process large input, i.e., when the input size is larger than the shared memory size
- * @param[in] part0 Pointer to the first partition array int the global memory
- * @param[in] part1 Pointer to the second partition array in the global memory
- * @param[in] nSamples Number of elements in each partition array
- * @param[in] k Maximum number of clusters (size of contingency matrix is k x k)
- * @param[out] shared_cont_mat Pointer to shared memory for storing the contingency matrix
- */
-// Todo: Add template for kernel configuration
-template <typename T>
-__device__ void get_contingency_matrix_batch(const T *part0, const T *part1, const int n_objs, const int k, T *shared_cont_mat)
-{
-    // Define block and chunk sizes
-    const int BLOCK_SIZE = 256;
-    const int ITEMS_PER_THREAD = 4;
-    // Size of the shared memory buffer (chunk size)
-    const int SHARED_MEMORY_SIZE = 2 * BLOCK_SIZE * ITEMS_PER_THREAD;
-
-    int tid = threadIdx.x;
-    int num_threads = blockDim.x;
-    const auto cont_mat_size = k * k;
-
-    // Shared memory buffer for the current chunk
-    __shared__ T sharedBuffer[SHARED_MEMORY_SIZE];
-    // Thread-local storage for loading elements
-    T threadData_part0[ITEMS_PER_THREAD];
-    T threadData_part1[ITEMS_PER_THREAD];
-
-    // Calculate number of chunks needed
-    const int numChunks = (n_objs + SHARED_MEMORY_SIZE - 1) / SHARED_MEMORY_SIZE;
-    // Temporary storage for CUB operations
-    // Specialize BlockLoad for a 1D block of 128 threads owning 4 integer items each
-    using BlockLoad = cub::BlockLoad<T, BLOCK_SIZE, ITEMS_PER_THREAD, cub::BLOCK_LOAD_STRIPED>;
-    // Allocate shared memory for BlockLoad
-    __shared__ typename BlockLoad::TempStorage temp_storage_part0;
-    __shared__ typename BlockLoad::TempStorage temp_storage_part1;
-
-    // Initialize shared memory for the contingency matrix
-    for (int i = tid; i < cont_mat_size; i += num_threads)
-    {
-        shared_cont_mat[i] = 0;
-    }
-    __syncthreads();
-
-    // Process data chunk by chunk
-    for (int chunk = 0; chunk < numChunks; chunk++)
-    {
-        // Calculate offset and valid items for this chunk
-        const int chunkOffset = chunk * SHARED_MEMORY_SIZE;
-        const int validItems = min(SHARED_MEMORY_SIZE, n_objs - chunkOffset);
-
-        // Load chunk from global memory
-        cub::BlockLoad<T, BLOCK_SIZE, ITEMS_PER_THREAD, cub::BLOCK_LOAD_STRIPED>(temp_storage_part0).Load(part0 + chunkOffset, threadData_part0, validItems,
-                                                                                                          (T)0 // Default value for out-of-bounds items
-        );
-
-        cub::BlockLoad<T, BLOCK_SIZE, ITEMS_PER_THREAD, cub::BLOCK_LOAD_STRIPED>(temp_storage_part1).Load(part1 + chunkOffset, threadData_part1, validItems,
-                                                                                                          (T)0 // Default value for out-of-bounds items
-        );
-
-// Process thread-local data
-#pragma unroll
-        for (int i = 0; i < ITEMS_PER_THREAD; i++)
-        {
-            // threadData[i] *= 2;
-            const T p0_label = part0[i];
-            const T p1_label = part1[i];
-            // Add bounds checking
-            if (p0_label >= 0 && p0_label < k && p1_label >= 0 && p1_label < k)
-            {
-                atomicAdd(&shared_cont_mat[p0_label * k + p1_label], 1);
-            }
-        }
-
-        // // Store processed data to shared memory
-        // int threadOffset = threadIdx.x * ITEMS_PER_THREAD;
-        // #pragma unroll
-        // for (int i = 0; i < ITEMS_PER_THREAD; i++) {
-        //     if (threadOffset + i < validItems) {
-        //         sharedBuffer[threadOffset + i] = threadData[i];
-        //     }
-        // }
-
-        // __syncthreads();
-
-        // // Additional processing on shared memory data if needed
-        // // For example, you could do a reduction or other block-wide operations here
-
-        // // Store results back to global memory
-        // for (int i = threadIdx.x; i < validItems; i += BLOCK_SIZE) {
-        //     output[chunkOffset + i] = sharedBuffer[i];
-        // }
-
-        // __syncthreads();  // Ensure all threads are done before loading next chunk
-    }
-
-    // Process elements with bounds checking
-    // for (int i = tid; i < n_samples; i += num_threads)
-    // {
-    //     int row = part0[i];
-    //     int col = part1[i];
-
-    //     // Add bounds checking
-    //     if (row >= 0 && row < k && col >= 0 && col < k)
-    //     {
-    //         atomicAdd(&shared_cont_mat[row * k + col], 1);
-    //     }
-    // }
     // __syncthreads();
 }
 
@@ -394,21 +267,6 @@ extern "C" __global__ void ari_kernel(int *parts,
     {
         return;
     }
-
-    // Load gmem data into smem by using different threads
-    // extern __shared__ int shared_mem[];
-    // int *s_part0 = shared_mem;
-    // int *s_part1 = shared_mem + n_objs;
-
-    // NOTE: comment out the following lines for now
-    // Loop over the data using the block-stride pattern
-    // for (int i = threadIdx.x; i < n_objs; i += blockDim.x)
-    // {
-    //     s_part0[i] = t_data_part0[i];
-    //     s_part1[i] = t_data_part1[i];
-    // }
-    // __syncthreads();
-    // NOTE Ends
 
     /*
      * Step 2: Compute contingency matrix within the block
