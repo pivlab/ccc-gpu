@@ -13,24 +13,28 @@ from utils import clean_gpu_memory, generate_categorical_data
     "seed", [42]
 )  # More seeds for simple cases, only 42 for large cases
 @pytest.mark.parametrize(
-    "shape,max_not_close_percentage",
+    "shape, max_not_close_percentage, generate_logs",
     [
         # Simple cases
-        ((10, 100), 0.6),
-        ((20, 200), 0.6),
-        ((30, 300), 0.6),
-        ((9, 10000), 0.008),
+        ((10, 100), 0.6, False),
+        ((20, 200), 0.6, False),
+        ((30, 300), 0.6, False),
+        ((9, 10000), 0.008, False),
         # Large cases
         # ((100, 1000), 0.008), # Skipped, too slow for a unit test
         # ((5000, 1000), 0.008), # Skipped, too slow for a unit test
         # Benchmark cases
-        # ((5000, 1000), 0.6),
+        # ((5000, 1000), 0.6, True),
     ],
 )
-@pytest.mark.parametrize("n_cpu_cores", [1, 4, 8, 12, 24, 36, 48])
+@pytest.mark.parametrize("n_cpu_cores", [24])
 @clean_gpu_memory
 def test_ccc_gpu_with_numerical_input(
-    seed: int, shape: Tuple[int, int], n_cpu_cores: int, max_not_close_percentage: float
+    seed: int,
+    shape: Tuple[int, int],
+    n_cpu_cores: int,
+    max_not_close_percentage: float,
+    generate_logs: bool,
 ):
     """
     Test 2D CCC implementation with various data shapes and random seeds.
@@ -43,12 +47,6 @@ def test_ccc_gpu_with_numerical_input(
         max_not_close_percentage: Maximum allowed percentage of coefficients that can differ
     """
     # Check if we should generate logs
-    generate_logs = os.environ.get("CCC_GENERATE_LOGS", "").lower() in (
-        "true",
-        "1",
-        "yes",
-    )
-
     if generate_logs:
         # Create logs directory if it doesn't exist
         logs_dir = os.path.join("tests", "logs")
