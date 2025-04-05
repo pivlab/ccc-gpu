@@ -92,7 +92,7 @@ __device__ void get_contingency_matrix(int *part0, int *part1, int n_objs, int *
     }
     __syncthreads();
 
-    #pragma unroll
+#pragma unroll
     for (int i = tid; i < n_objs; i += n_block_threads)
     {
         // Directly load row/col info from global memory into registers, no need to load into shared memory
@@ -126,8 +126,11 @@ __device__ void get_pair_confusion_matrix(
 {
     // TODO: use block-level reduction
 
+    const int tid = threadIdx.x;
+    const int n_block_threads = blockDim.x;
+
     // Initialize sum_rows and sum_cols
-    for (int i = threadIdx.x; i < k; i += blockDim.x)
+    for (int i = tid; i < k; i += n_block_threads)
     {
         sum_rows[i] = 0;
         sum_cols[i] = 0;
@@ -135,7 +138,7 @@ __device__ void get_pair_confusion_matrix(
     __syncthreads();
 
     // Compute sum_rows and sum_cols
-    for (int i = threadIdx.x; i < k * k; i += blockDim.x)
+    for (int i = tid; i < k * k; i += n_block_threads)
     {
         int row = i / k;
         int col = i % k;
@@ -147,7 +150,7 @@ __device__ void get_pair_confusion_matrix(
 
     // Compute sum_squares
     int sum_squares;
-    if (threadIdx.x == 0)
+    if (tid == 0)
     {
         sum_squares = 0;
         for (int i = 0; i < k * k; ++i)
@@ -157,8 +160,8 @@ __device__ void get_pair_confusion_matrix(
     }
     __syncthreads();
 
-    // Compute C[1,1], C[0,1], C[1,0], and C[0,0]
-    if (threadIdx.x == 0)
+    // Use different warps to compute C[1,1], C[0,1], C[1,0], and C[0,0]
+    if (tid == 0)
     {
         C[3] = sum_squares - n_objs; // C[1,1]
 
