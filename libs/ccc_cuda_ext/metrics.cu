@@ -58,17 +58,55 @@ __device__ __host__ inline void unravel_index(int flat_idx, int num_cols, int *r
  * @param[out] x Pointer to the calculated row coordinate in the symmetric matrix.
  * @param[out] y Pointer to the calculated column coordinate in the symmetric matrix.
  */
-__device__ __host__ inline void get_coords_from_index(int n_obj, int idx, int *x, int *y)
+__device__ __host__ inline void get_coords_from_index(int n_obj, int idx, uint32_t *x, uint32_t *y, bool debug = false)
 {
-    // Calculate 'b' based on the input n_obj
-    int b = 1 - 2 * n_obj;
-    // Calculate 'x' using the quadratic formula part
-    float discriminant = b * b - 8 * idx;
-    float x_float = floor((-b - sqrt(discriminant)) / 2);
-    // Assign the integer part of 'x'
-    *x = static_cast<int>(x_float);
-    // Calculate 'y' based on 'x' and the index
-    *y = static_cast<int>(idx + (*x) * (b + (*x) + 2) / 2 + 1);
+    // Use int64_t to prevent overflow in intermediate calculations
+    int64_t n_obj_64 = static_cast<int64_t>(n_obj);
+    int64_t idx_64 = static_cast<int64_t>(idx);
+
+    // Calculate 'b' using 64-bit arithmetic
+    int64_t b = 1 - 2 * n_obj_64;
+
+    // Calculate discriminant using 64-bit arithmetic
+    // Use double for floating point to maintain precision
+    double b_squared = static_cast<double>(b) * b;
+    double idx_term = 8.0 * static_cast<double>(idx_64);
+    double discriminant = b_squared - idx_term;
+
+    // Calculate x using double precision
+    double x_float = (-b - sqrt(discriminant)) / 2.0;
+
+    // Floor and convert to uint32_t, with bounds checking
+    int64_t x_64 = static_cast<int64_t>(floor(x_float));
+    if (x_64 < 0 || x_64 > UINT32_MAX)
+    {
+        // Handle error condition - could throw error or set to max/min value
+        *x = 0;
+        *y = 0;
+        return;
+    }
+    *x = static_cast<uint32_t>(x_64);
+
+    // Calculate y using 64-bit arithmetic to prevent overflow
+    int64_t y_term1 = idx_64;
+    int64_t y_term2 = x_64 * (b + x_64 + 2) / 2;
+    int64_t y_64 = y_term1 + y_term2 + 1;
+
+    // Bounds checking for y
+    if (y_64 < 0 || y_64 > UINT32_MAX)
+    {
+        // Handle error condition
+        *x = 0;
+        *y = 0;
+        return;
+    }
+    *y = static_cast<uint32_t>(y_64);
+
+    if (debug)
+    {
+        printf("b, discriminant, x_float: %ld, %.2f, %.2f\n", b, discriminant, x_float);
+        printf("x, y: %u, %u\n", *x, *y);
+    }
 }
 
 /**
@@ -229,7 +267,7 @@ extern "C" __global__ void ari_kernel(int *parts,
     // obtain the corresponding parts and unique counts
     int feature_comp_flat_idx = ari_block_idx / n_part_mat_elems; // flat comparison pair index for two features
     int part_pair_flat_idx = ari_block_idx % n_part_mat_elems;    // flat comparison pair index for two partitions of one feature pair
-    int i, j;
+    uint32_t i, j;
 
     // Unravel the feature indices
     // For example, if n_features = 3, n_feature_comp = n_features * (n_features - 1) / 2 = 3
@@ -286,6 +324,52 @@ extern "C" __global__ void ari_kernel(int *parts,
         float ari = 0.0f;
         if (fn == 0 && fp == 0)
         {
+            // Debug
+            // printf("Found a pair with no false negatives and false positives\n");
+            // printf("tp: %f, tn: %f, fn: %f, fp: %f\n", tp, tn, fn, fp);
+            // printf("ARI flat index: %d\n", ari_block_idx);
+            // printf("Feature pair: (%d, %d)\n", i, j);
+            // printf("Partition pair: (%d, %d)\n", m, n);
+            // printf("part0: ");
+            // for (int k = 0; k < n_objs; k++)
+            // {
+            //     printf("%d ", t_data_part0[k]);
+            // }
+            // printf("\n");
+            // printf("part1: ");
+            // for (int k = 0; k < n_objs; k++)
+            // {
+            //     printf("%d ", t_data_part1[k]);
+            // }
+            // printf("\n");
+            // printf("Contingency matrix:\n");
+            // for (int k = 0; k < k; k++)
+            // {
+            //     for (int l = 0; l < k; l++)
+            //     {
+            //         printf("%d ", s_contingency[k * k + l]);
+            //     }
+            //     printf("\n");
+            // }
+            // printf("Sum rows: ");
+            // for (int k = 0; k < k; k++)
+            // {
+            //     printf("%d ", s_sum_rows[k]);
+            // }
+            // printf("\n");
+            // printf("Sum cols: ");
+            // for (int k = 0; k < k; k++)
+            // {
+            //     printf("%d ", s_sum_cols[k]);
+            // }
+            // printf("\n");
+            // printf("Pair confusion matrix: ");
+            // for (int k = 0; k < 4; k++)
+            // {
+            //     printf("%d ", s_pair_confusion_matrix[k]);
+            // }
+            // printf("\n");
+
             ari = 1.0f;
         }
         else

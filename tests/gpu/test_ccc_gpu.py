@@ -16,16 +16,24 @@ from utils import clean_gpu_memory, generate_categorical_data
     "shape, max_not_close_percentage, generate_logs",
     [
         # Simple cases
-        ((10, 100), 0.6, False),
-        ((20, 200), 0.6, False),
-        ((30, 300), 0.6, False),
-        ((100, 100), 0.008, True),
-        # ((1000, 100), 0.008, True),
+        ((10, 100), 0.0, False),
+        ((20, 200), 0.0, False),
+        ((30, 300), 0.0, False),
+        # ((100, 100), 0.0, True),
+        # ((100, 1000), 0.0, True),
         # Large cases
+        # ((1000, 100), 0.0, True),
         # ((100, 1000), 0.008, False), # Skipped, too slow for a unit test
-        # ((5000, 1000), 0.008), # Skipped, too slow for a unit test
+        # ((1000, 1000), 0.0, True),
+        # ((2000, 1000), 0.0, True),
+        # ((3000, 1000), 0.0, True),
+        # ((4000, 100), 0.0, True),
+        # ((4500, 100), 0.0, True),
+        # ((6000, 100), 0.0, True),
+        # ((7000, 100), 0.0, True),
+        # ((5000, 100), 0.0, True),
         # Benchmark cases
-        # ((5000, 1000), 0.6, True),
+        ((5000, 1000), 0.0, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
@@ -57,12 +65,12 @@ def test_ccc_gpu_with_numerical_input(
         base_filename = f"test_ccc_gpu_{seed}_f{shape[0]}_n{shape[1]}_c{n_cpu_cores}"
         log_filename = os.path.join(logs_dir, f"{base_filename}.log")
         gpu_results_filename = os.path.join(
-            logs_dir, f"{base_filename}_gpu_results.txt"
+            logs_dir, f"{base_filename}_gpu_results.log"
         )
         cpu_results_filename = os.path.join(
-            logs_dir, f"{base_filename}_cpu_results.txt"
+            logs_dir, f"{base_filename}_cpu_results.log"
         )
-        input_data_filename = os.path.join(logs_dir, f"{base_filename}_input_data.txt")
+        input_data_filename = os.path.join(logs_dir, f"{base_filename}_input_data.log")
 
         print("Writing test output to:")
         print(f"  - Log: {log_filename}")
@@ -80,12 +88,6 @@ def test_ccc_gpu_with_numerical_input(
             file=log_file,
         )
     df = np.random.rand(*shape)
-
-    # row0file = os.path.join(logs_dir, f"row0_{seed}_f{shape[0]}_n{shape[1]}.txt")
-    # row4998file = os.path.join(logs_dir, f"row4998_{seed}_f{shape[0]}_n{shape[1]}.txt")
-    # np.savetxt(row0file, df[0], fmt="%.8f", delimiter=", ")
-    # np.savetxt(row4998file, df[4998], fmt="%.8f", delimiter=", ")
-    # return
 
     # Time GPU version
     start_gpu = time.time()
@@ -142,14 +144,14 @@ def test_ccc_gpu_with_numerical_input(
                 f"{idx:3d} | {c1[idx]:10.6f} | {c2[idx]:10.6f} | {abs(c1[idx] - c2[idx]):12.6f} | {i:5d} | {j:5d}",
                 file=log_file,
             )
-            print(
-                f"Data for row {i}: {', '.join(f'{x:.8f}' for x in df[i])}",
-                file=log_file,
-            )
-            print(
-                f"Data for row {j}: {', '.join(f'{x:.8f}' for x in df[j])}",
-                file=log_file,
-            )
+            # print(
+            #     f"Data for row {i}: {', '.join(f'{x:.8f}' for x in df[i])}",
+            #     file=log_file,
+            # )
+            # print(
+            #     f"Data for row {j}: {', '.join(f'{x:.8f}' for x in df[j])}",
+            #     file=log_file,
+            # )
             print("-" * 65, file=log_file)
 
     # Calculate statistics
