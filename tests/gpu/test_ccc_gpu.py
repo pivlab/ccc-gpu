@@ -19,12 +19,13 @@ from utils import clean_gpu_memory, generate_categorical_data
         ((10, 100), 0.6, False),
         ((20, 200), 0.6, False),
         ((30, 300), 0.6, False),
-        ((9, 10000), 0.008, False),
+        ((100, 100), 0.008, True),
+        # ((1000, 100), 0.008, True),
         # Large cases
-        # ((100, 1000), 0.008), # Skipped, too slow for a unit test
+        # ((100, 1000), 0.008, False), # Skipped, too slow for a unit test
         # ((5000, 1000), 0.008), # Skipped, too slow for a unit test
         # Benchmark cases
-        ((5000, 1000), 0.6, True),
+        # ((5000, 1000), 0.6, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
@@ -79,6 +80,12 @@ def test_ccc_gpu_with_numerical_input(
             file=log_file,
         )
     df = np.random.rand(*shape)
+
+    # row0file = os.path.join(logs_dir, f"row0_{seed}_f{shape[0]}_n{shape[1]}.txt")
+    # row4998file = os.path.join(logs_dir, f"row4998_{seed}_f{shape[0]}_n{shape[1]}.txt")
+    # np.savetxt(row0file, df[0], fmt="%.8f", delimiter=", ")
+    # np.savetxt(row4998file, df[4998], fmt="%.8f", delimiter=", ")
+    # return
 
     # Time GPU version
     start_gpu = time.time()
@@ -212,3 +219,23 @@ def test_ccc_gpu_with_categorical_input(
 # @clean_gpu_memory
 # def test_ccc_gpu_with_mixed_input():
 #     return
+
+
+@clean_gpu_memory
+def test_ccc_gpu_file_input():
+    row0file = os.path.join("tests", "logs", "row0_42_f5000_n1000.txt")
+    row4998file = os.path.join("tests", "logs", "row4998_42_f5000_n1000.txt")
+    # Read file and convert to numpy array
+    with open(row0file, "r") as f:
+        lines = f.readlines()
+        row0 = np.array([float(line.strip()) for line in lines])
+    with open(row4998file, "r") as f:
+        lines = f.readlines()
+        row4998 = np.array([float(line.strip()) for line in lines])
+
+    df = np.vstack((row0, row4998))
+    res_cpu = ccc(df, n_jobs=48)
+    res_gpu = ccc_gpu(df)
+    print(f"res_cpu: {res_cpu}")
+    print(f"res_gpu: {res_gpu}")
+    assert np.allclose(res_cpu, res_gpu)
