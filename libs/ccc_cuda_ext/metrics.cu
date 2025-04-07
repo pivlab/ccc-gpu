@@ -58,7 +58,7 @@ __device__ __host__ inline void unravel_index(int flat_idx, int num_cols, int *r
  * @param[out] x Pointer to the calculated row coordinate in the symmetric matrix.
  * @param[out] y Pointer to the calculated column coordinate in the symmetric matrix.
  */
-__device__ __host__ inline void get_coords_from_index(int n_obj, int idx, uint32_t *x, uint32_t *y, bool debug = false)
+__device__ __host__ inline void get_coords_from_index(int n_obj, int idx, uint32_t *x, uint32_t *y)
 {
     // Use int64_t to prevent overflow in intermediate calculations
     int64_t n_obj_64 = static_cast<int64_t>(n_obj);
@@ -101,12 +101,6 @@ __device__ __host__ inline void get_coords_from_index(int n_obj, int idx, uint32
         return;
     }
     *y = static_cast<uint32_t>(y_64);
-
-    if (debug)
-    {
-        printf("b, discriminant, x_float: %ld, %.2f, %.2f\n", b, discriminant, x_float);
-        printf("x, y: %u, %u\n", *x, *y);
-    }
 }
 
 /**
@@ -324,52 +318,6 @@ extern "C" __global__ void ari_kernel(int *parts,
         float ari = 0.0f;
         if (fn == 0 && fp == 0)
         {
-            // Debug
-            // printf("Found a pair with no false negatives and false positives\n");
-            // printf("tp: %f, tn: %f, fn: %f, fp: %f\n", tp, tn, fn, fp);
-            // printf("ARI flat index: %d\n", ari_block_idx);
-            // printf("Feature pair: (%d, %d)\n", i, j);
-            // printf("Partition pair: (%d, %d)\n", m, n);
-            // printf("part0: ");
-            // for (int k = 0; k < n_objs; k++)
-            // {
-            //     printf("%d ", t_data_part0[k]);
-            // }
-            // printf("\n");
-            // printf("part1: ");
-            // for (int k = 0; k < n_objs; k++)
-            // {
-            //     printf("%d ", t_data_part1[k]);
-            // }
-            // printf("\n");
-            // printf("Contingency matrix:\n");
-            // for (int k = 0; k < k; k++)
-            // {
-            //     for (int l = 0; l < k; l++)
-            //     {
-            //         printf("%d ", s_contingency[k * k + l]);
-            //     }
-            //     printf("\n");
-            // }
-            // printf("Sum rows: ");
-            // for (int k = 0; k < k; k++)
-            // {
-            //     printf("%d ", s_sum_rows[k]);
-            // }
-            // printf("\n");
-            // printf("Sum cols: ");
-            // for (int k = 0; k < k; k++)
-            // {
-            //     printf("%d ", s_sum_cols[k]);
-            // }
-            // printf("\n");
-            // printf("Pair confusion matrix: ");
-            // for (int k = 0; k < 4; k++)
-            // {
-            //     printf("%d ", s_pair_confusion_matrix[k]);
-            // }
-            // printf("\n");
-
             ari = 1.0f;
         }
         else
