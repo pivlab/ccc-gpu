@@ -323,7 +323,6 @@ extern "C" __global__ void ari_kernel(int *parts,
         else
         {
             ari = 2.0f * (tp * tn - fn * fp) / ((tp + fn) * (fn + tn) + (tp + fp) * (fp + tn));
-            ari = max(ari, 0.0f);
         }
         out[ari_block_idx] = ari;
     }

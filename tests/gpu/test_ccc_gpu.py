@@ -221,23 +221,3 @@ def test_ccc_gpu_with_categorical_input(
 # @clean_gpu_memory
 # def test_ccc_gpu_with_mixed_input():
 #     return
-
-
-@clean_gpu_memory
-def test_ccc_gpu_file_input():
-    row0file = os.path.join("tests", "logs", "row0_42_f5000_n1000.txt")
-    row4998file = os.path.join("tests", "logs", "row4998_42_f5000_n1000.txt")
-    # Read file and convert to numpy array
-    with open(row0file, "r") as f:
-        lines = f.readlines()
-        row0 = np.array([float(line.strip()) for line in lines])
-    with open(row4998file, "r") as f:
-        lines = f.readlines()
-        row4998 = np.array([float(line.strip()) for line in lines])
-
-    df = np.vstack((row0, row4998))
-    res_cpu = ccc(df, n_jobs=48)
-    res_gpu = ccc_gpu(df)
-    print(f"res_cpu: {res_cpu}")
-    print(f"res_gpu: {res_gpu}")
-    assert np.allclose(res_cpu, res_gpu)

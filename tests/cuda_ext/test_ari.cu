@@ -89,8 +89,7 @@ INSTANTIATE_TEST_SUITE_P(
                 {{0, 0, 1, 1}},
                 {{0, 1, 0, 1}},
             },
-            -0.0f
-            // The result is -0.5 for sklearn.metrics.adjusted_rand_score, but ccc's result is clamped to 0
+            -0.5f
         ),
         TestParamType(
             Mat3{

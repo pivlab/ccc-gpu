@@ -231,7 +231,9 @@ protected:
             py::array_t<int> np_part1 = py::cast(labels2);
 
             py::object result = ccc_module->attr("adjusted_rand_index")(np_part0, np_part1);
-            return result.cast<float>();
+            // CCC's result is clamped to 0
+            auto ari = result.cast<float>();
+            return ari;
         } catch (const py::error_already_set& e) {
             ADD_FAILURE() << "Python error: " << e.what();
             return 0.0f;

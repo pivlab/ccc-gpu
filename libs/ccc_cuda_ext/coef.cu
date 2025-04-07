@@ -73,7 +73,7 @@ __global__ void findMaxAriKernel(const T* aris, unsigned int* max_parts, T* cm_v
 
     // Thread 0 writes the results
     if (threadIdx.x == 0) {
-        cm_values[comp_idx] = max_block_val;
+        cm_values[comp_idx] = max_block_val > 0.0f ? max_block_val : 0.0f;
 
         // Unravel the index to get partition indices
         unsigned int m, n;
