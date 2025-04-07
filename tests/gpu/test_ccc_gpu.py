@@ -24,16 +24,16 @@ from utils import clean_gpu_memory, generate_categorical_data
         # Large cases
         # ((1000, 100), 0.0, True),
         # ((100, 1000), 0.008, False), # Skipped, too slow for a unit test
-        # ((1000, 1000), 0.0, True),
-        # ((2000, 1000), 0.0, True),
-        # ((3000, 1000), 0.0, True),
-        # ((4000, 100), 0.0, True),
-        # ((4500, 100), 0.0, True),
-        # ((6000, 100), 0.0, True),
-        # ((7000, 100), 0.0, True),
+        ((1000, 1000), 0.0, False),
+        ((2000, 1000), 0.0, False),
+        ((3000, 1000), 0.0, False),
+        # ((4000, 1000), 0.0, True),
+        # ((4500, 1000), 0.0, True),
+        # ((6000, 1000), 0.0, True),
+        # ((7000, 1000), 0.0, True),
         # ((5000, 100), 0.0, True),
         # Benchmark cases
-        ((5000, 1000), 0.0, True),
+        # ((5000, 1000), 0.0, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
