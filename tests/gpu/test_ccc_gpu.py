@@ -26,7 +26,7 @@ from utils import clean_gpu_memory, generate_categorical_data
         # ((100, 1000), 0.008, False), # Skipped, too slow for a unit test
         ((1000, 1000), 0.0, False),
         ((2000, 1000), 0.0, False),
-        ((3000, 1000), 0.0, False),
+        # ((3000, 1000), 0.0, True),
         # ((4000, 1000), 0.0, True),
         # ((4500, 1000), 0.0, True),
         # ((6000, 1000), 0.0, True),

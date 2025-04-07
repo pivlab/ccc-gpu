@@ -1,5 +1,5 @@
 #include <cuda_runtime.h>
-
+#include <cub/cub.cuh>
 #include <thrust/device_vector.h>
 
 #include <iostream>
@@ -16,12 +16,75 @@
 
 namespace py = pybind11;
 
-// /**
-//  * @brief API exposed to Python for computing the correlation coefficient and p values using CUDA
-//  * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_partitions, n_objects)
-//  * @throws std::invalid_argument if "parts" is invalid
-//  * @return float ARI value for each pair of partitions
-//  */
+template <typename T>
+__global__ void findMaxAriKernel(const T* aris, unsigned int* max_parts, T* cm_values,
+                                const int n_partitions, const int reduce_range) {
+    // Each block handles one feature comparison
+    const int comp_idx = blockIdx.x;
+
+    // Calculate start index for this feature comparison
+    const int reduce_start_idx = comp_idx * reduce_range;
+
+    // Thread-local variables for reduction
+    int max_idx = -1;
+    T max_val = -1.0f;
+
+    // Have threads collaboratively process all partition pairs
+    for (int i = threadIdx.x; i < reduce_range; i += blockDim.x) {
+        int idx = reduce_start_idx + i;
+        T val = aris[idx];
+
+        if (val > max_val) {
+            max_val = val;
+            max_idx = i;
+        }
+    }
+
+    // Shared memory for block reduction
+    __shared__ typename cub::BlockReduce<T, 128>::TempStorage temp_storage_val;
+    __shared__ typename cub::BlockReduce<int, 128>::TempStorage temp_storage_idx;
+
+    // Pair-wise reduction within the block
+    struct {
+        T val;
+        int idx;
+    } in, out;
+
+    in.val = max_val;
+    in.idx = max_idx;
+
+    // Find the maximum value and its index within the block
+    T max_block_val = cub::BlockReduce<T, 128>(temp_storage_val).Reduce(in.val, cub::Max());
+
+    // Only threads with the max value participate in index selection
+    // (using __syncthreads to ensure all threads have computed max_block_val)
+    __syncthreads();
+
+    int selected_idx = -1;
+    if (in.val == max_block_val) {
+        selected_idx = in.idx;
+    }
+
+    // Get the smallest valid index of the max value
+    int min_idx = cub::BlockReduce<int, 128>(temp_storage_idx).Reduce(
+        selected_idx,
+        [](int a, int b) { return (a == -1) ? b : ((b == -1) ? a : min(a, b)); }
+    );
+
+    // Thread 0 writes the results
+    if (threadIdx.x == 0) {
+        cm_values[comp_idx] = max_block_val;
+
+        // Unravel the index to get partition indices
+        unsigned int m, n;
+        m = min_idx / n_partitions;
+        n = min_idx % n_partitions;
+
+        max_parts[comp_idx >> 1] = m;
+        max_parts[comp_idx >> 1 + 1] = n;
+    }
+}
+
 template <typename T>
 auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const size_t n_features,
@@ -35,39 +98,40 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     using out_dtype = float;
     const int n_feature_comp = n_features * (n_features - 1) / 2;
     const int n_aris = n_feature_comp * n_partitions * n_partitions;
+    const auto reduce_range = n_partitions * n_partitions;
 
     // Compute the aris across all features
     const auto d_aris = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_partitions, n_objects);
 
-    // Allocate host memory
-    std::vector<out_dtype> h_aris(n_aris);
-    std::vector<out_dtype> cm_values(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
-    std::vector<unsigned int> max_parts(n_feature_comp * 2, 0);
+    // Allocate device memory for results
+    thrust::device_vector<out_dtype> d_cm_values(n_feature_comp);
+    thrust::device_vector<unsigned int> d_max_parts(n_feature_comp * 2);
+
+    // Configure kernel launch parameters
+    const int threadsPerBlock = 128;
+    const int numBlocks = n_feature_comp;
+
+    // Launch kernel to find maximum values on device
+    findMaxAriKernel<<<numBlocks, threadsPerBlock>>>(
+        thrust::raw_pointer_cast(d_aris->data()),
+        thrust::raw_pointer_cast(d_max_parts.data()),
+        thrust::raw_pointer_cast(d_cm_values.data()),
+        n_partitions,
+        reduce_range
+    );
+
+    // Allocate host memory for results
+    std::vector<out_dtype> cm_values(n_feature_comp);
+    std::vector<unsigned int> max_parts(n_feature_comp * 2);
     std::vector<out_dtype> cm_pvalues;
-    if (pvalue_n_perms.has_value()) { cm_pvalues.resize(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN()); }
 
-    // Copy data back to host using -> operator since d_aris is a unique_ptr
-    thrust::copy(d_aris->begin(), d_aris->end(), h_aris.begin());
-
-    // Iterate over all feature comparison pairs to perform reduction
-    const auto reduce_range = n_partitions * n_partitions;
-    for (unsigned int comp_idx = 0; comp_idx < n_feature_comp; comp_idx++)
-    {
-        const auto reduce_start_idx = comp_idx * reduce_range;
-        const auto reduce_start_iter = h_aris.begin() + reduce_start_idx;
-        const auto reduce_end_iter = reduce_start_iter + reduce_range;
-
-        // Compute the maximum ARI value for the current feature pair
-        const auto max_ari = std::max_element(reduce_start_iter, reduce_end_iter);
-        // Get the flattened index of the maximum ARI value
-        const auto max_part_pair_flat_idx = std::distance(reduce_start_iter, max_ari);
-        cm_values[comp_idx] = *max_ari;
-        // Get the unraveled indices of the partitions
-        unsigned int m, n;
-        unravel_index(max_part_pair_flat_idx, n_partitions, m, n);
-        max_parts[comp_idx * 2] = m;
-        max_parts[comp_idx * 2 + 1] = n;
+    if (pvalue_n_perms.has_value()) {
+        cm_pvalues.resize(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
     }
+
+    // Copy reduced results back to host
+    thrust::copy(d_cm_values.begin(), d_cm_values.end(), cm_values.begin());
+    thrust::copy(d_max_parts.begin(), d_max_parts.end(), max_parts.begin());
 
     // Allocate py::arrays for the results
     const auto max_parts_py = py::array_t<unsigned int>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, 2});
