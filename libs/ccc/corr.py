@@ -13,7 +13,11 @@ structure:
    in rows and columns (Ensembl IDs), and the values are the correlation
    coefficients. Diagonal values are expected to be ones.
 """
+
+from __future__ import annotations
+
 import pandas as pd
+
 import numpy as np
 from sklearn.metrics import pairwise_distances
 
@@ -55,9 +59,10 @@ def mic(data: pd.DataFrame, estimator="mic_approx", n_jobs=None) -> pd.DataFrame
     """
     Compute the Maximal Correlation Coefficient (MIC).
     """
-    from scipy.spatial.distance import squareform
     from minepy import pstats
+
     from ccc.methods import mic as mic_single
+    from scipy.spatial.distance import squareform
 
     if n_jobs is None:
         corr_mat = pstats(
@@ -82,10 +87,33 @@ def ccc(data: pd.DataFrame, internal_n_clusters=None, n_jobs=1) -> pd.DataFrame:
     """
     Compute the Clustermatch Correlation Coefficient (CCC).
     """
-    from scipy.spatial.distance import squareform
     from ccc.coef import ccc
+    from scipy.spatial.distance import squareform
 
     corr_mat = ccc(
+        data.to_numpy(),
+        internal_n_clusters=internal_n_clusters,
+        n_jobs=n_jobs,
+    )
+
+    corr_mat = squareform(corr_mat)
+    np.fill_diagonal(corr_mat, 1.0)
+
+    return pd.DataFrame(
+        corr_mat,
+        index=data.index.copy(),
+        columns=data.index.copy(),
+    )
+
+
+def ccc_gpu(data: pd.DataFrame, internal_n_clusters=10, n_jobs=24) -> pd.DataFrame:
+    """
+    Compute the Clustermatch Correlation Coefficient (CCC).
+    """
+    from ccc.coef.impl_gpu import ccc as ccc_gpu
+    from scipy.spatial.distance import squareform
+
+    corr_mat = ccc_gpu(
         data.to_numpy(),
         internal_n_clusters=internal_n_clusters,
         n_jobs=n_jobs,

@@ -33,7 +33,8 @@ from utils import clean_gpu_memory, generate_categorical_data
         # ((7000, 1000), 0.0, True),
         # ((5000, 100), 0.0, True),
         # Benchmark cases
-        # ((5000, 1000), 0.0, True),
+        ((5000, 1000), 0.0, False),
+        ((10000, 1000), 0.0, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
