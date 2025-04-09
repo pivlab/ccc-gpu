@@ -18,7 +18,7 @@ PYBIND11_MODULE(ccc_cuda_ext, m)
           py::arg("include_second") = true,
           py::arg("include_third") = true,
           "Returns a tuple of three optional vectors");
-    m.def("compute_coef", &compute_coef<int>,
+    m.def("compute_coef", &compute_coef<int8_t>,
           "CUDA version of CCC coefficient calculation",
           "parts"_a,                        // numpy array of partitions
           "n_features"_a,                   // number of features

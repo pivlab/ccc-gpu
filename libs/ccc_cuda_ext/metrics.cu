@@ -111,7 +111,8 @@ __device__ __host__ inline void get_coords_from_index(int n_obj, int idx, uint32
  * @param[out] shared_cont_mat Pointer to shared memory for storing the contingency matrix
  * @param[in] k Maximum number of clusters (size of contingency matrix is k x k)
  */
-__device__ void get_contingency_matrix(int *part0, int *part1, int n_objs, int *shared_cont_mat, int k)
+template <typename T>
+__device__ void get_contingency_matrix(T *part0, T *part1, int n_objs, int *shared_cont_mat, int k)
 {
     const int tid = threadIdx.x;
     const int n_block_threads = blockDim.x;
@@ -234,7 +235,8 @@ __device__ void get_pair_confusion_matrix(
  * @param out Output array of ARIs
  */
 // TODO: Parameterize the int type to allow using narrower int types for memory efficiency
-extern "C" __global__ void ari_kernel(int *parts,
+template <typename T>
+__global__ void ari_kernel(T *parts,
                                       const int n_aris,
                                       const int n_features,
                                       const int n_parts,
@@ -284,8 +286,8 @@ extern "C" __global__ void ari_kernel(int *parts,
     // Make pointers to select the partitions from `parts` and unique counts for the feature pair
     // Todo: Use int4*?
     // Prefix `t_` for data hold by a thread
-    int *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
-    int *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
+    T *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
+    T *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
 
     // Check on categorical partition marker, if the first object of either partition is -1 (actually all the objects are -1),
     // then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of -1.
@@ -441,7 +443,7 @@ auto ari_core_device(const T *parts,
  * @return std::unique_ptr to thrust device vector containing ARI values
  */
 template <typename T, typename R>
-auto ari_core_device(const py::array_t<int, py::array::c_style> &parts,
+auto ari_core_device(const py::array_t<T, py::array::c_style> &parts,
                      const size_t n_features,
                      const size_t n_parts,
                      const size_t n_objs) -> std::unique_ptr<thrust::device_vector<R>>
@@ -549,8 +551,8 @@ template auto ari_core_host<int>(
     const size_t n_objs) -> std::vector<float>;
 
 // Used in the coef API
-template auto ari_core_device<int, float>(
-    const py::array_t<int, py::array::c_style> &parts,
+template auto ari_core_device<int8_t, float>(
+    const py::array_t<int8_t, py::array::c_style> &parts,
     const size_t n_features,
     const size_t n_parts,
     const size_t n_objs) -> std::unique_ptr<thrust::device_vector<float>>;

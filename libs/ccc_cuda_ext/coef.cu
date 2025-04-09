@@ -17,8 +17,11 @@
 namespace py = pybind11;
 
 template <typename T>
-__global__ void findMaxAriKernel(const T* aris, unsigned int* max_parts, T* cm_values,
-                                const int n_partitions, const int reduce_range) {
+__global__ void findMaxAriKernel(const T* aris,
+                                // unsigned int* max_parts,
+                                T* cm_values,
+                                const int n_partitions,
+                                const int reduce_range) {
     // Each block handles one feature comparison
     const int comp_idx = blockIdx.x;
 
@@ -76,12 +79,12 @@ __global__ void findMaxAriKernel(const T* aris, unsigned int* max_parts, T* cm_v
         cm_values[comp_idx] = max_block_val > 0.0f ? max_block_val : 0.0f;
 
         // Unravel the index to get partition indices
-        unsigned int m, n;
-        m = min_idx / n_partitions;
-        n = min_idx % n_partitions;
+        // unsigned int m, n;
+        // m = min_idx / n_partitions;
+        // n = min_idx % n_partitions;
 
-        max_parts[comp_idx >> 1] = m;
-        max_parts[comp_idx >> 1 + 1] = n;
+        // max_parts[comp_idx >> 1] = m;
+        // max_parts[comp_idx >> 1 + 1] = n;
     }
 }
 
@@ -105,7 +108,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 
     // Allocate device memory for results
     thrust::device_vector<out_dtype> d_cm_values(n_feature_comp);
-    thrust::device_vector<unsigned int> d_max_parts(n_feature_comp * 2);
+    // thrust::device_vector<unsigned int> d_max_parts(n_feature_comp * 2);
 
     // Configure kernel launch parameters
     const int threadsPerBlock = 128;
@@ -114,7 +117,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     // Launch kernel to find maximum values on device
     findMaxAriKernel<<<numBlocks, threadsPerBlock>>>(
         thrust::raw_pointer_cast(d_aris->data()),
-        thrust::raw_pointer_cast(d_max_parts.data()),
+        // thrust::raw_pointer_cast(d_max_parts.data()),
         thrust::raw_pointer_cast(d_cm_values.data()),
         n_partitions,
         reduce_range
@@ -131,10 +134,10 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 
     // Copy reduced results back to host
     thrust::copy(d_cm_values.begin(), d_cm_values.end(), cm_values.begin());
-    thrust::copy(d_max_parts.begin(), d_max_parts.end(), max_parts.begin());
+    // thrust::copy(d_max_parts.begin(), d_max_parts.end(), max_parts.begin());
 
     // Allocate py::arrays for the results
-    const auto max_parts_py = py::array_t<unsigned int>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, 2});
+    // const auto max_parts_py = py::array_t<unsigned int>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, 2});
     const auto cm_values_py = py::array_t<out_dtype>(cm_values.size(), cm_values.data());
     const auto cm_pvalues_py = pvalue_n_perms.has_value()
         ? py::object(py::array_t<out_dtype>(cm_pvalues.size(), cm_pvalues.data()))
@@ -144,7 +147,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     return py::make_tuple(
         cm_values_py,
         cm_pvalues_py,
-        max_parts_py);
+        py::object(py::none())
+        // max_parts_py
+    );
 }
 
 auto example_return_optional_vectors(bool include_first,
@@ -185,7 +190,7 @@ auto example_return_optional_vectors(bool include_first,
 // separate the implementation into a .cpp file to make things clearer. In order to make the compiler know the
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
-template auto compute_coef<int>(const py::array_t<int, py::array::c_style> &parts,
+template auto compute_coef<int8_t>(const py::array_t<int8_t, py::array::c_style> &parts,
                                 const size_t n_features,
                                 const size_t n_partitions,
                                 const size_t n_objects,

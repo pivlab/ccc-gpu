@@ -39,7 +39,7 @@ def get_perc_from_k(k: int) -> list[float]:
 
 
 @njit(cache=True, nogil=True)
-def run_quantile_clustering(data: NDArray, k: int) -> NDArray[np.int16]:
+def run_quantile_clustering(data: NDArray, k: int) -> NDArray[np.int8]:
     """
     Performs a simple quantile clustering on one dimensional data (1d). Quantile
     clustering is defined as the procedure that forms clusters in 1d data by
@@ -64,7 +64,7 @@ def run_quantile_clustering(data: NDArray, k: int) -> NDArray[np.int16]:
     cut_points = np.searchsorted(data_perc[data_sorted], percentiles, side="right")
 
     current_cluster = 0
-    part = np.zeros(data.shape, dtype=np.int16) - 1
+    part = np.zeros(data.shape, dtype=np.int8) - 1
 
     for i in range(len(cut_points) - 1):
         lim1 = cut_points[i]
@@ -79,7 +79,7 @@ def run_quantile_clustering(data: NDArray, k: int) -> NDArray[np.int16]:
 @njit(cache=True, nogil=True)
 def get_range_n_clusters(
     n_features: int, internal_n_clusters: Iterable[int] = None
-) -> NDArray[np.uint8]:
+) -> NDArray[np.int8]:
     """
     Given the number of features it returns a tuple of k values to cluster those
     features into. By default, it generates a tuple of k values from 2 to
@@ -115,7 +115,7 @@ def get_range_n_clusters(
 @njit(cache=True, nogil=True)
 def get_parts(
     data: NDArray, range_n_clusters: tuple[int], data_is_numerical: bool = True
-) -> NDArray[np.int16]:
+) -> NDArray[np.int8]:
     """
     Given a 1d data array, it computes a partition for each k value in the given
     range of clusters. If partitions with only one cluster are returned (singletons),
@@ -136,7 +136,7 @@ def get_parts(
         detected (partitions with one cluster), usually because of problems with the
         input data (it has all the same values, for example).
     """
-    parts = np.zeros((len(range_n_clusters), data.shape[0]), dtype=np.int16) - 1
+    parts = np.zeros((len(range_n_clusters), data.shape[0]), dtype=np.int8) - 1
 
     if data_is_numerical:
         for idx in range(len(range_n_clusters)):
@@ -149,7 +149,7 @@ def get_parts(
     else:
         # if the data is categorical, then the encoded feature is already the partition
         # only the first partition is filled, the rest will be -1 (missing)
-        parts[0] = data.astype(np.int16)
+        parts[0] = data.astype(np.int8)
 
     return parts
 
@@ -218,7 +218,7 @@ def get_feature_parts(params):
     # ]
 
     n_objects = params[0][1].shape[0]
-    parts = np.zeros((len(params), n_objects), dtype=np.int16) - 1
+    parts = np.zeros((len(params), n_objects), dtype=np.int8) - 1
 
     # iterate over a list of tuples that indicate a feature-k pair
     for p_idx, p in enumerate(params):
@@ -613,7 +613,7 @@ def ccc(
     n_jobs: int = 1,
     pvalue_n_perms: int = None,
     partitioning_executor: str = "thread",
-) -> tuple[NDArray[float], NDArray[float], NDArray[np.uint64], NDArray[np.int16]]:
+) -> tuple[NDArray[float], NDArray[float], NDArray[np.uint64], NDArray[np.int8]]:
     """
     This is the main function that computes the Clustermatch Correlation
     Coefficient (CCC) between two arrays. The implementation supports numerical
@@ -758,7 +758,7 @@ def ccc(
 
     # store a set of partitions per row (object) in X as a multidimensional
     # array, where the second dimension is the number of partitions per object.
-    parts = np.zeros((n_features, n_clusters, n_objects), dtype=np.int16) - 1
+    parts = np.zeros((n_features, n_clusters, n_objects), dtype=np.int8) - 1
 
     # cm_values stores the CCC coefficients
     n_features_comp = (n_features * (n_features - 1)) // 2
