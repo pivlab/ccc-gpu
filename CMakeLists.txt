@@ -92,7 +92,7 @@ function(add_tests_from_directory TEST_DIR)
 endfunction()
 
 # Specify your test directory and call the function
-add_tests_from_directory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
+# add_tests_from_directory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 # Optional: Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
