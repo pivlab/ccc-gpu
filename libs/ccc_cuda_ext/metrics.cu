@@ -332,6 +332,115 @@ __global__ void ari_kernel(T *parts,
 }
 
 /**
+ * @brief Main ARI kernel. Now only compare a pair of ARIs
+ * @param parts Device pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
+ * @param n_aris Number of ARIs to compute
+ * @param n_features Number of features
+ * @param n_parts Number of partitions of each feature
+ * @param n_objs Number of objects in each partitions
+ * @param n_elems_per_feat Number of elements for each feature, i.e., part[i].x * part[i].y
+ * @param n_part_mat_elems Number of elements in the square partition matrix
+ * @param k The max value of cluster number + 1
+ * @param out Output array of ARIs
+ */
+// TODO: Parameterize the int type to allow using narrower int types for memory efficiency
+template <typename T>
+__global__ void ari_kernel_stream(T *parts,
+                                      const int n_aris,
+                                      const int n_features,
+                                      const int n_parts,
+                                      const int n_objs,
+                                      const int n_elems_per_feat,
+                                      const int n_part_mat_elems,
+                                      const int k,
+                                      float *out)
+{
+    /*
+     * Step 0: Compute shared memory addresses
+     */
+    extern __shared__ int shared_mem[];
+    int *s_contingency = shared_mem;               // k * k elements
+    int *s_sum_rows = s_contingency + (k * k);     // k elements
+    int *s_sum_cols = s_sum_rows + k;              // k elements
+    int *s_pair_confusion_matrix = s_sum_cols + k; // 4 elements
+
+    /*
+     * Step 1: Each thead, unravel flat indices and load the corresponding data into shared memory
+     */
+    // each block is responsible for one ARI computation
+    int ari_block_idx = blockIdx.x;
+    // obtain the corresponding parts and unique counts
+    int feature_comp_flat_idx = ari_block_idx / n_part_mat_elems; // flat comparison pair index for two features
+    int part_pair_flat_idx = ari_block_idx % n_part_mat_elems;    // flat comparison pair index for two partitions of one feature pair
+    uint32_t i, j;
+
+    // Unravel the feature indices
+    // For example, if n_features = 3, n_feature_comp = n_features * (n_features - 1) / 2 = 3
+    // The feature indices of the pair being compared are (0, 1), (0, 2), (1, 2)
+    // i.e., the pairs being compared are feature0-feature1, feature0-feature2, feature1-feature2
+    // The range of the flattened index is [0, n_feature_comp - 1] = [0, 2]
+    // Given the flat index, we compute the corresponding feature indices
+    get_coords_from_index(n_features, feature_comp_flat_idx, &i, &j);
+    // assert(i < n_features && j < n_features);
+    // assert(i >= 0 && j >= 0);
+
+    // Unravel the partition indices within the feature pair
+    // For example, if n_parts = 3, n_part_mat_elems = n_parts * n_parts = 9
+    // The partition indices of the pair being compared are (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)
+    // i.e., the pairs being compared are part0-part1, part0-part2, part1-part0, part1-part1, part1-part2, part2-part0, part2-part1, part2-part2
+    // The range of the flattened index is [0, n_part_mat_elems - 1] = [0, 8]
+    // Given the flat index, we compute the corresponding partition indices
+    int m, n;
+    unravel_index(part_pair_flat_idx, n_parts, &m, &n);
+    // Make pointers to select the partitions from `parts` and unique counts for the feature pair
+    // Todo: Use int4*?
+    // Prefix `t_` for data hold by a thread
+    T *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
+    T *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
+
+    // Check on categorical partition marker, if the first object of either partition is -1 (actually all the objects are -1),
+    // then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of -1.
+    if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
+    {
+        return;
+    }
+
+    /*
+     * Step 2: Compute contingency matrix within the block
+     */
+    // shared mem address for the contingency matrix
+    // int *s_contingency = shared_mem + 2 * n_objs;
+    get_contingency_matrix(t_data_part0, t_data_part1, n_objs, s_contingency, k);
+
+    /*
+     * Step 3: Construct pair confusion matrix
+     */
+    get_pair_confusion_matrix(s_contingency, s_sum_rows, s_sum_cols, n_objs, k, s_pair_confusion_matrix);
+
+    /*
+     * Step 4: Compute ARI and write to global memory
+     */
+    if (threadIdx.x == 0)
+    {
+        float tn = s_pair_confusion_matrix[0];
+        float fp = s_pair_confusion_matrix[1];
+        float fn = s_pair_confusion_matrix[2];
+        float tp = s_pair_confusion_matrix[3];
+        float ari = 0.0f;
+        if (fn == 0 && fp == 0)
+        {
+            ari = 1.0f;
+        }
+        else
+        {
+            ari = 2.0f * (tp * tn - fn * fp) / ((tp + fn) * (fn + tn) + (tp + fp) * (fp + tn));
+        }
+        out[ari_block_idx] = ari;
+    }
+    __syncthreads();
+}
+
+/**
  * @brief Helper function to process and validate input numpy array
  * @param parts Input numpy array to process
  * @return Pointer to the underlying data
@@ -350,6 +459,91 @@ T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
     }
     return static_cast<T *>(buffer.ptr);
 }
+
+
+/**
+ * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device
+ * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
+ * @param n_features Number of features
+ * @param n_parts Number of partitions of each feature
+ * @param n_objs Number of objects in each partitions
+ * @param start_ari_idx The starting index of the ARI values to compute
+ * @param n_aris Number of ARI values to compute
+ * @throws std::invalid_argument if "parts" is invalid
+ * @return std::unique_ptr to thrust device vector containing ARI values with type R
+ */
+template <typename T, typename R>
+auto ari_core_scalar(const T *parts,
+                     const size_t n_features,
+                     const size_t n_parts,
+                     const size_t n_objs,
+                     const size_t start_ari_idx,
+                     const size_t n_aris) -> R
+{
+    /*
+     * Pre-computation
+     */
+    using parts_dtype = T;
+    using out_dtype = R;
+    const auto n_feature_comp = n_features * (n_features - 1) / 2;
+    // const auto n_aris = n_feature_comp * n_parts * n_parts;
+
+    /*
+     * Memory Allocation
+     */
+    // Create device vectors using unique_ptr
+    const auto n_elems = n_features * n_parts * n_objs;
+    auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(parts, parts + n_elems);
+    auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(n_aris, 0.0f);
+
+    // Define shared memory size for each block
+    // Pre-compute the max value of the partitions
+    // TODO: Each block could compute the max value of the partition pairs to eliminate this global reduction
+    // Also, potentially we can spare some smem for better occupancy. But the issue is we need to dynamically allocate smem for each block
+
+    // TODO: just pass in k from host
+    const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<parts_dtype>()) + 1;
+    const auto sz_parts_dtype = sizeof(parts_dtype);
+    // Compute shared memory size
+    // FIXME: Partition pair size should be fixed. Stream processing should be used for large input
+    // NOTE: Use global memory to fix the issue for now and then optimize with shared memory
+    // auto s_mem_size = 2 * n_objs * sz_parts_dtype;  // For the partition pair to be compared
+    auto s_mem_size = 0;
+    s_mem_size += k * k * sz_parts_dtype; // For contingency matrix
+    s_mem_size += 2 * k * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed?
+    s_mem_size += 4 * sz_parts_dtype;     // For the pair confusion matrix
+
+    // Check if shared memory size exceeds device limits
+    auto [is_valid, message] = check_shared_memory_size(s_mem_size);
+    if (!is_valid)
+    {
+        throw std::runtime_error(message);
+    }
+
+    /*
+     * Launch the kernel
+     */
+    // Each logical block is responsible for one ARI computation
+    const auto grid_size = n_aris;
+    // Todo: change block_size to template parameter for performance tuning
+    // For now, with 128 threads per block, we have 4 warps to compute the 4 elements of the confusion matrix.
+    // Future optimizations should consider how to reduce the number of idle warps.
+    const auto block_size = 128;
+    // Launch the kernel
+    ari_kernel<<<grid_size, block_size, s_mem_size>>>(
+        thrust::raw_pointer_cast(d_parts->data()),
+        n_aris,
+        n_features,
+        n_parts,
+        n_objs,
+        n_parts * n_objs,
+        n_parts * n_parts,
+        k,
+        thrust::raw_pointer_cast(d_out->data()));
+    // Return the device vector
+    return d_out;
+}
+
 
 /**
  * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device

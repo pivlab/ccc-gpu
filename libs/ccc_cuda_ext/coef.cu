@@ -13,7 +13,7 @@
 #include "coef.cuh"
 #include "metrics.cuh"
 #include "math.cuh"
-
+#include "utils.cuh"
 namespace py = pybind11;
 
 template <typename T>
@@ -88,6 +88,27 @@ __global__ void findMaxAriKernel(const T* aris,
     }
 }
 
+
+/**
+ * @brief Helper function to process and validate input numpy array
+ * @param parts Input numpy array to process
+ * @return Pointer to the underlying data
+ */
+template <typename T>
+T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
+{
+    py::buffer_info buffer = parts.request();
+    if (buffer.format != py::format_descriptor<T>::format())
+    {
+        throw std::runtime_error("Incompatible format: expected an int array!");
+    }
+    if (buffer.ndim != 3)
+    {
+        throw std::runtime_error("Incompatible buffer dimension!");
+    }
+    return static_cast<T *>(buffer.ptr);
+}
+
 template <typename T>
 auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const size_t n_features,
@@ -101,40 +122,118 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     using out_dtype = float;
     const int n_feature_comp = n_features * (n_features - 1) / 2;
     const int n_aris = n_feature_comp * n_partitions * n_partitions;
+    const auto n_elems_per_feat = n_partitions * n_objects;
     const auto reduce_range = n_partitions * n_partitions;
+    // Parse the input parts
+    const auto parts_ptr = process_input_array(parts);
+    // Input validation
+    if (!parts_ptr || n_features == 0 || n_partitions == 0 || n_objects == 0)
+    {
+        throw std::invalid_argument("Invalid input parameters");
+    }
 
-    // Compute the aris across all features
-    const auto d_aris = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_partitions, n_objects);
-
-    // Allocate device memory for results
-    thrust::device_vector<out_dtype> d_cm_values(n_feature_comp);
-    // thrust::device_vector<unsigned int> d_max_parts(n_feature_comp * 2);
-
-    // Configure kernel launch parameters
-    const int threadsPerBlock = 128;
-    const int numBlocks = n_feature_comp;
-
-    // Launch kernel to find maximum values on device
-    findMaxAriKernel<<<numBlocks, threadsPerBlock>>>(
-        thrust::raw_pointer_cast(d_aris->data()),
-        // thrust::raw_pointer_cast(d_max_parts.data()),
-        thrust::raw_pointer_cast(d_cm_values.data()),
-        n_partitions,
-        reduce_range
-    );
 
     // Allocate host memory for results
     std::vector<out_dtype> cm_values(n_feature_comp);
-    std::vector<unsigned int> max_parts(n_feature_comp * 2);
+    std::vector<int32_t> max_parts(n_feature_comp * 2);
     std::vector<out_dtype> cm_pvalues;
 
+    const size_t n_live_reductions = 0; // Number of stream groups running concurrently, we need to sync them to get partial results for cm_values
+
+    const auto n_streams = n_partitions * n_partitions; // k * k partition aris
+    // Each stream group is responsible for all ARI computations between two features
+    std::vector<cudaStream_t> streams(n_streams);
+    for (int s = 0; s < n_streams; s++)
+    {
+        // Create streams, each stream is responsible for one ARI computation between two features
+        CUDA_CHECK_MANDATORY(cudaStreamCreate(&streams[s]));
+    }
+
+    // Compute the aris across all features and perform reduction on the go
+    for (size_t range_ari_idx = 0; range_ari_idx < n_aris; range_ari_idx+=reduce_range) {
+        // Allocate page-locked memory for ARI values
+        parts_dtype *h_aris;
+        // Host page-locked memory
+        std::vector<parts_dtype *> h_part0s(n_streams);
+        std::vector<parts_dtype *> h_part1s(n_streams);
+        // Device memory
+        std::vector<parts_dtype *> d_part0s(n_streams);
+        std::vector<parts_dtype *> d_part1s(n_streams);
+        CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduce_range * sizeof(out_dtype), cudaHostAllocDefault));
+        // Copy part0 and part1 to each stream
+        for (int s = 0; s < n_streams; ++s)
+        {
+            auto h_part0 = h_part0s[s];
+            auto h_part1 = h_part1s[s];
+            auto d_part0 = d_part0s[s];
+            auto d_part1 = d_part1s[s];
+            // Allocate page-locked memory for part0 and part1
+            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part0, reduce_range * sizeof(parts_dtype), cudaHostAllocDefault));
+            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part1, reduce_range * sizeof(parts_dtype), cudaHostAllocDefault));
+            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduce_range * sizeof(out_dtype), cudaHostAllocDefault));
+            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part0, reduce_range * sizeof(parts_dtype)));
+            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part1, reduce_range * sizeof(parts_dtype)));
+            // Compute indices
+            const auto feature_comp_flat_idx = range_ari_idx;
+            const auto part_pair_flat_idx = s;
+            uint32_t i, j;
+            get_coords_from_index(n_features, feature_comp_flat_idx, &i, &j);
+            uint32_t m, n;
+            unravel_index(part_pair_flat_idx, n_partitions, &m, &n);
+            // Copy data from parts to page-locked memory
+            const auto part0_start_idx = parts_ptr + i * n_elems_per_feat + m * n_objects;
+            const auto part1_start_idx = parts_ptr + j * n_elems_per_feat + n * n_objects;
+            for (int k = 0; k < n_objects; ++k) {
+                h_part0[k] = part0_start_idx[k];
+                h_part1[k] = part1_start_idx[k];
+            }
+            // Copy the locked memory to the device, async
+            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part0, h_part0, reduce_range * sizeof(parts_dtype), cudaMemcpyHostToDevice, streams[s]));
+            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part1, h_part1, reduce_range * sizeof(parts_dtype), cudaMemcpyHostToDevice, streams[s]));
+        }
+        // Invoke the kernel
+        for (int s = 0; s < n_streams; ++s) {
+            // h_aris[i] = ari_core_scalar(d_part0, d_part1, reduce_range, streams[i]);
+        }
+
+        // Wait for all streams to finish
+        for (int s = 0; s < n_streams; ++s) {
+            CUDA_CHECK_MANDATORY(cudaStreamSynchronize(streams[s]));
+        }
+
+        // Get the maximum ARI value and its index in array h_aris
+        out_dtype max_ari = -1.0f;
+        int32_t max_ari_idx = -1;
+        for (int s = 0; s < n_streams; ++s) {
+            if (h_aris[s] > max_ari) {
+                max_ari = h_aris[s];
+                max_ari_idx = s;
+            }
+        }
+        cm_values[range_ari_idx] = max_ari;
+        // Unravel the index to get partition indices
+        uint32_t m, n;
+        unravel_index(max_ari_idx, n_partitions, &m, &n);
+        max_parts[range_ari_idx >> 1] = m;
+        max_parts[range_ari_idx >> 1 + 1] = n;
+
+        // Clean up
+        for (int s = 0; s < n_streams; ++s) {
+            // Destroy the stream
+            CUDA_CHECK_MANDATORY(cudaStreamDestroy(streams[s]));
+            // Free the memory
+            CUDA_CHECK_MANDATORY(cudaFreeHost(h_part0s[s]));
+            CUDA_CHECK_MANDATORY(cudaFreeHost(h_part1s[s]));
+            // CUDA_CHECK_MANDATORY(cudaFreeHost(h_aris[s]));
+            CUDA_CHECK_MANDATORY(cudaFree(d_part0s[s]));
+            CUDA_CHECK_MANDATORY(cudaFree(d_part1s[s]));
+        }
+    }
+
+    // P-valued results
     if (pvalue_n_perms.has_value()) {
         cm_pvalues.resize(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
     }
-
-    // Copy reduced results back to host
-    thrust::copy(d_cm_values.begin(), d_cm_values.end(), cm_values.begin());
-    // thrust::copy(d_max_parts.begin(), d_max_parts.end(), max_parts.begin());
 
     // Allocate py::arrays for the results
     // const auto max_parts_py = py::array_t<unsigned int>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, 2});

@@ -13,67 +13,77 @@
 
 #include <cuda_runtime.h>
 
+
 /**
- * @brief Unravel a flat (linear) index into corresponding 2D indices
- *
- * @details This function converts a single linear index into its corresponding row
- *          and column indices in a 2D array. This is particularly useful when working
- *          with flattened 2D arrays in CUDA kernels or host code.
- *
- * @param[in] flat_idx The flat index to unravel (must be non-negative)
- * @param[in] num_cols Number of columns in the 2D array (must be positive)
- * @param[out] row Reference to store the calculated row index
- * @param[out] col Reference to store the calculated column index
- *
- * @note The function assumes that the input flat_idx is valid for the given dimensions
- * @note This function can be called from both device (GPU) and host (CPU) code
- *
- * @example
- *     int row, col;
- *     unravel_index(5, 3, &row, &col);  // For a 3-column array, index 5 -> row=1, col=2
+ * @brief Unravel a flat index to the corresponding 2D indicis
+ * @param[in] flat_idx The flat index to unravel
+ * @param[in] num_cols Number of columns in the 2D array
+ * @param[out] row Pointer to the row index
+ * @param[out] col Pointer to the column index
  */
-__device__ __host__ inline void unravel_index(unsigned int flat_idx, unsigned int num_cols,
-                                              unsigned int &row, unsigned int &col)
+__device__ __host__ inline void unravel_index(uint32_t flat_idx, uint32_t num_cols, uint32_t *row, uint32_t *col)
 {
     // change int to uint32_t
-    row = flat_idx / num_cols; // Compute row index
-    col = flat_idx % num_cols; // Compute column index
+    *row = flat_idx / num_cols; // Compute row index
+    *col = flat_idx % num_cols; // Compute column index
 }
 
 /**
- * @brief Calculates coordinates in a symmetric matrix from a condensed flat index
+ * @brief Given the number of objects and an index, this function calculates
+ *        the coordinates in a symmetric matrix from a flat index.
+ *        For example, if there are n_obj objects (such as genes), a condensed
+ *        1D array can be created with pairwise comparisons between these
+ *        objects, which corresponds to a symmetric 2D matrix. This function
+ *        calculates the 2D coordinates (x, y) in the symmetric matrix that
+ *        corresponds to the given flat index.
  *
- * @details This function converts a linear index from a condensed array representing
- *          the upper triangular part of a symmetric matrix into its corresponding
- *          2D coordinates. The condensed array stores only unique elements, excluding
- *          the diagonal and redundant symmetric elements.
- *
- * @param[in] n_obj The size of one dimension of the square symmetric matrix (must be > 1)
- * @param[in] idx The flat index from the condensed array (must be valid for given n_obj)
- * @param[out] x Reference to store the calculated row coordinate
- * @param[out] y Reference to store the calculated column coordinate
- *
- * @note The function uses the quadratic formula to solve for coordinates
- * @note The resulting coordinates always satisfy x < y to ensure upper triangular access
- * @note This function can be called from both device (GPU) and host (CPU) code
- *
- * @example
- *     For a 4x4 symmetric matrix:
- *     [ - 0 1 2 ]    The condensed array would be [0,1,2,3,4,5]
- *     [ 0 - 3 4 ]    where each number represents the flat index
- *     [ 1 3 - 5 ]    For idx=3, the function returns x=1, y=2
- *     [ 2 4 5 - ]    representing the position in the original matrix
+ * @param[in] n_obj The total number of objects (i.e., the size of one dimension
+ *                  of the square symmetric matrix).
+ * @param[in] idx The flat index from the condensed pairwise array.
+ * @param[out] x Pointer to the calculated row coordinate in the symmetric matrix.
+ * @param[out] y Pointer to the calculated column coordinate in the symmetric matrix.
  */
-__device__ __host__ inline void get_coords_from_index(unsigned int n_obj, unsigned int idx,
-                                                      unsigned int &x, unsigned int &y)
+__device__ __host__ inline void get_coords_from_index(int n_obj, int idx, uint32_t *x, uint32_t *y)
 {
-    // Calculate 'b' based on the input n_obj
-    int b = 1 - 2 * n_obj;
-    // Calculate 'x' using the quadratic formula part
-    float discriminant = b * b - 8 * idx;
-    float x_float = floor((-b - sqrt(discriminant)) / 2);
-    // Assign the integer part of 'x'
-    x = static_cast<int>(x_float);
-    // Calculate 'y' based on 'x' and the index
-    y = static_cast<int>(idx + (x) * (b + (x) + 2) / 2 + 1);
+    // Use int64_t to prevent overflow in intermediate calculations
+    int64_t n_obj_64 = static_cast<int64_t>(n_obj);
+    int64_t idx_64 = static_cast<int64_t>(idx);
+
+    // Calculate 'b' using 64-bit arithmetic
+    int64_t b = 1 - 2 * n_obj_64;
+
+    // Calculate discriminant using 64-bit arithmetic
+    // Use double for floating point to maintain precision
+    double b_squared = static_cast<double>(b) * b;
+    double idx_term = 8.0 * static_cast<double>(idx_64);
+    double discriminant = b_squared - idx_term;
+
+    // Calculate x using double precision
+    double x_float = (-b - sqrt(discriminant)) / 2.0;
+
+    // Floor and convert to uint32_t, with bounds checking
+    int64_t x_64 = static_cast<int64_t>(floor(x_float));
+    if (x_64 < 0 || x_64 > UINT32_MAX)
+    {
+        // Handle error condition - could throw error or set to max/min value
+        *x = 0;
+        *y = 0;
+        return;
+    }
+    *x = static_cast<uint32_t>(x_64);
+
+    // Calculate y using 64-bit arithmetic to prevent overflow
+    int64_t y_term1 = idx_64;
+    int64_t y_term2 = x_64 * (b + x_64 + 2) / 2;
+    int64_t y_64 = y_term1 + y_term2 + 1;
+
+    // Bounds checking for y
+    if (y_64 < 0 || y_64 > UINT32_MAX)
+    {
+        // Handle error condition
+        *x = 0;
+        *y = 0;
+        return;
+    }
+    *y = static_cast<uint32_t>(y_64);
 }
