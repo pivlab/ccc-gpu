@@ -749,6 +749,8 @@ def ccc(
             _tmp_list.append(x)
         internal_n_clusters = _tmp_list
 
+    max_k = max(internal_n_clusters)
+
     # get matrix of partitions for each object pair
     range_n_clusters = get_range_n_clusters(n_objects, internal_n_clusters)
     n_clusters = range_n_clusters.shape[0]
@@ -876,6 +878,7 @@ def ccc(
                 n_features_numerical,
                 n_clusters,
                 n_objects,
+                max_k,
                 return_parts,
                 pvalue_n_perms,
             )

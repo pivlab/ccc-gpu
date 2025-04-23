@@ -21,19 +21,19 @@ __global__ void findMaxAriKernel(const T* aris,
                                 // unsigned int* max_parts,
                                 T* cm_values,
                                 const int n_partitions,
-                                const int reduce_range) {
+                                const int reduction_range) {
     // Each block handles one feature comparison
     const int comp_idx = blockIdx.x;
 
     // Calculate start index for this feature comparison
-    const int reduce_start_idx = comp_idx * reduce_range;
+    const int reduce_start_idx = comp_idx * reduction_range;
 
     // Thread-local variables for reduction
     int max_idx = -1;
     T max_val = -1.0f;
 
     // Have threads collaboratively process all partition pairs
-    for (int i = threadIdx.x; i < reduce_range; i += blockDim.x) {
+    for (int i = threadIdx.x; i < reduction_range; i += blockDim.x) {
         int idx = reduce_start_idx + i;
         T val = aris[idx];
 
@@ -114,6 +114,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const size_t n_features,
                   const size_t n_partitions,
                   const size_t n_objects,
+                  const size_t max_k,
                   const bool return_parts,
                   std::optional<unsigned int> pvalue_n_perms) -> py::object
 {
@@ -123,7 +124,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     const int n_feature_comp = n_features * (n_features - 1) / 2;
     const int n_aris = n_feature_comp * n_partitions * n_partitions;
     const auto n_elems_per_feat = n_partitions * n_objects;
-    const auto reduce_range = n_partitions * n_partitions;
+    const auto reduction_range = n_partitions * n_partitions;
     // Parse the input parts
     const auto parts_ptr = process_input_array(parts);
     // Input validation
@@ -150,16 +151,18 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     }
 
     // Compute the aris across all features and perform reduction on the go
-    for (size_t range_ari_idx = 0; range_ari_idx < n_aris; range_ari_idx+=reduce_range) {
+    for (size_t range_ari_idx = 0; range_ari_idx < n_aris; range_ari_idx+=reduction_range) {
         // Allocate page-locked memory for ARI values
-        parts_dtype *h_aris;
+        const parts_dtype *h_aris;
         // Host page-locked memory
         std::vector<parts_dtype *> h_part0s(n_streams);
         std::vector<parts_dtype *> h_part1s(n_streams);
         // Device memory
+        // TODO: OPTIMIZE: maybe it's better to put the whole parts arrays on the device
         std::vector<parts_dtype *> d_part0s(n_streams);
         std::vector<parts_dtype *> d_part1s(n_streams);
-        CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduce_range * sizeof(out_dtype), cudaHostAllocDefault));
+        // std::vector<out_dtype *> d_aris(n_streams);
+        CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduction_range * sizeof(out_dtype), cudaHostAllocDefault));
         // Copy part0 and part1 to each stream
         for (int s = 0; s < n_streams; ++s)
         {
@@ -167,12 +170,15 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             auto h_part1 = h_part1s[s];
             auto d_part0 = d_part0s[s];
             auto d_part1 = d_part1s[s];
+            // auto d_ari = d_aris[s];
             // Allocate page-locked memory for part0 and part1
-            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part0, reduce_range * sizeof(parts_dtype), cudaHostAllocDefault));
-            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part1, reduce_range * sizeof(parts_dtype), cudaHostAllocDefault));
-            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduce_range * sizeof(out_dtype), cudaHostAllocDefault));
-            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part0, reduce_range * sizeof(parts_dtype)));
-            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part1, reduce_range * sizeof(parts_dtype)));
+            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part0, reduction_range * sizeof(parts_dtype), cudaHostAllocDefault));
+            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part1, reduction_range * sizeof(parts_dtype), cudaHostAllocDefault));
+            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduction_range * sizeof(out_dtype), cudaHostAllocDefault));
+            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part0, reduction_range * sizeof(parts_dtype)));
+            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part1, reduction_range * sizeof(parts_dtype)));
+            // Single ARI value per stream. We can also try one stream for all ARI values within the reduction range
+            // CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_aris, 1 * sizeof(out_dtype)));
             // Compute indices
             const auto feature_comp_flat_idx = range_ari_idx;
             const auto part_pair_flat_idx = s;
@@ -188,12 +194,14 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                 h_part1[k] = part1_start_idx[k];
             }
             // Copy the locked memory to the device, async
-            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part0, h_part0, reduce_range * sizeof(parts_dtype), cudaMemcpyHostToDevice, streams[s]));
-            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part1, h_part1, reduce_range * sizeof(parts_dtype), cudaMemcpyHostToDevice, streams[s]));
+            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part0, h_part0, reduction_range * sizeof(parts_dtype), cudaMemcpyHostToDevice, streams[s]));
+            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part1, h_part1, reduction_range * sizeof(parts_dtype), cudaMemcpyHostToDevice, streams[s]));
         }
         // Invoke the kernel
         for (int s = 0; s < n_streams; ++s) {
-            // h_aris[i] = ari_core_scalar(d_part0, d_part1, reduce_range, streams[i]);
+            auto d_part0 = d_part0s[s];
+            auto d_part1 = d_part1s[s];
+            ari_core_scalar(d_part0, d_part1, n_objects, max_k, s, streams[s], h_aris);
         }
 
         // Wait for all streams to finish
@@ -227,6 +235,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             // CUDA_CHECK_MANDATORY(cudaFreeHost(h_aris[s]));
             CUDA_CHECK_MANDATORY(cudaFree(d_part0s[s]));
             CUDA_CHECK_MANDATORY(cudaFree(d_part1s[s]));
+            // CUDA_CHECK_MANDATORY(cudaFree(d_aris[s]));
         }
     }
 
@@ -293,5 +302,6 @@ template auto compute_coef<int8_t>(const py::array_t<int8_t, py::array::c_style>
                                 const size_t n_features,
                                 const size_t n_partitions,
                                 const size_t n_objects,
+                                const size_t max_k,
                                 const bool return_parts,
                                 std::optional<unsigned int> pvalue_n_perms) -> py::object;

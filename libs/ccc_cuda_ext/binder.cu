@@ -24,6 +24,7 @@ PYBIND11_MODULE(ccc_cuda_ext, m)
           "n_features"_a,                   // number of features
           "n_parts"_a,                      // number of partitions per feature
           "n_objs"_a,                       // number of objects
+          "max_k"_a,                        // maximum number of partitions
           "return_parts"_a = false,         // whether to return partitions
           "pvalue_n_perms"_a = std::nullopt // optional number of permutations for p-value
     );
