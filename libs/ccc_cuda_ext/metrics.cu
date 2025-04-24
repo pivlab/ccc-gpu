@@ -436,13 +436,13 @@ T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
  * @return std::unique_ptr to thrust device vector containing ARI values with type R
  */
 template <typename T, typename R>
-auto ari_core_scalar(T * const d_part0,
-                     T * const d_part1,
+auto ari_core_scalar(T* d_part0,
+                     T* d_part1,
                      const size_t n_objs,
                      const size_t max_k,
                      const size_t stream_idx,
                      const cudaStream_t stream,
-                     R * const h_aris) -> void
+                     R* h_aris) -> void
 {
     /*
      * Pre-computation
@@ -695,10 +695,10 @@ template auto ari_core_device<int8_t, float>(
     const size_t n_objs) -> std::unique_ptr<thrust::device_vector<float>>;
 
 template auto ari_core_scalar<int8_t, float>(
-    int8_t * const d_part0,
-    int8_t * const d_part1,
+    int8_t* d_part0,
+    int8_t* d_part1,
     const size_t n_objs,
     const size_t max_k,
     const size_t stream_idx,
     const cudaStream_t stream,
-    float * const h_aris) -> void;
+    float* h_aris) -> void;

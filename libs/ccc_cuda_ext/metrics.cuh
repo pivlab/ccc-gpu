@@ -29,10 +29,10 @@ auto ari_core_device(const py::array_t<T, py::array::c_style> &parts,
                      const size_t n_objs) -> std::unique_ptr<thrust::device_vector<R>>;
 
 template <typename T, typename R>
-auto ari_core_scalar(T *const d_part0,
-                     T *const d_part1,
+auto ari_core_scalar(T* d_part0,
+                     T* d_part1,
                      const size_t n_objs,
                      const size_t max_k,
                      const size_t stream_idx,
                      const cudaStream_t stream,
-                     R *const h_aris) -> void;
+                     R* h_aris) -> void;
