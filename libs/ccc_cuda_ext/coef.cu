@@ -112,7 +112,7 @@ T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
     return static_cast<T *>(buffer.ptr);
 }
 
-template <typename T>
+template <typename T, typename R>
 auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const size_t n_features,
                   const size_t n_partitions,
@@ -122,8 +122,6 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   std::optional<unsigned int> pvalue_n_perms) -> py::object
 {
     // Pre-computation
-    using parts_dtype = T;
-    using out_dtype = float;
     const int n_feature_comp = n_features * (n_features - 1) / 2;
     const int n_aris = n_feature_comp * n_partitions * n_partitions;
     const auto n_elems_per_feat = n_partitions * n_objects;
@@ -137,9 +135,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     }
 
     // Allocate host memory for results
-    std::vector<out_dtype> cm_values(n_feature_comp);
+    std::vector<R> cm_values(n_feature_comp);
     std::vector<int32_t> max_parts(n_feature_comp * 2);
-    std::vector<out_dtype> cm_pvalues;
+    std::vector<R> cm_pvalues;
 
     const size_t n_live_reductions = 0; // Number of stream groups running concurrently, we need to sync them to get partial results for cm_values
 
@@ -156,16 +154,16 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     for (size_t range_ari_idx = 0; range_ari_idx < n_aris; range_ari_idx += reduction_range)
     {
         // Allocate page-locked memory for ARI values to be reduced
-        out_dtype *h_aris;
+        R *h_aris;
         // Host page-locked memory pointers for part0 and part1
-        std::vector<parts_dtype *> h_part0s(n_streams);
-        std::vector<parts_dtype *> h_part1s(n_streams);
+        std::vector<T *> h_part0s(n_streams);
+        std::vector<T *> h_part1s(n_streams);
         // TODO: OPTIMIZE: maybe it's better to put the whole parts arrays on the device
         // Device memory pointers for part0 and part1
-        std::vector<parts_dtype *> d_part0s(n_streams);
-        std::vector<parts_dtype *> d_part1s(n_streams);
-        // std::vector<out_dtype *> d_aris(n_streams);
-        CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduction_range * sizeof(out_dtype), cudaHostAllocDefault));
+        std::vector<T *> d_part0s(n_streams);
+        std::vector<T *> d_part1s(n_streams);
+        // std::vector<R *> d_aris(n_streams);
+        CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduction_range * sizeof(R), cudaHostAllocDefault));
         // Copy part0 and part1 to each stream
         for (size_t s = 0; s < n_streams; ++s)
         {
@@ -175,13 +173,13 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             auto d_part1 = d_part1s[s];
             // auto d_ari = d_aris[s];
             // Allocate page-locked memory for part0 and part1
-            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part0, n_objects * sizeof(parts_dtype), cudaHostAllocDefault));
-            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part1, n_objects * sizeof(parts_dtype), cudaHostAllocDefault));
-            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduction_range * sizeof(out_dtype), cudaHostAllocDefault));
-            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part0, n_objects * sizeof(parts_dtype)));
-            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part1, n_objects * sizeof(parts_dtype)));
+            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part0, n_objects * sizeof(T), cudaHostAllocDefault));
+            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part1, n_objects * sizeof(T), cudaHostAllocDefault));
+            CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduction_range * sizeof(R), cudaHostAllocDefault));
+            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part0, n_objects * sizeof(T)));
+            CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_part1, n_objects * sizeof(T)));
             // Single ARI value per stream. We can also try one stream for all ARI values within the reduction range
-            // CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_aris, 1 * sizeof(out_dtype)));
+            // CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_aris, 1 * sizeof(R)));
             // Compute indices
             const auto feature_comp_flat_idx = range_ari_idx;
             const auto part_pair_flat_idx = s;
@@ -198,8 +196,8 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                 h_part1[k] = d_part1_start_ptr[k];
             }
             // Copy the locked memory to the device, async
-            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part0, h_part0, n_objects * sizeof(parts_dtype), cudaMemcpyHostToDevice, streams[s]));
-            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part1, h_part1, n_objects * sizeof(parts_dtype), cudaMemcpyHostToDevice, streams[s]));
+            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part0, h_part0, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
+            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part1, h_part1, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
         }
         // Invoke the kernel
         for (size_t s = 0; s < n_streams; ++s)
@@ -216,7 +214,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         }
 
         // Get the maximum ARI value and its index in array h_aris
-        out_dtype max_ari = -1.0f;
+        R max_ari = -1.0f;
         int32_t max_ari_idx = -1;
         for (size_t s = 0; s < n_streams; ++s)
         {
@@ -251,14 +249,14 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     // P-valued results
     if (pvalue_n_perms.has_value())
     {
-        cm_pvalues.resize(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
+        cm_pvalues.resize(n_feature_comp, std::numeric_limits<R>::quiet_NaN());
     }
 
     // Allocate py::arrays for the results
     // const auto max_parts_py = py::array_t<unsigned int>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, 2});
-    const auto cm_values_py = py::array_t<out_dtype>(cm_values.size(), cm_values.data());
+    const auto cm_values_py = py::array_t<R>(cm_values.size(), cm_values.data());
     const auto cm_pvalues_py = pvalue_n_perms.has_value()
-                                   ? py::object(py::array_t<out_dtype>(cm_pvalues.size(), cm_pvalues.data()))
+                                   ? py::object(py::array_t<R>(cm_pvalues.size(), cm_pvalues.data()))
                                    : py::object(py::none());
 
     // Return the results as a tuple
@@ -308,7 +306,7 @@ auto example_return_optional_vectors(bool include_first,
 // separate the implementation into a .cpp file to make things clearer. In order to make the compiler know the
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
-template auto compute_coef<int8_t>(const py::array_t<int8_t, py::array::c_style> &parts,
+template auto compute_coef<int8_t, float>(const py::array_t<int8_t, py::array::c_style> &parts,
                                    const size_t n_features,
                                    const size_t n_partitions,
                                    const size_t n_objects,

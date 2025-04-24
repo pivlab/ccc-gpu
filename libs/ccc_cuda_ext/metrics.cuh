@@ -8,18 +8,18 @@
 namespace py = pybind11;
 
 // Used for external python testing
-template <typename T>
+template <typename T, typename R>
 auto ari(const py::array_t<T, py::array::c_style> &parts,
          const size_t n_features,
          const size_t n_parts,
-         const size_t n_objs) -> std::vector<float>;
+         const size_t n_objs) -> std::vector<R>;
 
 // Used for internal c++ testing
-template <typename T>
+template <typename T, typename R>
 auto ari_core_host(const T *parts,
                    const size_t n_features,
                    const size_t n_parts,
-                   const size_t n_objs) -> std::vector<float>;
+                   const size_t n_objs) -> std::vector<R>;
 
 // Used in the coef API
 template <typename T, typename R>

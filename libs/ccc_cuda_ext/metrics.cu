@@ -445,19 +445,13 @@ auto ari_core_scalar(T* d_part0,
                      R* h_aris) -> void
 {
     /*
-     * Pre-computation
-     */
-    using parts_dtype = T;
-    using out_dtype = R;
-
-    /*
      * Memory Allocation
      */
     // Device memory for the ARI value
-    out_dtype *d_ari;
-    CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_ari, sizeof(out_dtype)));
+    R *d_ari;
+    CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_ari, sizeof(R)));
     // Compute shared memory size
-    const auto sz_parts_dtype = sizeof(parts_dtype);
+    const auto sz_parts_dtype = sizeof(T);
     auto s_mem_size = 0;
     s_mem_size += max_k * max_k * sz_parts_dtype; // For contingency matrix
     s_mem_size += 2 * max_k * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed?
@@ -484,7 +478,7 @@ auto ari_core_scalar(T* d_part0,
         max_k,
         d_ari);
     // Copy the ARI value back to host memory
-    CUDA_CHECK_MANDATORY(cudaMemcpyAsync(h_aris + stream_idx, d_ari, sizeof(out_dtype), cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK_MANDATORY(cudaMemcpyAsync(h_aris + stream_idx, d_ari, sizeof(R), cudaMemcpyDeviceToHost, stream));
 }
 
 
@@ -514,8 +508,6 @@ auto ari_core_device(const T *parts,
     /*
      * Pre-computation
      */
-    using parts_dtype = T;
-    using out_dtype = R;
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
@@ -524,15 +516,15 @@ auto ari_core_device(const T *parts,
      */
     // Create device vectors using unique_ptr
     const auto n_elems = n_features * n_parts * n_objs;
-    auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(parts, parts + n_elems);
-    auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(n_aris, 0.0f);
+    auto d_parts = std::make_unique<thrust::device_vector<T>>(parts, parts + n_elems);
+    auto d_out = std::make_unique<thrust::device_vector<R>>(n_aris, 0.0f);
 
     // Define shared memory size for each block
     // Pre-compute the max value of the partitions
     // TODO: Each block could compute the max value of the partition pairs to eliminate this global reduction
     // Also, potentially we can spare some smem for better occupancy. But the issue is we need to dynamically allocate smem for each block
-    const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<parts_dtype>()) + 1;
-    const auto sz_parts_dtype = sizeof(parts_dtype);
+    const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<T>()) + 1;
+    const auto sz_parts_dtype = sizeof(T);
     // Compute shared memory size
     // FIXME: Partition pair size should be fixed. Stream processing should be used for large input
     // NOTE: Use global memory to fix the issue for now and then optimize with shared memory
@@ -595,17 +587,15 @@ auto ari_core_device(const py::array_t<T, py::array::c_style> &parts,
  * @throws std::invalid_argument if "parts" is invalid
  * @return std::vector<float> ARI values for each pair of partitions stored in host memory
  */
-template <typename T>
+template <typename T, typename R>
 auto ari_core_host(const T *parts,
                    const size_t n_features,
                    const size_t n_parts,
-                   const size_t n_objs) -> std::vector<float>
+                   const size_t n_objs) -> std::vector<R>
 {
     /*
      * Pre-computation
      */
-    using parts_dtype = T;
-    using out_dtype = float;
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
@@ -613,17 +603,17 @@ auto ari_core_host(const T *parts,
      * Memory Allocation
      */
     // Allocate host memory
-    thrust::host_vector<out_dtype> h_out(n_aris);
-    // thrust::host_vector<parts_dtype> h_parts_pairs(n_aris * 2 * n_objs);
+    thrust::host_vector<R> h_out(n_aris);
+    // thrust::host_vector<T> h_parts_pairs(n_aris * 2 * n_objs);
 
     // Call the device function ari_core_device
-    auto d_out = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs);
+    auto d_out = ari_core_device<T, R>(parts, n_features, n_parts, n_objs);
 
     // Copy data back to host using -> operator since d_out is a unique_ptr
     thrust::copy(d_out->begin(), d_out->end(), h_out.begin());
 
     // Copy data to std::vector
-    std::vector<out_dtype> res(n_aris);
+    std::vector<R> res(n_aris);
     thrust::copy(h_out.begin(), h_out.end(), res.begin());
 
     // Return the ARI values
@@ -640,14 +630,14 @@ auto ari_core_host(const T *parts,
  * @throws std::invalid_argument if "parts" is invalid
  * @return std::vector<float> All ARI values for each pair of partitions
  */
-template <typename T>
+template <typename T, typename R>
 auto ari(const py::array_t<T, py::array::c_style> &parts,
          const size_t n_features,
          const size_t n_parts,
-         const size_t n_objs) -> std::vector<float>
+         const size_t n_objs) -> std::vector<R>
 {
     const auto parts_ptr = process_input_array(parts);
-    return ari_core_host(parts_ptr, n_features, n_parts, n_objs);
+    return ari_core_host<T, R>(parts_ptr, n_features, n_parts, n_objs);
 }
 
 /**
@@ -674,14 +664,14 @@ auto ari_reduced(const py::array_t<T, py::array::c_style> &parts,
 // by the linker.
 
 // Used for external python testing
-template auto ari<int>(
+template auto ari<int, float>(
     const py::array_t<int, py::array::c_style> &parts,
     const size_t n_features,
     const size_t n_parts,
     const size_t n_objs) -> std::vector<float>;
 
 // Used for internal c++ testing
-template auto ari_core_host<int>(
+template auto ari_core_host<int, float>(
     const int *parts,
     const size_t n_features,
     const size_t n_parts,

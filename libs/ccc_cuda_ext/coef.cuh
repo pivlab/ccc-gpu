@@ -12,7 +12,7 @@ auto example_return_optional_vectors(
 ) -> py::object;
 
 
-template <typename T>
+template <typename T, typename R>
 auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                  const size_t n_features,
                  const size_t n_parts,
