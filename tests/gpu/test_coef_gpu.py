@@ -62,14 +62,14 @@ def test_example_return_optional_vectors_types():
 @pytest.mark.parametrize(
     "parts, expected_ari",
     [
-        (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 2]]], dtype=np.int32), 0.57),
-        (np.array([[[0, 0, 1, 1]], [[0, 1, 0, 1]]], dtype=np.int32), 0.0),  # -0.5
-        (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 1]]], dtype=np.int32), 1.0),
-        (np.array([[[0, 0, 1, 1]], [[1, 1, 0, 0]]], dtype=np.int32), 1.0),
-        (np.array([[[0, 0, 1, 1]], [[2, 1, 2, 0]]], dtype=np.int32), 0.0),  # -0.287
-        (np.array([[[0, 0, 0, 0]], [[0, 1, 2, 3]]], dtype=np.int32), 0.0),
-        (np.array([[[0, 1, 0, 1]], [[1, 1, 0, 0]]], dtype=np.int32), 0.0),  # -0.5
-        (np.array([[[1, 1, 0, 0]], [[0, 0, 1, 2]]], dtype=np.int32), 0.57),
+        (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 2]]], dtype=np.int8), 0.57),
+        (np.array([[[0, 0, 1, 1]], [[0, 1, 0, 1]]], dtype=np.int8), 1.0),  # -0.5
+        (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 1]]], dtype=np.int8), 1.0),
+        (np.array([[[0, 0, 1, 1]], [[1, 1, 0, 0]]], dtype=np.int8), 1.0),
+        (np.array([[[0, 0, 1, 1]], [[2, 1, 2, 0]]], dtype=np.int8), 0.0),  # -0.287
+        (np.array([[[0, 0, 0, 0]], [[0, 1, 2, 3]]], dtype=np.int8), 0.0),
+        (np.array([[[0, 1, 0, 1]], [[1, 1, 0, 0]]], dtype=np.int8), 0.0),  # -0.5
+        (np.array([[[1, 1, 0, 0]], [[0, 0, 1, 2]]], dtype=np.int8), 0.57),
     ],
 )
 def test_compute_coef_simple_2_1_4(parts, expected_ari):
@@ -77,7 +77,8 @@ def test_compute_coef_simple_2_1_4(parts, expected_ari):
     Test case with parts of shape (2, 1, 4), 2 features, 1 part, 4 objects
     """
     n_features, n_parts, n_objs = parts.shape
-    res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs)
+    max_k = np.max(parts)
+    res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs, max_k)
     cm_values, cm_pvalues, max_parts = res
     assert np.isclose(cm_values[0], expected_ari, atol=1e-2)
 

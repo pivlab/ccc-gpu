@@ -153,6 +153,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     // Compute the aris across all features and perform reduction on the go
     for (size_t range_ari_idx = 0; range_ari_idx < n_aris; range_ari_idx += reduction_range)
     {
+        // TODO: Put memory allocation outside the loop
         // Allocate page-locked memory for ARI values to be reduced
         R *h_aris;
         // Host page-locked memory pointers for part0 and part1
@@ -164,13 +165,16 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         std::vector<T *> d_part1s(n_streams);
         // std::vector<R *> d_aris(n_streams);
         CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduction_range * sizeof(R), cudaHostAllocDefault));
-        // Copy part0 and part1 to each stream
+        // Init h_aris to -1.0f
+        CUDA_CHECK_MANDATORY(cudaMemset(h_aris, -1.0f, reduction_range * sizeof(R)));
+
         for (size_t s = 0; s < n_streams; ++s)
         {
-            auto h_part0 = h_part0s[s];
-            auto h_part1 = h_part1s[s];
-            auto d_part0 = d_part0s[s];
-            auto d_part1 = d_part1s[s];
+            // Copy part0 and part1 to each stream
+            auto &h_part0 = h_part0s[s];
+            auto &h_part1 = h_part1s[s];
+            auto &d_part0 = d_part0s[s];
+            auto &d_part1 = d_part1s[s];
             // auto d_ari = d_aris[s];
             // Allocate page-locked memory for part0 and part1
             CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_part0, n_objects * sizeof(T), cudaHostAllocDefault));
@@ -188,16 +192,16 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             uint32_t m, n;
             unravel_index(part_pair_flat_idx, n_partitions, &m, &n);
             // Copy data from parts to page-locked memory
-            const auto d_part0_start_ptr = parts_ptr + i * n_elems_per_feat + m * n_objects;
-            const auto d_part1_start_ptr = parts_ptr + j * n_elems_per_feat + n * n_objects;
-            for (int k = 0; k < n_objects; ++k)
-            {
-                h_part0[k] = d_part0_start_ptr[k];
-                h_part1[k] = d_part1_start_ptr[k];
-            }
+            T *h_part0_start_ptr = parts_ptr + i * n_elems_per_feat + m * n_objects;
+            T *h_part1_start_ptr = parts_ptr + j * n_elems_per_feat + n * n_objects;
+            // for (int k = 0; k < n_objects; ++k)
+            // {
+            //     h_part0[k] = h_part0_start_ptr[k];
+            //     h_part1[k] = h_part1_start_ptr[k];
+            // }
             // Copy the locked memory to the device, async
-            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part0, h_part0, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
-            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part1, h_part1, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
+            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part0, h_part0_start_ptr, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
+            CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part1, h_part1_start_ptr, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
         }
         // Invoke the kernel
         for (size_t s = 0; s < n_streams; ++s)
@@ -231,11 +235,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         max_parts[range_ari_idx >> 1] = m;
         max_parts[range_ari_idx >> 1 + 1] = n;
 
-        // Clean up
+        // Free the memory
         for (size_t s = 0; s < n_streams; ++s)
         {
-            // Destroy the stream
-            CUDA_CHECK_MANDATORY(cudaStreamDestroy(streams[s]));
             // Free the memory
             CUDA_CHECK_MANDATORY(cudaFreeHost(h_part0s[s]));
             CUDA_CHECK_MANDATORY(cudaFreeHost(h_part1s[s]));
@@ -244,6 +246,12 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             CUDA_CHECK_MANDATORY(cudaFree(d_part1s[s]));
             // CUDA_CHECK_MANDATORY(cudaFree(d_aris[s]));
         }
+    }
+
+    // Destroy all streams
+    for (size_t s = 0; s < n_streams; ++s)
+    {
+        CUDA_CHECK_MANDATORY(cudaStreamDestroy(streams[s]));
     }
 
     // P-valued results
@@ -307,9 +315,9 @@ auto example_return_optional_vectors(bool include_first,
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
 template auto compute_coef<int8_t, float>(const py::array_t<int8_t, py::array::c_style> &parts,
-                                   const size_t n_features,
-                                   const size_t n_partitions,
-                                   const size_t n_objects,
-                                   const size_t max_k,
-                                   const bool return_parts,
-                                   std::optional<unsigned int> pvalue_n_perms) -> py::object;
+                                          const size_t n_features,
+                                          const size_t n_partitions,
+                                          const size_t n_objects,
+                                          const size_t max_k,
+                                          const bool return_parts,
+                                          std::optional<unsigned int> pvalue_n_perms) -> py::object;

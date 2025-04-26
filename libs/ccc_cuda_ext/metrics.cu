@@ -238,14 +238,14 @@ __device__ void get_pair_confusion_matrix(
 // TODO: Parameterize the int type to allow using narrower int types for memory efficiency
 template <typename T>
 __global__ void ari_kernel(T *parts,
-                                      const int n_aris,
-                                      const int n_features,
-                                      const int n_parts,
-                                      const int n_objs,
-                                      const int n_elems_per_feat,
-                                      const int n_part_mat_elems,
-                                      const int k,
-                                      float *out)
+                           const int n_aris,
+                           const int n_features,
+                           const int n_parts,
+                           const int n_objs,
+                           const int n_elems_per_feat,
+                           const int n_part_mat_elems,
+                           const int k,
+                           float *out)
 {
     /*
      * Step 0: Compute shared memory addresses
@@ -423,7 +423,6 @@ T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
     return static_cast<T *>(buffer.ptr);
 }
 
-
 /**
  * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device
  * @param parts pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
@@ -436,40 +435,78 @@ T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
  * @return std::unique_ptr to thrust device vector containing ARI values with type R
  */
 template <typename T, typename R>
-auto ari_core_scalar(T* d_part0,
-                     T* d_part1,
+auto ari_core_scalar(T *d_part0,
+                     T *d_part1,
                      const size_t n_objs,
                      const size_t max_k,
                      const size_t stream_idx,
                      const cudaStream_t stream,
-                     R* h_aris) -> void
+                     R *h_aris) -> void
 {
+    // Input validation
+    if (!d_part0 || !d_part1 || !h_aris)
+    {
+        std::stringstream ss;
+        ss << "Invalid input pointers: ";
+        if (!d_part0)
+            ss << "d_part0 is null, ";
+        if (!d_part1)
+            ss << "d_part1 is null, ";
+        if (!h_aris)
+            ss << "h_aris is null";
+        throw std::runtime_error(ss.str());
+    }
+    if (n_objs == 0 || max_k == 0)
+    {
+        throw std::runtime_error("Invalid dimensions");
+    }
+
+    // Debug
+    // Print d_part0 and d_part1
+    // printf("d_part0: ");
+    // for (size_t i = 0; i < n_objs; ++i)
+    // {
+    //     printf("%d ", d_part0[i]);
+    // }
+    // printf("\n");
+    // printf("d_part1: ");
+    // for (size_t i = 0; i < n_objs; ++i)
+    // {
+    //     printf("%d ", d_part1[i]);
+    // }
+    // printf("\n");
+
     /*
      * Memory Allocation
      */
-    // Device memory for the ARI value
     R *d_ari;
     CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_ari, sizeof(R)));
+
+    // Initialize d_ari to a known value
+    R init_val = -1.0f;
+    CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_ari, &init_val, sizeof(R), cudaMemcpyHostToDevice, stream));
+
     // Compute shared memory size
     const auto sz_parts_dtype = sizeof(T);
     auto s_mem_size = 0;
     s_mem_size += max_k * max_k * sz_parts_dtype; // For contingency matrix
-    s_mem_size += 2 * max_k * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed?
-    s_mem_size += 4 * sz_parts_dtype;     // For the pair confusion matrix
+    s_mem_size += 2 * max_k * sz_parts_dtype;     // For the internal sum arrays
+    s_mem_size += 4 * sz_parts_dtype;             // For the pair confusion matrix
 
     // Check if shared memory size exceeds device limits
     auto [is_valid, message] = check_shared_memory_size(s_mem_size);
-    if (!is_valid) { throw std::runtime_error(message); }
+    if (!is_valid)
+    {
+        CUDA_CHECK_MANDATORY(cudaFree(d_ari));
+        throw std::runtime_error(message);
+    }
 
     /*
      * Launch the kernel
      */
-    // Each logical block is responsible for one ARI computation
     const auto grid_size = 1;
-    // Todo: change block_size to template parameter for performance tuning
-    // For now, with 128 threads per block, we have 4 warps to compute the 4 elements of the confusion matrix.
-    // Future optimizations should consider how to reduce the number of idle warps.
     const auto block_size = 128;
+
     // Launch the kernel
     ari_kernel_scalar<<<grid_size, block_size, s_mem_size, stream>>>(
         d_part0,
@@ -477,10 +514,24 @@ auto ari_core_scalar(T* d_part0,
         n_objs,
         max_k,
         d_ari);
+
+    // Check for kernel launch errors
+    cudaError_t kernelError = cudaGetLastError();
+    if (kernelError != cudaSuccess)
+    {
+        CUDA_CHECK_MANDATORY(cudaFree(d_ari));
+        throw std::runtime_error("Kernel launch failed: " + std::string(cudaGetErrorString(kernelError)));
+    }
+
     // Copy the ARI value back to host memory
     CUDA_CHECK_MANDATORY(cudaMemcpyAsync(h_aris + stream_idx, d_ari, sizeof(R), cudaMemcpyDeviceToHost, stream));
-}
 
+    // Synchronize the stream to ensure the copy is complete
+    CUDA_CHECK_MANDATORY(cudaStreamSynchronize(stream));
+
+    // Clean up
+    CUDA_CHECK_MANDATORY(cudaFree(d_ari));
+}
 
 /**
  * @brief Internal lower-level ARI computation, returns a pointer to the ARI values on the device
@@ -685,10 +736,10 @@ template auto ari_core_device<int8_t, float>(
     const size_t n_objs) -> std::unique_ptr<thrust::device_vector<float>>;
 
 template auto ari_core_scalar<int8_t, float>(
-    int8_t* d_part0,
-    int8_t* d_part1,
+    int8_t *d_part0,
+    int8_t *d_part1,
     const size_t n_objs,
     const size_t max_k,
     const size_t stream_idx,
     const cudaStream_t stream,
-    float* h_aris) -> void;
+    float *h_aris) -> void;
