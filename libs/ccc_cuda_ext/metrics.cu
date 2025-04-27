@@ -456,25 +456,6 @@ auto ari_core_scalar(T *d_part0,
             ss << "h_aris is null";
         throw std::runtime_error(ss.str());
     }
-    if (n_objs == 0 || max_k == 0)
-    {
-        throw std::runtime_error("Invalid dimensions");
-    }
-
-    // Debug
-    // Print d_part0 and d_part1
-    // printf("d_part0: ");
-    // for (size_t i = 0; i < n_objs; ++i)
-    // {
-    //     printf("%d ", d_part0[i]);
-    // }
-    // printf("\n");
-    // printf("d_part1: ");
-    // for (size_t i = 0; i < n_objs; ++i)
-    // {
-    //     printf("%d ", d_part1[i]);
-    // }
-    // printf("\n");
 
     /*
      * Memory Allocation
@@ -522,6 +503,10 @@ auto ari_core_scalar(T *d_part0,
         CUDA_CHECK_MANDATORY(cudaFree(d_ari));
         throw std::runtime_error("Kernel launch failed: " + std::string(cudaGetErrorString(kernelError)));
     }
+
+    // debug
+    // Print d_ari
+    printf("ARI computed by stream %zu\n", stream_idx);
 
     // Copy the ARI value back to host memory
     CUDA_CHECK_MANDATORY(cudaMemcpyAsync(h_aris + stream_idx, d_ari, sizeof(R), cudaMemcpyDeviceToHost, stream));

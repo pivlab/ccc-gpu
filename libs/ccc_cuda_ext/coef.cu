@@ -112,12 +112,13 @@ T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
     return static_cast<T *>(buffer.ptr);
 }
 
+// TODO: change max_k to a better name
 template <typename T, typename R>
 auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const size_t n_features,
                   const size_t n_partitions,
                   const size_t n_objects,
-                  const size_t max_k,
+                  size_t max_k,
                   const bool return_parts,
                   std::optional<unsigned int> pvalue_n_perms) -> py::object
 {
@@ -133,6 +134,8 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     {
         throw std::invalid_argument("Invalid input parameters");
     }
+    // need k + 1 for shared memory allocation
+    max_k += 1;
 
     // Allocate host memory for results
     std::vector<R> cm_values(n_feature_comp);
@@ -142,6 +145,15 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     const size_t n_live_reductions = 0; // Number of stream groups running concurrently, we need to sync them to get partial results for cm_values
 
     const auto n_streams = n_partitions * n_partitions; // k * k partition aris
+
+    // Debug
+    printf("n_features: %zu\n", n_features);
+    printf("n_partitions: %zu\n", n_partitions);
+    printf("n_objects: %zu\n", n_objects);
+    printf("n_feature_comp: %zu\n", n_feature_comp);
+    printf("max_k: %zu\n", max_k);
+    printf("n_streams: %zu\n", n_streams);
+
     // Each stream group is responsible for all ARI computations between two features
     std::vector<cudaStream_t> streams(n_streams);
     for (size_t s = 0; s < n_streams; s++)
@@ -218,7 +230,8 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         }
 
         // Get the maximum ARI value and its index in array h_aris
-        R max_ari = -1.0f;
+        // According to CCC's algorithm, the coefficient is clamped at 0
+        R max_ari = 0.0f;
         int32_t max_ari_idx = -1;
         for (size_t s = 0; s < n_streams; ++s)
         {

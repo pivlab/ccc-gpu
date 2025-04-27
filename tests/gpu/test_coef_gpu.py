@@ -63,7 +63,7 @@ def test_example_return_optional_vectors_types():
     "parts, expected_ari",
     [
         (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 2]]], dtype=np.int8), 0.57),
-        (np.array([[[0, 0, 1, 1]], [[0, 1, 0, 1]]], dtype=np.int8), 1.0),  # -0.5
+        (np.array([[[0, 0, 1, 1]], [[0, 1, 0, 1]]], dtype=np.int8), 0.0),  # -0.5
         (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 1]]], dtype=np.int8), 1.0),
         (np.array([[[0, 0, 1, 1]], [[1, 1, 0, 0]]], dtype=np.int8), 1.0),
         (np.array([[[0, 0, 1, 1]], [[2, 1, 2, 0]]], dtype=np.int8), 0.0),  # -0.287
@@ -94,7 +94,7 @@ def test_compute_coef_simple_2_1_4(parts, expected_ari):
                     [[0, 1, 0, 1]],
                     [[1, 1, 0, 0]],
                 ],
-                dtype=np.int32,
+                dtype=np.int8,
             ),
             # np.array([1.0, -0.5, 1.0, -0.5, 1.0, -0.5]),
             np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0]),
@@ -106,7 +106,8 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
     Test case with parts of shape (4, 1, 4), 4 features, 1 part, 4 objects
     """
     n_features, n_parts, n_objs = parts.shape
-    res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs)
+    max_k = np.max(parts)
+    res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs, max_k)
     print(res)
     cm_values, cm_pvalues, max_parts = res
     assert np.allclose(cm_values, expected_ari, atol=1e-2)
@@ -122,7 +123,7 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
                     [[0, 1, 0, 1], [2, 1, 2, 0]],  # Feature 1 with 2 partitions
                     [[0, 0, 1, 2], [0, 1, 0, 1]],  # Feature 2 with 2 partitions
                 ],
-                dtype=np.int32,
+                dtype=np.int8,
             ),
             np.array(
                 [
@@ -137,7 +138,7 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
                     [0, 0],
                     [0, 0],  # TODO: double check this case
                 ],
-                dtype=np.int32,
+                dtype=np.int8,
             ),
         ),
     ],
@@ -147,7 +148,8 @@ def test_compute_coef_simple_3_2_4(parts, expected_ari, expected_max_parts):
     Test case with parts of shape (3, 2, 4), 3 features, 2 partitions, 4 objects
     """
     n_features, n_parts, n_objs = parts.shape
-    res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs)
+    max_k = np.max(parts)
+    res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs, max_k)
 
     cm_values, cm_pvalues, max_parts = res
     assert np.allclose(cm_values, expected_ari, atol=1e-2)
