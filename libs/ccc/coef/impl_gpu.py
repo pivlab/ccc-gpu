@@ -749,11 +749,10 @@ def ccc(
             _tmp_list.append(x)
         internal_n_clusters = _tmp_list
 
-    max_k = max(internal_n_clusters)
-
     # get matrix of partitions for each object pair
     range_n_clusters = get_range_n_clusters(n_objects, internal_n_clusters)
     n_clusters = range_n_clusters.shape[0]
+    max_k = np.max(range_n_clusters)
 
     if n_clusters == 0:
         raise ValueError(f"Data has too few objects: {n_objects}")
@@ -949,7 +948,13 @@ def ccc(
     else:
         # Use the original implementation for numerical features
         coef = ccc_cuda_ext.compute_coef(
-            parts, n_features, n_clusters, n_objects, return_parts, pvalue_n_perms
+            parts,
+            n_features,
+            n_clusters,
+            n_objects,
+            max_k,
+            return_parts,
+            pvalue_n_perms,
         )
         cm_values, cm_pvalues, max_parts = coef
 

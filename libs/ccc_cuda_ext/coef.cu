@@ -147,14 +147,14 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     const auto n_streams = n_partitions * n_partitions; // k * k partition aris
 
     // Debug
-    printf("n_features: %zu\n", n_features);
-    printf("n_partitions: %zu\n", n_partitions);
-    printf("n_objects: %zu\n", n_objects);
-    printf("n_feature_comp: %zu\n", n_feature_comp);
-    printf("max_k: %zu\n", max_k);
-    printf("n_streams: %zu\n", n_streams);
-    printf("reduction_range: %zu\n", reduction_range);
-    printf("n_aris: %zu\n", n_aris);
+    // printf("n_features: %zu\n", n_features);
+    // printf("n_partitions: %zu\n", n_partitions);
+    // printf("n_objects: %zu\n", n_objects);
+    // printf("n_feature_comp: %zu\n", n_feature_comp);
+    // printf("max_k: %zu\n", max_k);
+    // printf("n_streams: %zu\n", n_streams);
+    // printf("reduction_range: %zu\n", reduction_range);
+    // printf("n_aris: %zu\n", n_aris);
 
     // Each stream group is responsible for all ARI computations between two features
     std::vector<cudaStream_t> streams(n_streams);
@@ -226,7 +226,6 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             // Copy the locked memory to the device, async
             CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part0, h_part0_start_ptr, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
             CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part1, h_part1_start_ptr, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
-            std::cout << std::endl;
         }
         // Invoke the kernel
         for (size_t s = 0; s < n_streams; ++s)

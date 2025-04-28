@@ -505,6 +505,7 @@ auto ari_core_scalar(T *d_part0,
     const auto block_size = 128;
 
     // Launch the kernel
+    // TODO: [opt]: launch streams on iterator of k (2, 3, ..., max_k) instead of using max_k all the time
     ari_kernel_scalar<<<grid_size, block_size, s_mem_size, stream>>>(
         d_part0,
         d_part1,
@@ -522,7 +523,7 @@ auto ari_core_scalar(T *d_part0,
 
     // debug
     // Print d_ari
-    printf("ARI computed by stream %zu\n", stream_idx);
+    // printf("ARI computed by stream %zu\n", stream_idx);
 
     // Copy the ARI value back to host memory
     CUDA_CHECK_MANDATORY(cudaMemcpyAsync(h_aris + stream_idx, d_ari, sizeof(R), cudaMemcpyDeviceToHost, stream));

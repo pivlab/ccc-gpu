@@ -16,11 +16,11 @@ from utils import clean_gpu_memory, generate_categorical_data
     "shape, max_not_close_percentage, generate_logs",
     [
         # Simple cases
-        ((10, 100), 0.0, False),
-        ((20, 200), 0.0, False),
-        ((30, 300), 0.0, False),
+        # ((10, 100), 0.0, True),
+        # ((20, 200), 0.0, False),
+        # ((30, 300), 0.0, False),
         # ((100, 100), 0.0, True),
-        # ((100, 1000), 0.0, True),
+        ((100, 1000), 0.0, True),
         # Large cases
         # ((1000, 100), 0.0, True),
         # ((100, 1000), 0.008, False), # Skipped, too slow for a unit test
