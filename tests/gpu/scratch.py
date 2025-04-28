@@ -15,3 +15,6 @@ from ccc.sklearn.metrics import adjusted_rand_index
 
 output_cpu = adjusted_rand_index(np.array([0, 0, 1, 1]), np.array([0, 1, 0, 1]))
 print(output_cpu)
+
+output_cpu = adjusted_rand_index(np.array([1, 1, 0, 0]), np.array([2, 1, 2, 0]))
+print(output_cpu)

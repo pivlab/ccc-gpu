@@ -361,6 +361,23 @@ __global__ void ari_kernel_scalar(T *t_data_part0,
     int *s_sum_cols = s_sum_rows + k;              // k elements
     int *s_pair_confusion_matrix = s_sum_cols + k; // 4 elements
 
+    // debug, print all the data in t_data_part0 and t_data_part1
+    // if (threadIdx.x == 0)
+    // {
+    //     printf("t_data_part0: ");
+    //     for (int i = 0; i < n_objs; i++)
+    //     {
+    //         printf("%d ", t_data_part0[i]);
+    //     }
+    // printf("\n");
+    // printf("t_data_part1: ");
+    // for (int i = 0; i < n_objs; i++)
+    // {
+    //         printf("%d ", t_data_part1[i]);
+    //     }
+    //     printf("\n");
+    // }
+
     // Check on categorical partition marker, if the first object of either partition is -1 (actually all the objects are -1),
     // then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of -1.
     if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
@@ -398,6 +415,8 @@ __global__ void ari_kernel_scalar(T *t_data_part0,
         {
             ari = 2.0f * (tp * tn - fn * fp) / ((tp + fn) * (fn + tn) + (tp + fp) * (fp + tn));
         }
+        // debug
+        // printf("ARI computed by thread %d: %f\n", threadIdx.x, ari);
         *out = ari;
     }
     __syncthreads();
@@ -462,10 +481,7 @@ auto ari_core_scalar(T *d_part0,
      */
     R *d_ari;
     CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_ari, sizeof(R)));
-
-    // Initialize d_ari to a known value
-    R init_val = -1.0f;
-    CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_ari, &init_val, sizeof(R), cudaMemcpyHostToDevice, stream));
+    CUDA_CHECK_MANDATORY(cudaMemset(d_ari, -1.0f, sizeof(R)));
 
     // Compute shared memory size
     const auto sz_parts_dtype = sizeof(T);
@@ -511,6 +527,7 @@ auto ari_core_scalar(T *d_part0,
     // Copy the ARI value back to host memory
     CUDA_CHECK_MANDATORY(cudaMemcpyAsync(h_aris + stream_idx, d_ari, sizeof(R), cudaMemcpyDeviceToHost, stream));
 
+    // TODO: maybe not necessary to synchronize the stream
     // Synchronize the stream to ensure the copy is complete
     CUDA_CHECK_MANDATORY(cudaStreamSynchronize(stream));
 

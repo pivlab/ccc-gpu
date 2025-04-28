@@ -127,9 +127,9 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
             ),
             np.array(
                 [
-                    0.0,  # Feature 0 vs 1 (partition 0,0) -0.287
-                    0.57,  # Feature 0 vs 2 (partition 0,0)
-                    1.0,  # Feature 1 vs 2 (partition 0,1)
+                    0.0,  # Feature 0 vs 1. TODO: change this case. All ARIs are 0, max_parts can be ambiguous
+                    0.57,  # Feature 0 vs 2
+                    1.0,  # Feature 1 vs 2
                 ]
             ),
             np.array(
@@ -138,7 +138,7 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
                     [0, 0],
                     [0, 0],  # TODO: double check this case
                 ],
-                dtype=np.int8,
+                dtype=np.uint8,
             ),
         ),
     ],

@@ -139,7 +139,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 
     // Allocate host memory for results
     std::vector<R> cm_values(n_feature_comp);
-    std::vector<int32_t> max_parts(n_feature_comp * 2);
+    std::vector<uint8_t> max_parts(n_feature_comp * 2);
     std::vector<R> cm_pvalues;
 
     const size_t n_live_reductions = 0; // Number of stream groups running concurrently, we need to sync them to get partial results for cm_values
@@ -153,6 +153,8 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     printf("n_feature_comp: %zu\n", n_feature_comp);
     printf("max_k: %zu\n", max_k);
     printf("n_streams: %zu\n", n_streams);
+    printf("reduction_range: %zu\n", reduction_range);
+    printf("n_aris: %zu\n", n_aris);
 
     // Each stream group is responsible for all ARI computations between two features
     std::vector<cudaStream_t> streams(n_streams);
@@ -177,9 +179,10 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         std::vector<T *> d_part1s(n_streams);
         // std::vector<R *> d_aris(n_streams);
         CUDA_CHECK_MANDATORY(cudaHostAlloc((void **)&h_aris, reduction_range * sizeof(R), cudaHostAllocDefault));
-        // Init h_aris to -1.0f
+        // Init h_aris to -1.0f, not necessary but good practice
         CUDA_CHECK_MANDATORY(cudaMemset(h_aris, -1.0f, reduction_range * sizeof(R)));
 
+        const auto feature_comp_flat_idx = range_ari_idx / reduction_range;
         for (size_t s = 0; s < n_streams; ++s)
         {
             // Copy part0 and part1 to each stream
@@ -197,15 +200,24 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             // Single ARI value per stream. We can also try one stream for all ARI values within the reduction range
             // CUDA_CHECK_MANDATORY(cudaMalloc((void **)&d_aris, 1 * sizeof(R)));
             // Compute indices
-            const auto feature_comp_flat_idx = range_ari_idx;
             const auto part_pair_flat_idx = s;
             uint32_t i, j;
             get_coords_from_index(n_features, feature_comp_flat_idx, &i, &j);
             uint32_t m, n;
             unravel_index(part_pair_flat_idx, n_partitions, &m, &n);
+
+            // debug
+            // std::cout << "range_ari_idx: " << range_ari_idx << std::endl;
+            // std::cout << "feature_comp_flat_idx: " << feature_comp_flat_idx << std::endl;
+            // std::cout << "part_pair_flat_idx: " << part_pair_flat_idx << std::endl;
+            // std::cout << "i: " << i << std::endl;
+            // std::cout << "j: " << j << std::endl;
+            // std::cout << "m: " << m << std::endl;
+            // std::cout << "n: " << n << std::endl;
+
             // Copy data from parts to page-locked memory
-            T *h_part0_start_ptr = parts_ptr + i * n_elems_per_feat + m * n_objects;
-            T *h_part1_start_ptr = parts_ptr + j * n_elems_per_feat + n * n_objects;
+            T *h_part0_start_ptr = parts_ptr + static_cast<T>(i) * n_elems_per_feat + m * n_objects;
+            T *h_part1_start_ptr = parts_ptr + static_cast<T>(j) * n_elems_per_feat + n * n_objects;
             // for (int k = 0; k < n_objects; ++k)
             // {
             //     h_part0[k] = h_part0_start_ptr[k];
@@ -214,6 +226,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             // Copy the locked memory to the device, async
             CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part0, h_part0_start_ptr, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
             CUDA_CHECK_MANDATORY(cudaMemcpyAsync(d_part1, h_part1_start_ptr, n_objects * sizeof(T), cudaMemcpyHostToDevice, streams[s]));
+            std::cout << std::endl;
         }
         // Invoke the kernel
         for (size_t s = 0; s < n_streams; ++s)
@@ -231,22 +244,28 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 
         // Get the maximum ARI value and its index in array h_aris
         // According to CCC's algorithm, the coefficient is clamped at 0
-        R max_ari = 0.0f;
+        R max_ari = -1.0f;
         int32_t max_ari_idx = -1;
         for (size_t s = 0; s < n_streams; ++s)
         {
-            if (h_aris[s] > max_ari)
+            const auto s_ari = std::max(0.0f, h_aris[s]);
+            // debug
+            // printf("s_ari: %f\n", s_ari);
+            if (s_ari > max_ari)
             {
-                max_ari = h_aris[s];
+
+                max_ari = s_ari;
                 max_ari_idx = s;
             }
         }
-        cm_values[range_ari_idx] = max_ari;
+        cm_values[feature_comp_flat_idx] = max_ari;
+
+        // OPT: ignore this when not required
         // Unravel the index to get partition indices
         uint32_t m, n;
         unravel_index(max_ari_idx, n_partitions, &m, &n);
-        max_parts[range_ari_idx >> 1] = m;
-        max_parts[range_ari_idx >> 1 + 1] = n;
+        max_parts[feature_comp_flat_idx >> 1] = m;
+        max_parts[feature_comp_flat_idx >> 1 + 1] = n;
 
         // Free the memory
         for (size_t s = 0; s < n_streams; ++s)
@@ -274,7 +293,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     }
 
     // Allocate py::arrays for the results
-    // const auto max_parts_py = py::array_t<unsigned int>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, 2});
+    const auto max_parts_py = py::array_t<uint8_t>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, 2});
     const auto cm_values_py = py::array_t<R>(cm_values.size(), cm_values.data());
     const auto cm_pvalues_py = pvalue_n_perms.has_value()
                                    ? py::object(py::array_t<R>(cm_pvalues.size(), cm_pvalues.data()))
@@ -284,8 +303,8 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     return py::make_tuple(
         cm_values_py,
         cm_pvalues_py,
-        py::object(py::none())
-        // max_parts_py
+        // py::object(py::none())
+        max_parts_py
     );
 }
 
