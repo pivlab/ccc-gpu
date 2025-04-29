@@ -102,7 +102,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   std::optional<unsigned int> pvalue_n_perms) -> py::object
 {
     // Batch-computing configs, to be tuned and dynamically set based on the GPU memory size
-    const uint64_t batch_n_features = 1000;
+    const uint64_t batch_n_features = 5000;
     const uint64_t batch_n_parts = n_partitions; // k from 2 to 10
     const uint64_t batch_n_feature_comp = batch_n_features * (batch_n_features - 1) / 2;
     const uint64_t batch_n_aris = batch_n_feature_comp * batch_n_parts * batch_n_parts;
@@ -123,6 +123,11 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         cm_pvalues.resize(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
     }
 
+    // Pre-allocate device memory for the maximum batch size
+    const uint64_t max_batch_feature_comp = batch_n_feature_comp;
+    thrust::device_vector<out_dtype> d_cm_values(max_batch_feature_comp);
+    std::vector<out_dtype> batch_cm_values(max_batch_feature_comp);
+
     // Process ARIs in batches
     for (uint64_t batch_start = 0; batch_start < n_aris; batch_start += batch_n_aris)
     {
@@ -136,9 +141,6 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         const auto d_aris = ari_core_device<parts_dtype, out_dtype>(
             parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
 
-        // Allocate device memory for batch results
-        thrust::device_vector<out_dtype> d_cm_values(batch_feature_comp);
-
         // Configure kernel launch parameters for this batch
         const int threadsPerBlock = 128;
         const int numBlocks = batch_feature_comp;
@@ -151,8 +153,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             reduction_range);
 
         // Copy reduced results back to host
-        std::vector<out_dtype> batch_cm_values(batch_feature_comp);
-        thrust::copy(d_cm_values.begin(), d_cm_values.end(), batch_cm_values.begin());
+        thrust::copy(d_cm_values.begin(), d_cm_values.begin() + batch_feature_comp, batch_cm_values.begin());
 
         // Update the main cm_values array with the batch results
         for (uint64_t i = 0; i < batch_feature_comp; ++i)
