@@ -1,0 +1,11 @@
+
+Testing with 4000 features, 1000 samples, seed 42
+GPU time: 9.4516 seconds
+CPU time: 184.0029 seconds
+Speedup: 19.47x
+Number of coefficients: 7998000
+
+Number of coefficients not close: 0
+Max difference: 0.000000
+Number of coefficients with max difference: 0
+Percentage of coefficients not close: 0.0%
