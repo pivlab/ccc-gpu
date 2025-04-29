@@ -237,14 +237,15 @@ __device__ void get_pair_confusion_matrix(
 // TODO: Parameterize the int type to allow using narrower int types for memory efficiency
 template <typename T>
 __global__ void ari_kernel(T *parts,
-                                      const int n_aris,
-                                      const int n_features,
-                                      const int n_parts,
-                                      const int n_objs,
-                                      const int n_elems_per_feat,
-                                      const int n_part_mat_elems,
-                                      const int k,
-                                      float *out)
+                           const int n_aris,
+                           const int n_features,
+                           const int n_parts,
+                           const int n_objs,
+                           const int n_elems_per_feat,
+                           const int n_part_mat_elems,
+                           const int k,
+                           const uint32_t batch_start,
+                           float *out)
 {
     /*
      * Step 0: Compute shared memory addresses
@@ -259,7 +260,7 @@ __global__ void ari_kernel(T *parts,
      * Step 1: Each thead, unravel flat indices and load the corresponding data into shared memory
      */
     // each block is responsible for one ARI computation
-    int ari_block_idx = blockIdx.x;
+    const uint32_t ari_block_idx = blockIdx.x + batch_start;
     // obtain the corresponding parts and unique counts
     int feature_comp_flat_idx = ari_block_idx / n_part_mat_elems; // flat comparison pair index for two features
     int part_pair_flat_idx = ari_block_idx % n_part_mat_elems;    // flat comparison pair index for two partitions of one feature pair
@@ -326,7 +327,7 @@ __global__ void ari_kernel(T *parts,
         {
             ari = 2.0f * (tp * tn - fn * fp) / ((tp + fn) * (fn + tn) + (tp + fp) * (fp + tn));
         }
-        out[ari_block_idx] = ari;
+        out[blockIdx.x] = ari;
     }
     __syncthreads();
 }
@@ -361,7 +362,9 @@ template <typename T, typename R>
 auto ari_core_device(const T *parts,
                      const size_t n_features,
                      const size_t n_parts,
-                     const size_t n_objs) -> std::unique_ptr<thrust::device_vector<R>>
+                     const size_t n_objs,
+                     const uint64_t batch_start,
+                     const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<R>>
 {
     /*
      * Show debugging and device information
@@ -382,27 +385,29 @@ auto ari_core_device(const T *parts,
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
+    // Determine the actual batch size
+    const auto actual_batch_size = batch_size == 0 ? n_aris : std::min(batch_size, n_aris - batch_start);
+    if (batch_start >= n_aris)
+    {
+        throw std::invalid_argument("Batch start index exceeds total number of ARIs");
+    }
+
     /*
      * Memory Allocation
      */
     // Create device vectors using unique_ptr
     const auto n_elems = n_features * n_parts * n_objs;
     auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(parts, parts + n_elems);
-    auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(n_aris, 0.0f);
+    auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(actual_batch_size, 0.0f);
 
     // Define shared memory size for each block
     // Pre-compute the max value of the partitions
-    // TODO: Each block could compute the max value of the partition pairs to eliminate this global reduction
-    // Also, potentially we can spare some smem for better occupancy. But the issue is we need to dynamically allocate smem for each block
     const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<parts_dtype>()) + 1;
     const auto sz_parts_dtype = sizeof(parts_dtype);
     // Compute shared memory size
-    // FIXME: Partition pair size should be fixed. Stream processing should be used for large input
-    // NOTE: Use global memory to fix the issue for now and then optimize with shared memory
-    // auto s_mem_size = 2 * n_objs * sz_parts_dtype;  // For the partition pair to be compared
     auto s_mem_size = 0;
     s_mem_size += k * k * sz_parts_dtype; // For contingency matrix
-    s_mem_size += 2 * k * sz_parts_dtype; // For the internal sum arrays, FIXME: should be fixed?
+    s_mem_size += 2 * k * sz_parts_dtype; // For the internal sum arrays
     s_mem_size += 4 * sz_parts_dtype;     // For the pair confusion matrix
 
     // Check if shared memory size exceeds device limits
@@ -416,22 +421,22 @@ auto ari_core_device(const T *parts,
      * Launch the kernel
      */
     // Each logical block is responsible for one ARI computation
-    const auto grid_size = n_aris;
-    // Todo: change block_size to template parameter for performance tuning
-    // For now, with 128 threads per block, we have 4 warps to compute the 4 elements of the confusion matrix.
-    // Future optimizations should consider how to reduce the number of idle warps.
+    const auto grid_size = actual_batch_size;
     const auto block_size = 128;
+
     // Launch the kernel
     ari_kernel<<<grid_size, block_size, s_mem_size>>>(
         thrust::raw_pointer_cast(d_parts->data()),
-        n_aris,
+        actual_batch_size,
         n_features,
         n_parts,
         n_objs,
         n_parts * n_objs,
         n_parts * n_parts,
         k,
+        batch_start,
         thrust::raw_pointer_cast(d_out->data()));
+
     // Return the device vector
     return d_out;
 }
@@ -439,6 +444,8 @@ auto ari_core_device(const T *parts,
 /**
  * @brief Overloaded ari_core_device function. Takes a numpy.ndarray as input
  * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_parts, n_objs)
+ * @param batch_start Starting index for the batch
+ * @param batch_size Size of the batch (0 means process all ARIs)
  * @throws std::invalid_argument if "parts" is invalid
  * @return std::unique_ptr to thrust device vector containing ARI values
  */
@@ -446,10 +453,12 @@ template <typename T, typename R>
 auto ari_core_device(const py::array_t<T, py::array::c_style> &parts,
                      const size_t n_features,
                      const size_t n_parts,
-                     const size_t n_objs) -> std::unique_ptr<thrust::device_vector<R>>
+                     const size_t n_objs,
+                     const uint64_t batch_start,
+                     const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<R>>
 {
     const auto parts_ptr = process_input_array(parts);
-    return ari_core_device<T, R>(parts_ptr, n_features, n_parts, n_objs);
+    return ari_core_device<T, R>(parts_ptr, n_features, n_parts, n_objs, batch_start, batch_size);
 }
 
 /**
@@ -462,7 +471,9 @@ template <typename T>
 auto ari_core_host(const T *parts,
                    const size_t n_features,
                    const size_t n_parts,
-                   const size_t n_objs) -> std::vector<float>
+                   const size_t n_objs,
+                   const uint64_t batch_start,
+                   const uint64_t batch_size) -> std::vector<float>
 {
     /*
      * Pre-computation
@@ -472,21 +483,28 @@ auto ari_core_host(const T *parts,
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
+    // Determine the actual batch size
+    const auto actual_batch_size = batch_size == 0 ? n_aris : std::min(batch_size, n_aris - batch_start);
+    if (batch_start >= n_aris)
+    {
+        throw std::invalid_argument("Batch start index exceeds total number of ARIs");
+    }
+
     /*
      * Memory Allocation
      */
     // Allocate host memory
-    thrust::host_vector<out_dtype> h_out(n_aris);
+    thrust::host_vector<out_dtype> h_out(actual_batch_size);
     // thrust::host_vector<parts_dtype> h_parts_pairs(n_aris * 2 * n_objs);
 
     // Call the device function ari_core_device
-    auto d_out = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs);
+    auto d_out = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs, batch_start, actual_batch_size);
 
     // Copy data back to host using -> operator since d_out is a unique_ptr
     thrust::copy(d_out->begin(), d_out->end(), h_out.begin());
 
     // Copy data to std::vector
-    std::vector<out_dtype> res(n_aris);
+    std::vector<out_dtype> res(actual_batch_size);
     thrust::copy(h_out.begin(), h_out.end(), res.begin());
 
     // Return the ARI values
@@ -507,10 +525,12 @@ template <typename T>
 auto ari(const py::array_t<T, py::array::c_style> &parts,
          const size_t n_features,
          const size_t n_parts,
-         const size_t n_objs) -> std::vector<float>
+         const size_t n_objs,
+         const uint64_t batch_start,
+         const uint64_t batch_size) -> std::vector<float>
 {
     const auto parts_ptr = process_input_array(parts);
-    return ari_core_host(parts_ptr, n_features, n_parts, n_objs);
+    return ari_core_host(parts_ptr, n_features, n_parts, n_objs, batch_start, batch_size);
 }
 
 /**
@@ -541,18 +561,24 @@ template auto ari<int>(
     const py::array_t<int, py::array::c_style> &parts,
     const size_t n_features,
     const size_t n_parts,
-    const size_t n_objs) -> std::vector<float>;
+    const size_t n_objs,
+    const uint64_t batch_start,
+    const uint64_t batch_size) -> std::vector<float>;
 
 // Used for internal c++ testing
 template auto ari_core_host<int>(
     const int *parts,
     const size_t n_features,
     const size_t n_parts,
-    const size_t n_objs) -> std::vector<float>;
+    const size_t n_objs,
+    const uint64_t batch_start,
+    const uint64_t batch_size) -> std::vector<float>;
 
 // Used in the coef API
 template auto ari_core_device<int8_t, float>(
     const py::array_t<int8_t, py::array::c_style> &parts,
     const size_t n_features,
     const size_t n_parts,
-    const size_t n_objs) -> std::unique_ptr<thrust::device_vector<float>>;
+    const size_t n_objs,
+    const uint64_t batch_start,
+    const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<float>>;
