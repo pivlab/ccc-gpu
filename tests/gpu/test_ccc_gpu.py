@@ -34,8 +34,8 @@ from utils import clean_gpu_memory, generate_categorical_data
         # ((5000, 100), 0.0, True),
         # ((20000, 100), 0.0, False),
         # Benchmark cases
-        ((5000, 1000), 0.0, True),
-        # ((10000, 1000), 0.0, True),
+        # ((5000, 1000), 0.0, True),
+        ((10000, 50), 0.0, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
@@ -93,6 +93,7 @@ def test_ccc_gpu_with_numerical_input(
 
     # Time GPU version
     start_gpu = time.time()
+    # c1 = ccc_gpu(df)
     c1 = ccc_gpu(df)
     end_gpu = time.time()
     gpu_time = end_gpu - start_gpu
