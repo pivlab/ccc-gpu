@@ -40,7 +40,7 @@ run_cpp_tests() {
     rm -rf build
     # Build the CUDA extension module
     cmake -S . -B build
-    cmake --build build
+    cmake --build build -j $(nproc)
 
     echo -e "\033[34mRunning C++ tests...\033[0m"
     for test in ./build/test_*; do

@@ -3,6 +3,7 @@
 #include <thrust/device_vector.h>
 
 #include <iostream>
+#include <iomanip>
 #include <limits>
 #include <optional>
 #include <vector>
@@ -13,7 +14,7 @@
 #include "coef.cuh"
 #include "metrics.cuh"
 #include "math.cuh"
-
+#include "utils.cuh"
 namespace py = pybind11;
 
 template <typename T>
@@ -101,6 +102,10 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const bool return_parts,
                   std::optional<unsigned int> pvalue_n_perms) -> py::object
 {
+    // Check CUDA info
+    print_cuda_device_info();
+    print_cuda_memory_info();
+
     // Batch-computing configs, to be tuned and dynamically set based on the GPU memory size
     const uint64_t batch_n_features = 1000;
     const uint64_t batch_n_parts = n_partitions; // k from 2 to 10
@@ -111,6 +116,14 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     const int n_feature_comp = n_features * (n_features - 1) / 2;
     const int n_aris = n_feature_comp * n_partitions * n_partitions;
     const auto reduction_range = n_partitions * n_partitions;
+
+    std::cout << "\nDebug Info:" << std::endl;
+    std::cout << "  n_features: " << n_features << std::endl;
+    std::cout << "  n_partitions: " << n_partitions << std::endl;
+    std::cout << "  n_objects: " << n_objects << std::endl;
+    std::cout << "  n_feature_comp: " << n_feature_comp << std::endl;
+    std::cout << "  n_aris: " << n_aris << std::endl;
+    std::cout << "  batch_n_aris: " << batch_n_aris << std::endl;
 
     // Allocate host memory for results
     std::vector<R> cm_values(n_feature_comp, 0.0f);
@@ -123,44 +136,91 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 
     // Pre-allocate device memory for the maximum batch size
     const uint64_t max_batch_feature_comp = batch_n_feature_comp;
+    std::cout << "\nAllocating device memory..." << std::endl;
+    std::cout << "  max_batch_feature_comp: " << max_batch_feature_comp << std::endl;
+    std::cout << "  Memory before allocation: ";
+    size_t before_mem = print_cuda_memory_info();
+
     thrust::device_vector<R> d_cm_values(max_batch_feature_comp);
     std::vector<R> batch_cm_values(max_batch_feature_comp);
+
+    std::cout << "  Memory after allocation: ";
+    size_t after_mem = print_cuda_memory_info();
+    std::cout << "  Memory used: " << (before_mem - after_mem) << " bytes" << std::endl;
 
     // Process ARIs in batches
     for (uint64_t batch_start = 0; batch_start < n_aris; batch_start += batch_n_aris)
     {
+        // Debug - print iteration info
+        std::cout << "\nProcessing batch " << (batch_start / batch_n_aris + 1) << " of "
+                  << (n_aris + batch_n_aris - 1) / batch_n_aris << std::endl;
+        std::cout << "  Start index: " << batch_start << std::endl;
+        std::cout << "  Batch size: " << batch_n_aris << std::endl;
+        std::cout << "  Memory before batch: ";
+        before_mem = print_cuda_memory_info();
+
         // Calculate the actual batch size for this iteration
         const uint64_t current_batch_size = std::min(batch_n_aris, n_aris - batch_start);
+        std::cout << "  Current batch size: " << current_batch_size << std::endl;
 
-        // Calculate the number of feature comparisons in this batch
-        const uint64_t batch_feature_comp = current_batch_size / (n_partitions * n_partitions);
-
-        // Compute the ARIs for this batch
-        const auto d_aris = ari_core_device<T, R>(
-            parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
-
-        // Configure kernel launch parameters for this batch
-        const int threadsPerBlock = 128;
-        const int numBlocks = batch_feature_comp;
-
-        // Launch kernel to find maximum values on device for this batch
-        findMaxAriKernel<<<numBlocks, threadsPerBlock>>>(
-            thrust::raw_pointer_cast(d_aris->data()),
-            thrust::raw_pointer_cast(d_cm_values.data()),
-            n_partitions,
-            reduction_range);
-
-        // Copy reduced results back to host
-        thrust::copy(d_cm_values.begin(), d_cm_values.begin() + batch_feature_comp, batch_cm_values.begin());
-
-        // Update the main cm_values array with the batch results
-        for (uint64_t i = 0; i < batch_feature_comp; ++i)
+        try
         {
-            const uint64_t global_idx = batch_start / (n_partitions * n_partitions) + i;
-            if (global_idx < n_feature_comp)
+            // Compute the ARIs for this batch
+            const auto d_aris = ari_core_device<T, R>(
+                parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
+
+            // Configure kernel launch parameters for this batch
+            const int threadsPerBlock = 128;
+            const int numBlocks = current_batch_size / (n_partitions * n_partitions);
+            std::cout << "  Launching kernel with " << numBlocks << " blocks, "
+                      << threadsPerBlock << " threads per block" << std::endl;
+
+            // Launch kernel to find maximum values on device for this batch
+            findMaxAriKernel<<<numBlocks, threadsPerBlock>>>(
+                thrust::raw_pointer_cast(d_aris->data()),
+                thrust::raw_pointer_cast(d_cm_values.data()),
+                n_partitions,
+                reduction_range);
+
+            // Check for kernel errors
+            cudaError_t kernelError = cudaGetLastError();
+            if (kernelError != cudaSuccess)
             {
-                cm_values[global_idx] = std::max(cm_values[global_idx], batch_cm_values[i]);
+                throw std::runtime_error("Kernel launch failed: " + std::string(cudaGetErrorString(kernelError)));
             }
+
+            // Synchronize to ensure kernel completion
+            cudaError_t syncError = cudaDeviceSynchronize();
+            if (syncError != cudaSuccess)
+            {
+                throw std::runtime_error("Device synchronization failed: " + std::string(cudaGetErrorString(syncError)));
+            }
+
+            // Copy reduced results back to host
+            thrust::copy(d_cm_values.begin(), d_cm_values.begin() + current_batch_size / (n_partitions * n_partitions),
+                         batch_cm_values.begin());
+
+            // Update the main cm_values array with the batch results
+            for (uint64_t i = 0; i < current_batch_size / (n_partitions * n_partitions); ++i)
+            {
+                const uint64_t global_idx = batch_start / (n_partitions * n_partitions) + i;
+                if (global_idx < n_feature_comp)
+                {
+                    cm_values[global_idx] = std::max(cm_values[global_idx], batch_cm_values[i]);
+                }
+            }
+
+            std::cout << "  Memory after batch: ";
+            after_mem = print_cuda_memory_info();
+            std::cout << "  Memory used in batch: " << (before_mem - after_mem) << " bytes" << std::endl;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "\nError in batch processing:" << std::endl;
+            std::cerr << "  Batch start: " << batch_start << std::endl;
+            std::cerr << "  Batch size: " << current_batch_size << std::endl;
+            std::cerr << "  Error: " << e.what() << std::endl;
+            throw; // Re-throw to maintain error propagation
         }
     }
 
@@ -216,8 +276,8 @@ auto example_return_optional_vectors(bool include_first,
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
 template auto compute_coef<int8_t, float>(const py::array_t<int8_t, py::array::c_style> &parts,
-                                   const size_t n_features,
-                                   const size_t n_partitions,
-                                   const size_t n_objects,
-                                   const bool return_parts,
-                                   std::optional<unsigned int> pvalue_n_perms) -> py::object;
+                                          const size_t n_features,
+                                          const size_t n_partitions,
+                                          const size_t n_objects,
+                                          const bool return_parts,
+                                          std::optional<unsigned int> pvalue_n_perms) -> py::object;
