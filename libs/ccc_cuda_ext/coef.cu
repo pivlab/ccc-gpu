@@ -93,7 +93,7 @@ __global__ void findMaxAriKernel(const T *aris,
 }
 
 // TODO: Add mode check to decide whether to do batch processing or not
-template <typename T>
+template <typename T, typename R>
 auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const size_t n_features,
                   const size_t n_partitions,
@@ -102,31 +102,29 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   std::optional<unsigned int> pvalue_n_perms) -> py::object
 {
     // Batch-computing configs, to be tuned and dynamically set based on the GPU memory size
-    const uint64_t batch_n_features = 5000;
+    const uint64_t batch_n_features = 1000;
     const uint64_t batch_n_parts = n_partitions; // k from 2 to 10
     const uint64_t batch_n_feature_comp = batch_n_features * (batch_n_features - 1) / 2;
     const uint64_t batch_n_aris = batch_n_feature_comp * batch_n_parts * batch_n_parts;
 
     // Pre-computation
-    using parts_dtype = T;
-    using out_dtype = float;
     const int n_feature_comp = n_features * (n_features - 1) / 2;
     const int n_aris = n_feature_comp * n_partitions * n_partitions;
     const auto reduction_range = n_partitions * n_partitions;
 
     // Allocate host memory for results
-    std::vector<out_dtype> cm_values(n_feature_comp, 0.0f);
-    std::vector<out_dtype> cm_pvalues;
+    std::vector<R> cm_values(n_feature_comp, 0.0f);
+    std::vector<R> cm_pvalues;
 
     if (pvalue_n_perms.has_value())
     {
-        cm_pvalues.resize(n_feature_comp, std::numeric_limits<out_dtype>::quiet_NaN());
+        cm_pvalues.resize(n_feature_comp, std::numeric_limits<R>::quiet_NaN());
     }
 
     // Pre-allocate device memory for the maximum batch size
     const uint64_t max_batch_feature_comp = batch_n_feature_comp;
-    thrust::device_vector<out_dtype> d_cm_values(max_batch_feature_comp);
-    std::vector<out_dtype> batch_cm_values(max_batch_feature_comp);
+    thrust::device_vector<R> d_cm_values(max_batch_feature_comp);
+    std::vector<R> batch_cm_values(max_batch_feature_comp);
 
     // Process ARIs in batches
     for (uint64_t batch_start = 0; batch_start < n_aris; batch_start += batch_n_aris)
@@ -138,7 +136,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         const uint64_t batch_feature_comp = current_batch_size / (n_partitions * n_partitions);
 
         // Compute the ARIs for this batch
-        const auto d_aris = ari_core_device<parts_dtype, out_dtype>(
+        const auto d_aris = ari_core_device<T, R>(
             parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
 
         // Configure kernel launch parameters for this batch
@@ -167,9 +165,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     }
 
     // Allocate py::arrays for the results
-    const auto cm_values_py = py::array_t<out_dtype>(cm_values.size(), cm_values.data());
+    const auto cm_values_py = py::array_t<R>(cm_values.size(), cm_values.data());
     const auto cm_pvalues_py = pvalue_n_perms.has_value()
-                                   ? py::object(py::array_t<out_dtype>(cm_pvalues.size(), cm_pvalues.data()))
+                                   ? py::object(py::array_t<R>(cm_pvalues.size(), cm_pvalues.data()))
                                    : py::object(py::none());
 
     // Return the results as a tuple
@@ -217,7 +215,7 @@ auto example_return_optional_vectors(bool include_first,
 // separate the implementation into a .cpp file to make things clearer. In order to make the compiler know the
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
-template auto compute_coef<int8_t>(const py::array_t<int8_t, py::array::c_style> &parts,
+template auto compute_coef<int8_t, float>(const py::array_t<int8_t, py::array::c_style> &parts,
                                    const size_t n_features,
                                    const size_t n_partitions,
                                    const size_t n_objects,
