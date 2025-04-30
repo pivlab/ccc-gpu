@@ -22,6 +22,9 @@
 #include <stdio.h>
 #include <tuple>
 #include <string>
+#include <iostream>
+#include <iomanip>
+#include <cmath>
 
 /**
  * @brief Main error checking macro for CUDA operations
@@ -168,6 +171,83 @@ inline size_t get_max_shared_memory_per_block(int device_id = 0)
     cudaDeviceProp prop;
     CUDA_CHECK_MANDATORY(cudaGetDeviceProperties(&prop, device_id));
     return prop.sharedMemPerBlock;
+}
+
+// get the total global memory size of the current device
+inline size_t get_total_global_memory_size(int device_id = 0)
+{
+    cudaDeviceProp prop;
+    CUDA_CHECK_MANDATORY(cudaGetDeviceProperties(&prop, device_id));
+    return prop.totalGlobalMem;
+}
+
+/**
+ * @brief Prints detailed information about the specified CUDA device
+ *
+ * This function prints comprehensive information about a CUDA device including:
+ * - Device name
+ * - CUDA driver and runtime versions
+ * - Compute capability
+ * - Memory information (global memory, clock rates, bus width)
+ * - Current memory usage
+ *
+ * @param device_id The CUDA device ID to query (defaults to 0)
+ *
+ * Example usage:
+ * @code
+ * print_cuda_device_info();  // Print info for device 0
+ * print_cuda_device_info(1); // Print info for device 1
+ * @endcode
+ */
+inline void print_cuda_device_info(int device_id = 0)
+{
+    int driverVersion = 0, runtimeVersion = 0;
+    CUDA_CHECK_MANDATORY(cudaSetDevice(device_id));
+    cudaDeviceProp deviceProp;
+    CUDA_CHECK_MANDATORY(cudaGetDeviceProperties(&deviceProp, device_id));
+    std::cout << "Device " << device_id << ": \"" << deviceProp.name << "\"" << std::endl;
+
+    cudaDriverGetVersion(&driverVersion);
+    cudaRuntimeGetVersion(&runtimeVersion);
+    std::cout << "  CUDA Driver Version / Runtime Version          "
+              << driverVersion / 1000 << "." << (driverVersion % 100) / 10 << " / "
+              << runtimeVersion / 1000 << "." << (runtimeVersion % 100) / 10 << std::endl;
+    std::cout << "  CUDA Capability Major/Minor version number:    "
+              << deviceProp.major << "." << deviceProp.minor << std::endl;
+    std::cout << "  Total amount of global memory:                 "
+              << std::fixed << std::setprecision(2)
+              << (float)deviceProp.totalGlobalMem / pow(1024.0, 3) << " GBytes ("
+              << (unsigned long long)deviceProp.totalGlobalMem << " bytes)" << std::endl;
+    std::cout << "  GPU Clock rate:                                "
+              << std::fixed << std::setprecision(0) << deviceProp.clockRate * 1e-3f << " MHz ("
+              << std::fixed << std::setprecision(2) << deviceProp.clockRate * 1e-6f << " GHz)" << std::endl;
+    std::cout << "  Memory Clock rate:                             "
+              << std::fixed << std::setprecision(0) << deviceProp.memoryClockRate * 1e-3f << " Mhz" << std::endl;
+    std::cout << "  Memory Bus Width:                              "
+              << deviceProp.memoryBusWidth << "-bit" << std::endl;
+}
+
+/**
+ * @brief Prints current memory usage information for the specified CUDA device
+ *
+ * This function prints the current free and total memory available on the device.
+ * It's useful for monitoring memory usage during program execution.
+ *
+ * @param device_id The CUDA device ID to query (defaults to 0)
+ *
+ * Example usage:
+ * @code
+ * print_cuda_memory_info();  // Print memory info for device 0
+ * print_cuda_memory_info(1); // Print memory info for device 1
+ * @endcode
+ */
+inline size_t print_cuda_memory_info(int device_id = 0)
+{
+    CUDA_CHECK_MANDATORY(cudaSetDevice(device_id));
+    size_t free_mem, total_mem;
+    cudaMemGetInfo(&free_mem, &total_mem);
+    std::cout << "Free memory: " << free_mem << " bytes, Total memory: " << total_mem << " bytes" << std::endl;
+    return free_mem;
 }
 
 // TODO: Add more utility functions such as:
