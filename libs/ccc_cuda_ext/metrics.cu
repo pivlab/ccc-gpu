@@ -395,10 +395,19 @@ auto ari_core_device(const T *parts,
     /*
      * Memory Allocation
      */
+    // Track memory before allocations
+    std::cout << "\nMemory before device allocations: ";
+    size_t before_device_mem = print_cuda_memory_info();
+
     // Create device vectors using unique_ptr
     const auto n_elems = n_features * n_parts * n_objs;
     auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(parts, parts + n_elems);
     auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(actual_batch_size, 0.0f);
+
+    // Track memory after allocations
+    std::cout << "Memory after device allocations: ";
+    size_t after_device_mem = print_cuda_memory_info();
+    std::cout << "  Device memory used: " << (before_device_mem - after_device_mem) << " bytes" << std::endl;
 
     // Define shared memory size for each block
     // Pre-compute the max value of the partitions
@@ -424,6 +433,10 @@ auto ari_core_device(const T *parts,
     const auto grid_size = actual_batch_size;
     const auto block_size = 128;
 
+    // Track memory before kernel launch
+    std::cout << "Memory before kernel launch: ";
+    before_device_mem = print_cuda_memory_info();
+
     // Launch the kernel
     ari_kernel<<<grid_size, block_size, s_mem_size>>>(
         thrust::raw_pointer_cast(d_parts->data()),
@@ -436,6 +449,11 @@ auto ari_core_device(const T *parts,
         k,
         batch_start,
         thrust::raw_pointer_cast(d_out->data()));
+
+    // Track memory after kernel launch
+    std::cout << "Memory after kernel launch: ";
+    after_device_mem = print_cuda_memory_info();
+    std::cout << "  Device memory used in kernel: " << (before_device_mem - after_device_mem) << " bytes" << std::endl;
 
     // Return the device vector
     return d_out;

@@ -231,9 +231,10 @@ inline void print_cuda_device_info(int device_id = 0)
  * @brief Prints current memory usage information for the specified CUDA device
  *
  * This function prints the current free and total memory available on the device.
- * It's useful for monitoring memory usage during program execution.
+ * It automatically chooses the most appropriate unit (KB, MB, or GB) based on the memory size.
  *
  * @param device_id The CUDA device ID to query (defaults to 0)
+ * @return size_t The amount of free memory in bytes
  *
  * Example usage:
  * @code
@@ -246,8 +247,81 @@ inline size_t print_cuda_memory_info(int device_id = 0)
     CUDA_CHECK_MANDATORY(cudaSetDevice(device_id));
     size_t free_mem, total_mem;
     cudaMemGetInfo(&free_mem, &total_mem);
-    std::cout << "Free memory: " << free_mem << " bytes, Total memory: " << total_mem << " bytes" << std::endl;
+
+    // Helper function to format memory size with appropriate unit
+    auto format_memory = [](size_t bytes) -> std::string
+    {
+        const size_t KB = 1024;
+        const size_t MB = KB * 1024;
+        const size_t GB = MB * 1024;
+
+        if (bytes >= GB)
+        {
+            return std::to_string(static_cast<double>(bytes) / GB) + " GB";
+        }
+        else if (bytes >= MB)
+        {
+            return std::to_string(static_cast<double>(bytes) / MB) + " MB";
+        }
+        else if (bytes >= KB)
+        {
+            return std::to_string(static_cast<double>(bytes) / KB) + " KB";
+        }
+        else
+        {
+            return std::to_string(bytes) + " bytes";
+        }
+    };
+
+    std::cout << "Free memory: " << format_memory(free_mem)
+              << ", Total memory: " << format_memory(total_mem) << std::endl;
     return free_mem;
+}
+
+/**
+ * @brief Prints current host memory usage information
+ *
+ * This function prints the current memory usage of the process.
+ * It's useful for monitoring memory usage during program execution.
+ *
+ * Example usage:
+ * @code
+ * print_host_memory_info();  // Print memory info for the current process
+ * @endcode
+ */
+inline size_t print_host_memory_info()
+{
+    // Get process memory usage
+    FILE *file = fopen("/proc/self/status", "r");
+    if (!file)
+    {
+        std::cerr << "Failed to open /proc/self/status" << std::endl;
+        return 0;
+    }
+
+    size_t vm_size = 0;
+    size_t vm_rss = 0;
+    char line[128];
+
+    while (fgets(line, 128, file) != NULL)
+    {
+        if (strncmp(line, "VmSize:", 7) == 0)
+        {
+            sscanf(line + 7, "%lu", &vm_size);
+        }
+        if (strncmp(line, "VmRSS:", 6) == 0)
+        {
+            sscanf(line + 6, "%lu", &vm_rss);
+        }
+    }
+    fclose(file);
+
+    // Convert to MB
+    vm_size = vm_size / 1024;
+    vm_rss = vm_rss / 1024;
+
+    std::cout << "Host Memory Usage: " << vm_rss << " MB (RSS), " << vm_size << " MB (Virtual)" << std::endl;
+    return vm_rss;
 }
 
 // TODO: Add more utility functions such as:
