@@ -18,7 +18,7 @@
 namespace py = pybind11;
 
 // Debug mode macro - set to 1 to enable debug output, 0 to disable
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 
 template <typename T>
 __global__ void findMaxAriKernel(const T *aris,
