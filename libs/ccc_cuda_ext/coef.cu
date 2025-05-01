@@ -17,6 +17,9 @@
 #include "utils.cuh"
 namespace py = pybind11;
 
+// Debug mode macro - set to 1 to enable debug output, 0 to disable
+#define DEBUG_MODE 1
+
 template <typename T>
 __global__ void findMaxAriKernel(const T *aris,
                                  // unsigned int* max_parts,
@@ -103,20 +106,39 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   std::optional<unsigned int> pvalue_n_perms) -> py::object
 {
     // Check CUDA info
+#if DEBUG_MODE
     print_cuda_device_info();
     print_cuda_memory_info();
+#endif
 
     // Batch-computing configs, to be tuned and dynamically set based on the GPU memory size
-    const uint64_t batch_n_features = 1000;
+    const uint64_t batch_n_features = 5000;
     const uint64_t batch_n_parts = n_partitions; // k from 2 to 10
     const uint64_t batch_n_feature_comp = batch_n_features * (batch_n_features - 1) / 2;
     const uint64_t batch_n_aris = batch_n_feature_comp * batch_n_parts * batch_n_parts;
 
     // Pre-computation
-    const int n_feature_comp = n_features * (n_features - 1) / 2;
-    const int n_aris = n_feature_comp * n_partitions * n_partitions;
-    const auto reduction_range = n_partitions * n_partitions;
+    // Check for overflow in n_feature_comp calculation
+    if (n_features > 1 && n_features > UINT64_MAX / (n_features - 1))
+    {
+        throw std::overflow_error("Overflow in n_feature_comp calculation: n_features too large");
+    }
+    const uint64_t n_feature_comp = n_features * (n_features - 1) / 2;
 
+    // Check for overflow in n_aris calculation
+    if (n_feature_comp > UINT64_MAX / n_partitions)
+    {
+        throw std::overflow_error("Overflow in n_aris calculation: n_feature_comp * n_partitions too large");
+    }
+    const uint64_t temp = n_feature_comp * n_partitions;
+    if (temp > UINT64_MAX / n_partitions)
+    {
+        throw std::overflow_error("Overflow in n_aris calculation: n_feature_comp * n_partitions * n_partitions too large");
+    }
+    const uint64_t n_aris = temp * n_partitions;
+    const uint64_t reduction_range = n_partitions * n_partitions;
+
+#if DEBUG_MODE
     std::cout << "\nDebug Info:" << std::endl;
     std::cout << "  n_features: " << n_features << std::endl;
     std::cout << "  n_partitions: " << n_partitions << std::endl;
@@ -124,8 +146,17 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     std::cout << "  n_feature_comp: " << n_feature_comp << std::endl;
     std::cout << "  n_aris: " << n_aris << std::endl;
     std::cout << "  batch_n_aris: " << batch_n_aris << std::endl;
+#endif
 
     // Allocate host memory for results
+#if DEBUG_MODE
+    std::cout << "\nAllocating host memory..." << std::endl;
+    std::cout << "  Memory before allocation: ";
+    size_t before_host_mem = print_host_memory_info();
+#else
+    size_t before_host_mem = 0;
+#endif
+
     std::vector<R> cm_values(n_feature_comp, 0.0f);
     std::vector<R> cm_pvalues;
 
@@ -134,34 +165,50 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         cm_pvalues.resize(n_feature_comp, std::numeric_limits<R>::quiet_NaN());
     }
 
+#if DEBUG_MODE
+    std::cout << "  Memory after allocation: ";
+    size_t after_host_mem = print_host_memory_info();
+    std::cout << "  Memory used: " << (after_host_mem - before_host_mem) << " MB" << std::endl;
+#endif
+
     // Pre-allocate device memory for the maximum batch size
     const uint64_t max_batch_feature_comp = batch_n_feature_comp;
+#if DEBUG_MODE
     std::cout << "\nAllocating device memory..." << std::endl;
     std::cout << "  max_batch_feature_comp: " << max_batch_feature_comp << std::endl;
     std::cout << "  Memory before allocation: ";
     size_t before_mem = print_cuda_memory_info();
+#else
+    size_t before_mem = 0;
+#endif
 
     thrust::device_vector<R> d_cm_values(max_batch_feature_comp);
     std::vector<R> batch_cm_values(max_batch_feature_comp);
 
+#if DEBUG_MODE
     std::cout << "  Memory after allocation: ";
     size_t after_mem = print_cuda_memory_info();
     std::cout << "  Memory used: " << (before_mem - after_mem) << " bytes" << std::endl;
+#endif
 
     // Process ARIs in batches
     for (uint64_t batch_start = 0; batch_start < n_aris; batch_start += batch_n_aris)
     {
         // Debug - print iteration info
+#if DEBUG_MODE
         std::cout << "\nProcessing batch " << (batch_start / batch_n_aris + 1) << " of "
                   << (n_aris + batch_n_aris - 1) / batch_n_aris << std::endl;
         std::cout << "  Start index: " << batch_start << std::endl;
         std::cout << "  Batch size: " << batch_n_aris << std::endl;
         std::cout << "  Memory before batch: ";
         before_mem = print_cuda_memory_info();
+#endif
 
         // Calculate the actual batch size for this iteration
         const uint64_t current_batch_size = std::min(batch_n_aris, n_aris - batch_start);
+#if DEBUG_MODE
         std::cout << "  Current batch size: " << current_batch_size << std::endl;
+#endif
 
         try
         {
@@ -172,8 +219,10 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             // Configure kernel launch parameters for this batch
             const int threadsPerBlock = 128;
             const int numBlocks = current_batch_size / (n_partitions * n_partitions);
+#if DEBUG_MODE
             std::cout << "  Launching kernel with " << numBlocks << " blocks, "
                       << threadsPerBlock << " threads per block" << std::endl;
+#endif
 
             // Launch kernel to find maximum values on device for this batch
             findMaxAriKernel<<<numBlocks, threadsPerBlock>>>(
@@ -210,9 +259,11 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                 }
             }
 
+#if DEBUG_MODE
             std::cout << "  Memory after batch: ";
-            after_mem = print_cuda_memory_info();
+            size_t after_mem = print_cuda_memory_info();
             std::cout << "  Memory used in batch: " << (before_mem - after_mem) << " bytes" << std::endl;
+#endif
         }
         catch (const std::exception &e)
         {

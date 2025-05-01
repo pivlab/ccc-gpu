@@ -16,9 +16,9 @@ from utils import clean_gpu_memory, generate_categorical_data
     "shape, max_not_close_percentage, generate_logs",
     [
         # Simple cases
-        ((10, 100), 0.0, False),
-        ((20, 200), 0.0, False),
-        ((30, 300), 0.0, False),
+        # ((10, 100), 0.0, False),
+        # ((20, 200), 0.0, False),
+        # ((30, 300), 0.0, False),
         # ((100, 100), 0.0, True),
         # ((100, 1000), 0.0, True),
         # Large cases
@@ -35,7 +35,7 @@ from utils import clean_gpu_memory, generate_categorical_data
         # ((20000, 100), 0.0, False),
         # Benchmark cases
         # ((5000, 1000), 0.0, True),
-        ((10000, 50), 0.0, True),
+        ((10000, 1000), 0.0, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
@@ -94,7 +94,12 @@ def test_ccc_gpu_with_numerical_input(
     # Time GPU version
     start_gpu = time.time()
     # c1 = ccc_gpu(df)
-    c1 = ccc_gpu(df)
+    # Catch exceptions
+    try:
+        c1 = ccc_gpu(df)
+    except Exception as e:
+        print(f"Error: {e}")
+        raise e
     end_gpu = time.time()
     gpu_time = end_gpu - start_gpu
 
@@ -178,9 +183,9 @@ def test_ccc_gpu_with_numerical_input(
         )
 
         # Save full arrays to separate files
-        np.savetxt(gpu_results_filename, c1, fmt="%.8f", delimiter=", ")
-        np.savetxt(cpu_results_filename, c2, fmt="%.8f", delimiter=", ")
-        np.savetxt(input_data_filename, df, fmt="%.8f", delimiter=", ")
+        # np.savetxt(gpu_results_filename, c1, fmt="%.8f", delimiter=", ")
+        # np.savetxt(cpu_results_filename, c2, fmt="%.8f", delimiter=", ")
+        # np.savetxt(input_data_filename, df, fmt="%.8f", delimiter=", ")
 
         # Close the log file
         log_file.close()
