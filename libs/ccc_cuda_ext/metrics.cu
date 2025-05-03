@@ -435,7 +435,7 @@ auto ari_core_device(const T *parts,
 
     // Track memory before kernel launch
     // std::cout << "Memory before kernel launch: ";
-    before_device_mem = print_cuda_memory_info();
+    // before_device_mem = print_cuda_memory_info();
 
     // Launch the kernel
     ari_kernel<<<grid_size, block_size, s_mem_size>>>(
