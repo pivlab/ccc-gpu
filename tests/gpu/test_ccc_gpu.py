@@ -1,12 +1,152 @@
 import time
 import pytest
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Optional, Dict, Any
 import os
 
 from ccc.coef.impl_gpu import ccc as ccc_gpu
 from ccc.coef.impl import ccc
 from utils import clean_gpu_memory, generate_categorical_data
+
+
+def setup_logging(
+    seed: int,
+    shape: Tuple[int, int],
+    n_cpu_cores: int,
+    generate_logs: bool,
+) -> Optional[Dict[str, Any]]:
+    """Setup logging infrastructure if logging is enabled.
+
+    Args:
+        seed: Random seed for reproducibility
+        shape: Tuple of (n_features, n_samples)
+        n_cpu_cores: Number of CPU cores to use
+        generate_logs: Whether to generate log files
+
+    Returns:
+        Dictionary containing logging information if logging is enabled, None otherwise
+    """
+    if not generate_logs:
+        return None
+
+    logs_dir = os.path.join("tests", "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+
+    base_filename = f"test_ccc_gpu_{seed}_f{shape[0]}_n{shape[1]}_c{n_cpu_cores}"
+    log_files = {
+        "log": os.path.join(logs_dir, f"{base_filename}.log"),
+        "gpu_results": os.path.join(logs_dir, f"{base_filename}_gpu_results.log"),
+        "cpu_results": os.path.join(logs_dir, f"{base_filename}_cpu_results.log"),
+        "input_data": os.path.join(logs_dir, f"{base_filename}_input_data.log"),
+    }
+
+    print("Writing test output to:")
+    for name, path in log_files.items():
+        print(f"  - {name}: {path}")
+
+    return {"files": log_files, "log_file": open(log_files["log"], "w")}
+
+
+def log_test_info(log_file, shape: Tuple[int, int], seed: int) -> None:
+    """Log basic test information."""
+    print(
+        f"\nTesting with {shape[0]} features, {shape[1]} samples, seed {seed}",
+        file=log_file,
+    )
+
+
+def log_performance_metrics(
+    log_file, gpu_time: float, cpu_time: float, num_coefs: int
+) -> None:
+    """Log performance metrics."""
+    speedup = cpu_time / gpu_time
+    print(f"GPU time: {gpu_time:.4f} seconds", file=log_file)
+    print(f"CPU time: {cpu_time:.4f} seconds", file=log_file)
+    print(f"Speedup: {speedup:.2f}x", file=log_file)
+    print(f"Number of coefficients: {num_coefs}", file=log_file)
+
+
+def analyze_differences(
+    c1: np.ndarray,
+    c2: np.ndarray,
+    shape: Tuple[int, int],
+    log_file: Optional[Any] = None,
+) -> Tuple[int, float, float, int]:
+    """Analyze differences between GPU and CPU results.
+
+    Returns:
+        Tuple of (number of differences, max difference, percentage of differences, number of max differences)
+    """
+    not_close_mask = ~np.isclose(c1, c2, rtol=1e-3, atol=1e-3)
+    not_close_indices = np.where(not_close_mask)[0]
+    not_close = len(not_close_indices)
+
+    if log_file and not_close > 0:
+        log_differences(c1, c2, not_close_indices, shape, log_file)
+
+    num_coefs = len(c1)
+    not_close_percentage = not_close / num_coefs * 100
+    max_diff = np.max(np.abs(c1 - c2))
+    max_diff_count = np.sum(np.abs(c1 - c2) == max_diff) if not_close > 0 else 0
+
+    if log_file:
+        log_statistics(
+            not_close, max_diff, max_diff_count, not_close_percentage, log_file
+        )
+
+    return not_close, max_diff, not_close_percentage, max_diff_count
+
+
+def log_differences(
+    c1: np.ndarray,
+    c2: np.ndarray,
+    not_close_indices: np.ndarray,
+    shape: Tuple[int, int],
+    log_file: Any,
+) -> None:
+    """Log detailed information about differences between results."""
+    print("\nDifferences found:", file=log_file)
+    print(
+        "idx | GPU Result | CPU Result | Absolute Diff | Row i | Row j",
+        file=log_file,
+    )
+    print("-" * 65, file=log_file)
+
+    n_features = shape[0]
+    for diff_count, idx in enumerate(not_close_indices, 1):
+        i = int(
+            np.floor(
+                (2 * n_features - 1 - np.sqrt((2 * n_features - 1) ** 2 - 8 * idx)) / 2
+            )
+        )
+        j = idx - i * n_features + (i * (i + 1)) // 2
+
+        print(f"\n[Diff #{diff_count}]", file=log_file)
+        print(
+            f"{idx:3d} | {c1[idx]:10.6f} | {c2[idx]:10.6f} | {abs(c1[idx] - c2[idx]):12.6f} | {i:5d} | {j:5d}",
+            file=log_file,
+        )
+        print("-" * 65, file=log_file)
+
+
+def log_statistics(
+    not_close: int,
+    max_diff: float,
+    max_diff_count: int,
+    not_close_percentage: float,
+    log_file: Any,
+) -> None:
+    """Log statistical information about the differences."""
+    print(f"\nNumber of coefficients not close: {not_close}", file=log_file)
+    print(f"Max difference: {max_diff:.6f}", file=log_file)
+    print(
+        f"Number of coefficients with max difference: {max_diff_count}",
+        file=log_file,
+    )
+    print(
+        f"Percentage of coefficients not close: {not_close_percentage}%",
+        file=log_file,
+    )
 
 
 @pytest.mark.parametrize(
@@ -16,9 +156,9 @@ from utils import clean_gpu_memory, generate_categorical_data
     "shape, max_not_close_percentage, generate_logs",
     [
         # Simple cases
-        # ((10, 100), 0.0, False),
-        # ((20, 200), 0.0, False),
-        # ((30, 300), 0.0, False),
+        ((10, 100), 0.0, False),
+        ((20, 200), 0.0, False),
+        ((30, 300), 0.0, False),
         # ((100, 100), 0.0, True),
         # ((100, 1000), 0.0, True),
         # Large cases
@@ -44,7 +184,7 @@ from utils import clean_gpu_memory, generate_categorical_data
         # ((12000, 1000), 0.0, True),
     ],
 )
-@pytest.mark.parametrize("n_cpu_cores", [6, 12, 24])
+@pytest.mark.parametrize("n_cpu_cores", [24])
 @clean_gpu_memory
 def test_ccc_gpu_with_numerical_input(
     seed: int,
@@ -62,39 +202,16 @@ def test_ccc_gpu_with_numerical_input(
         shape: Tuple of (n_features, n_samples)
         n_cpu_cores: Number of CPU cores to use
         max_not_close_percentage: Maximum allowed percentage of coefficients that can differ
+        generate_logs: Whether to generate detailed log files
     """
-    # Check if we should generate logs
-    if generate_logs:
-        # Create logs directory if it doesn't exist
-        logs_dir = os.path.join("tests", "logs")
-        os.makedirs(logs_dir, exist_ok=True)
+    # Setup logging if enabled
+    logging_info = setup_logging(seed, shape, n_cpu_cores, generate_logs)
+    log_file = logging_info["log_file"] if logging_info else None
 
-        # Create base filename from test parameters
-        base_filename = f"test_ccc_gpu_{seed}_f{shape[0]}_n{shape[1]}_c{n_cpu_cores}"
-        log_filename = os.path.join(logs_dir, f"{base_filename}.log")
-        gpu_results_filename = os.path.join(
-            logs_dir, f"{base_filename}_gpu_results.log"
-        )
-        cpu_results_filename = os.path.join(
-            logs_dir, f"{base_filename}_cpu_results.log"
-        )
-        input_data_filename = os.path.join(logs_dir, f"{base_filename}_input_data.log")
-
-        print("Writing test output to:")
-        print(f"  - Log: {log_filename}")
-        print(f"  - GPU results: {gpu_results_filename}")
-        print(f"  - CPU results: {cpu_results_filename}")
-        print(f"  - Input data: {input_data_filename}")
-        log_file = open(log_filename, "w")
-    else:
-        log_file = None
-
+    # Generate test data
     np.random.seed(seed)
-    if generate_logs:
-        print(
-            f"\nTesting with {shape[0]} features, {shape[1]} samples, seed {seed}",
-            file=log_file,
-        )
+    if log_file:
+        log_test_info(log_file, shape, seed)
     df = np.random.rand(*shape)
 
     # Time GPU version
@@ -115,87 +232,20 @@ def test_ccc_gpu_with_numerical_input(
     end_cpu = time.time()
     cpu_time = end_cpu - start_cpu
 
-    # Calculate speedup
-    speedup = cpu_time / gpu_time
+    # Log performance metrics
+    if log_file:
+        log_performance_metrics(log_file, gpu_time, cpu_time, len(c1))
 
-    if generate_logs:
-        print(f"GPU time: {gpu_time:.4f} seconds", file=log_file)
-        print(f"CPU time: {cpu_time:.4f} seconds", file=log_file)
-        print(f"Speedup: {speedup:.2f}x", file=log_file)
-        num_coefs = len(c1)
-        print(f"Number of coefficients: {num_coefs}", file=log_file)
+    # Analyze differences
+    not_close, max_diff, not_close_percentage, _ = analyze_differences(
+        c1, c2, shape, log_file
+    )
 
-    # Find indices where results differ
-    not_close_mask = ~np.isclose(c1, c2, rtol=1e-3, atol=1e-3)
-    not_close_indices = np.where(not_close_mask)[0]
-    not_close = len(not_close_indices)
+    # Cleanup logging
+    if logging_info:
+        logging_info["log_file"].close()
 
-    if generate_logs and not_close > 0:
-        # Report differences
-        print("\nDifferences found:", file=log_file)
-        print(
-            "idx | GPU Result | CPU Result | Absolute Diff | Row i | Row j",
-            file=log_file,
-        )
-        print("-" * 65, file=log_file)
-
-        # Calculate which feature pairs the differences correspond to
-        n_features = shape[0]
-        for diff_count, idx in enumerate(
-            not_close_indices, 1
-        ):  # Show all differences in log
-            # Convert flat index to (i,j) pair for triangular matrix
-            i = int(
-                np.floor(
-                    (2 * n_features - 1 - np.sqrt((2 * n_features - 1) ** 2 - 8 * idx))
-                    / 2
-                )
-            )
-            j = idx - i * n_features + (i * (i + 1)) // 2
-
-            print(f"\n[Diff #{diff_count}]", file=log_file)
-            print(
-                f"{idx:3d} | {c1[idx]:10.6f} | {c2[idx]:10.6f} | {abs(c1[idx] - c2[idx]):12.6f} | {i:5d} | {j:5d}",
-                file=log_file,
-            )
-            # print(
-            #     f"Data for row {i}: {', '.join(f'{x:.8f}' for x in df[i])}",
-            #     file=log_file,
-            # )
-            # print(
-            #     f"Data for row {j}: {', '.join(f'{x:.8f}' for x in df[j])}",
-            #     file=log_file,
-            # )
-            print("-" * 65, file=log_file)
-
-    # Calculate statistics
-    num_coefs = len(c1)
-    not_close_percentage = not_close / num_coefs * 100
-
-    if generate_logs:
-        # Report statistics
-        max_diff = np.max(np.abs(c1 - c2))
-        max_diff_count = np.sum(np.abs(c1 - c2) == max_diff) if not_close > 0 else 0
-
-        print(f"\nNumber of coefficients not close: {not_close}", file=log_file)
-        print(f"Max difference: {max_diff:.6f}", file=log_file)
-        print(
-            f"Number of coefficients with max difference: {max_diff_count}",
-            file=log_file,
-        )
-        print(
-            f"Percentage of coefficients not close: {not_close_percentage}%",
-            file=log_file,
-        )
-
-        # Save full arrays to separate files
-        # np.savetxt(gpu_results_filename, c1, fmt="%.8f", delimiter=", ")
-        # np.savetxt(cpu_results_filename, c2, fmt="%.8f", delimiter=", ")
-        # np.savetxt(input_data_filename, df, fmt="%.8f", delimiter=", ")
-
-        # Close the log file
-        log_file.close()
-
+    # Assert results
     assert (
         not_close_percentage <= max_not_close_percentage
     ), f"Results differ for shape={shape}, seed={seed}"
