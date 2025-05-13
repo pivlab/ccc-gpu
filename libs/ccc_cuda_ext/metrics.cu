@@ -57,7 +57,7 @@ __device__ __host__ inline void unravel_index(uint64_t flat_idx, uint64_t num_co
  * @param[out] x Pointer to the calculated row coordinate in the symmetric matrix.
  * @param[out] y Pointer to the calculated column coordinate in the symmetric matrix.
  */
-__device__ __host__ inline void get_coords_from_index(int n_obj, int idx, uint32_t *x, uint32_t *y)
+__device__ __host__ inline void get_coords_from_index(uint32_t n_obj, uint64_t idx, uint64_t *x, uint64_t *y)
 {
     // Use int64_t to prevent overflow in intermediate calculations
     int64_t n_obj_64 = static_cast<int64_t>(n_obj);
@@ -75,16 +75,16 @@ __device__ __host__ inline void get_coords_from_index(int n_obj, int idx, uint32
     // Calculate x using double precision
     double x_float = (-b - sqrt(discriminant)) / 2.0;
 
-    // Floor and convert to uint32_t, with bounds checking
+    // Floor and convert to uint64_t, with bounds checking
     int64_t x_64 = static_cast<int64_t>(floor(x_float));
-    if (x_64 < 0 || x_64 > UINT32_MAX)
+    if (x_64 < 0 || x_64 > UINT64_MAX)
     {
         // Handle error condition - could throw error or set to max/min value
         *x = 0;
         *y = 0;
         return;
     }
-    *x = static_cast<uint32_t>(x_64);
+    *x = static_cast<uint64_t>(x_64);
 
     // Calculate y using 64-bit arithmetic to prevent overflow
     int64_t y_term1 = idx_64;
@@ -92,14 +92,14 @@ __device__ __host__ inline void get_coords_from_index(int n_obj, int idx, uint32
     int64_t y_64 = y_term1 + y_term2 + 1;
 
     // Bounds checking for y
-    if (y_64 < 0 || y_64 > UINT32_MAX)
+    if (y_64 < 0 || y_64 > UINT64_MAX)
     {
         // Handle error condition
         *x = 0;
         *y = 0;
         return;
     }
-    *y = static_cast<uint32_t>(y_64);
+    *y = static_cast<uint64_t>(y_64);
 }
 
 /**
@@ -263,7 +263,7 @@ __global__ void ari_kernel(T *parts,
     // obtain the corresponding parts and unique counts
     uint64_t feature_comp_flat_idx = ari_block_idx / n_part_mat_elems; // flat comparison pair index for two features
     uint64_t part_pair_flat_idx = ari_block_idx % n_part_mat_elems;    // flat comparison pair index for two partitions of one feature pair
-    uint32_t i, j;
+    uint64_t i, j;
 
     // Unravel the feature indices
     // For example, if n_features = 3, n_feature_comp = n_features * (n_features - 1) / 2 = 3
