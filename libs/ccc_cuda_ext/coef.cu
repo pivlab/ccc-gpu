@@ -18,7 +18,7 @@
 namespace py = pybind11;
 
 // Debug mode macro - set to 1 to enable debug output, 0 to disable
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 
 template <typename T>
 __global__ void findMaxAriKernel(const T *aris,
@@ -28,19 +28,19 @@ __global__ void findMaxAriKernel(const T *aris,
                                  const int reduction_range)
 {
     // Each block handles one feature comparison
-    const int comp_idx = blockIdx.x;
+    const uint64_t comp_idx = blockIdx.x;
 
     // Calculate start index for this feature comparison
-    const int reduce_start_idx = comp_idx * reduction_range;
+    const uint64_t reduce_start_idx = comp_idx * reduction_range;
 
     // Thread-local variables for reduction
-    int max_idx = -1;
+    uint64_t max_idx = UINT64_MAX;
     T max_val = -1.0f;
 
     // Have threads collaboratively process all partition pairs
-    for (int i = threadIdx.x; i < reduction_range; i += blockDim.x)
+    for (uint64_t i = threadIdx.x; i < reduction_range; i += blockDim.x)
     {
-        int idx = reduce_start_idx + i;
+        uint64_t idx = reduce_start_idx + i;
         T val = aris[idx];
 
         if (val > max_val)
@@ -52,13 +52,13 @@ __global__ void findMaxAriKernel(const T *aris,
 
     // Shared memory for block reduction
     __shared__ typename cub::BlockReduce<T, 128>::TempStorage temp_storage_val;
-    __shared__ typename cub::BlockReduce<int, 128>::TempStorage temp_storage_idx;
+    __shared__ typename cub::BlockReduce<uint64_t, 128>::TempStorage temp_storage_idx;
 
     // Pair-wise reduction within the block
     struct
     {
         T val;
-        int idx;
+        uint64_t idx;
     } in, out;
 
     in.val = max_val;
@@ -71,15 +71,15 @@ __global__ void findMaxAriKernel(const T *aris,
     // (using __syncthreads to ensure all threads have computed max_block_val)
     __syncthreads();
 
-    int selected_idx = -1;
+    uint64_t selected_idx = UINT64_MAX;
     if (in.val == max_block_val)
     {
         selected_idx = in.idx;
     }
 
     // Get the smallest valid index of the max value
-    int min_idx = cub::BlockReduce<int, 128>(temp_storage_idx).Reduce(selected_idx, [](int a, int b)
-                                                                      { return (a == -1) ? b : ((b == -1) ? a : min(a, b)); });
+    uint64_t min_idx = cub::BlockReduce<uint64_t, 128>(temp_storage_idx).Reduce(selected_idx, [](uint64_t a, uint64_t b)
+                                                                                { return (a == UINT64_MAX) ? b : ((b == UINT64_MAX) ? a : min(a, b)); });
 
     // Thread 0 writes the results
     if (threadIdx.x == 0)
@@ -188,7 +188,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 #if DEBUG_MODE
     std::cout << "  Memory after allocation: ";
     size_t after_mem = print_cuda_memory_info();
-    std::cout << "  Memory used: " << (before_mem - after_mem) << " bytes" << std::endl;
+    std::cout << "  Memory used: " << (before_mem - after_mem) / 1024 / 1024 << " MB" << std::endl;
 #endif
 
     // Process ARIs in batches
@@ -225,7 +225,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 #endif
 
             // Launch kernel to find maximum values on device for this batch
-            findMaxAriKernel<<<numBlocks, threadsPerBlock>>>(
+            findMaxAriKernel<R><<<numBlocks, threadsPerBlock>>>(
                 thrust::raw_pointer_cast(d_aris->data()),
                 thrust::raw_pointer_cast(d_cm_values.data()),
                 n_partitions,
@@ -262,7 +262,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 #if DEBUG_MODE
             std::cout << "  Memory after batch: ";
             size_t after_mem = print_cuda_memory_info();
-            std::cout << "  Memory used in batch: " << (before_mem - after_mem) << " bytes" << std::endl;
+            std::cout << "  Memory used in batch: " << (before_mem - after_mem) / 1024 / 1024 << " MB" << std::endl;
 #endif
         }
         catch (const std::exception &e)
