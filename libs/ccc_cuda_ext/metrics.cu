@@ -36,9 +36,8 @@ namespace py = pybind11;
  * @param[out] row Pointer to the row index
  * @param[out] col Pointer to the column index
  */
-__device__ __host__ inline void unravel_index(int flat_idx, int num_cols, int *row, int *col)
+__device__ __host__ inline void unravel_index(uint64_t flat_idx, uint64_t num_cols, uint64_t *row, uint64_t *col)
 {
-    // change int to uint32_t
     *row = flat_idx / num_cols; // Compute row index
     *col = flat_idx % num_cols; // Compute column index
 }
@@ -244,7 +243,7 @@ __global__ void ari_kernel(T *parts,
                            const int n_elems_per_feat,
                            const int n_part_mat_elems,
                            const int k,
-                           const uint32_t batch_start,
+                           const uint64_t batch_start,
                            float *out)
 {
     /*
@@ -260,10 +259,10 @@ __global__ void ari_kernel(T *parts,
      * Step 1: Each thead, unravel flat indices and load the corresponding data into shared memory
      */
     // each block is responsible for one ARI computation
-    const uint32_t ari_block_idx = blockIdx.x + batch_start;
+    const uint64_t ari_block_idx = blockIdx.x + batch_start;
     // obtain the corresponding parts and unique counts
-    int feature_comp_flat_idx = ari_block_idx / n_part_mat_elems; // flat comparison pair index for two features
-    int part_pair_flat_idx = ari_block_idx % n_part_mat_elems;    // flat comparison pair index for two partitions of one feature pair
+    uint64_t feature_comp_flat_idx = ari_block_idx / n_part_mat_elems; // flat comparison pair index for two features
+    uint64_t part_pair_flat_idx = ari_block_idx % n_part_mat_elems;    // flat comparison pair index for two partitions of one feature pair
     uint32_t i, j;
 
     // Unravel the feature indices
@@ -282,7 +281,7 @@ __global__ void ari_kernel(T *parts,
     // i.e., the pairs being compared are part0-part1, part0-part2, part1-part0, part1-part1, part1-part2, part2-part0, part2-part1, part2-part2
     // The range of the flattened index is [0, n_part_mat_elems - 1] = [0, 8]
     // Given the flat index, we compute the corresponding partition indices
-    int m, n;
+    uint64_t m, n;
     unravel_index(part_pair_flat_idx, n_parts, &m, &n);
     // Make pointers to select the partitions from `parts` and unique counts for the feature pair
     // Todo: Use int4*?
