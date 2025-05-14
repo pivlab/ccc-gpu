@@ -216,11 +216,12 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             const auto d_aris = ari_core_device<T, R>(
                 parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
 
+
             // Configure kernel launch parameters for this batch
             const int threadsPerBlock = 128;
             const int numBlocks = current_batch_size / (n_partitions * n_partitions);
 #if DEBUG_MODE
-            std::cout << "  Launching kernel with " << numBlocks << " blocks, "
+            std::cout << "  Launching reduction kernel with " << numBlocks << " blocks, "
                       << threadsPerBlock << " threads per block" << std::endl;
 #endif
 

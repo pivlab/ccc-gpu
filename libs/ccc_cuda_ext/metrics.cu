@@ -236,13 +236,13 @@ __device__ void get_pair_confusion_matrix(
 // TODO: Parameterize the int type to allow using narrower int types for memory efficiency
 template <typename T>
 __global__ void ari_kernel(T *parts,
-                           const int n_aris,
-                           const int n_features,
-                           const int n_parts,
-                           const int n_objs,
-                           const int n_elems_per_feat,
-                           const int n_part_mat_elems,
-                           const int k,
+                           const uint64_t n_aris,
+                           const uint64_t n_features,
+                           const uint64_t n_parts,
+                           const uint64_t n_objs,
+                           const uint64_t n_elems_per_feat,
+                           const uint64_t n_part_mat_elems,
+                           const uint32_t k,
                            const uint64_t batch_start,
                            float *out)
 {
@@ -359,9 +359,9 @@ T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
  */
 template <typename T, typename R>
 auto ari_core_device(const T *parts,
-                     const size_t n_features,
-                     const size_t n_parts,
-                     const size_t n_objs,
+                     const uint64_t n_features,
+                     const uint64_t n_parts,
+                     const uint64_t n_objs,
                      const uint64_t batch_start,
                      const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<R>>
 {
@@ -395,18 +395,19 @@ auto ari_core_device(const T *parts,
      * Memory Allocation
      */
     // Track memory before allocations
-    // std::cout << "\nMemory before device allocations: ";
-    // size_t before_device_mem = print_cuda_memory_info();
+    std::cout << "\nMemory before device allocations: ";
+    size_t before_device_mem = print_cuda_memory_info();
 
     // Create device vectors using unique_ptr
     const auto n_elems = n_features * n_parts * n_objs;
+    // Todo: do not use smart pointers but vectors directly
     auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(parts, parts + n_elems);
     auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(actual_batch_size, 0.0f);
 
     // Track memory after allocations
-    // std::cout << "Memory after device allocations: ";
-    // size_t after_device_mem = print_cuda_memory_info();
-    // std::cout << "  Device memory used: " << (before_device_mem - after_device_mem) << " bytes" << std::endl;
+    std::cout << "Memory after device allocations: ";
+    size_t after_device_mem = print_cuda_memory_info();
+    std::cout << "  Device memory used: " << (before_device_mem - after_device_mem) / 1024 / 1024 << " MB" << std::endl;
 
     // Define shared memory size for each block
     // Pre-compute the max value of the partitions
@@ -433,9 +434,10 @@ auto ari_core_device(const T *parts,
     const auto block_size = 128;
 
     // Track memory before kernel launch
-    // std::cout << "Memory before kernel launch: ";
-    // before_device_mem = print_cuda_memory_info();
+    std::cout << "Memory before kernel launch: ";
+    before_device_mem = print_cuda_memory_info();
 
+    // throw std::runtime_error("test");
     // Launch the kernel
     ari_kernel<<<grid_size, block_size, s_mem_size>>>(
         thrust::raw_pointer_cast(d_parts->data()),
@@ -450,11 +452,18 @@ auto ari_core_device(const T *parts,
         thrust::raw_pointer_cast(d_out->data()));
 
     // Track memory after kernel launch
-    // std::cout << "Memory after kernel launch: ";
-    // after_device_mem = print_cuda_memory_info();
-    // std::cout << "  Device memory used in kernel: " << (before_device_mem - after_device_mem) << " bytes" << std::endl;
+    std::cout << "Memory after kernel launch: ";
+    after_device_mem = print_cuda_memory_info();
+    std::cout << "  Device memory used in kernel: " << (before_device_mem - after_device_mem)  << " bytes" << std::endl;
 
     // Return the device vector
+    // d_parts.clear();
+    // thrust::device_vector<T>().swap(d_parts);
+    // d_out.clear();
+    // thrust::device_vector<R>().swap(d_out);
+    // d_parts.reset();
+    // d_out.reset();
+    std::cout << "Debug: d_out->size() = " << d_out->size() << std::endl;
     return d_out;
 }
 
@@ -594,8 +603,8 @@ template auto ari_core_host<int>(
 // Used in the coef API
 template auto ari_core_device<int8_t, float>(
     const py::array_t<int8_t, py::array::c_style> &parts,
-    const size_t n_features,
-    const size_t n_parts,
-    const size_t n_objs,
+    const uint64_t n_features,
+    const uint64_t n_parts,
+    const uint64_t n_objs,
     const uint64_t batch_start,
     const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<float>>;
