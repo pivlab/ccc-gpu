@@ -379,8 +379,6 @@ auto ari_core_device(const T *parts,
     /*
      * Pre-computation
      */
-    using parts_dtype = T;
-    using out_dtype = R;
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
@@ -401,8 +399,8 @@ auto ari_core_device(const T *parts,
     // Create device vectors using unique_ptr
     const auto n_elems = n_features * n_parts * n_objs;
     // Todo: do not use smart pointers but vectors directly
-    auto d_parts = std::make_unique<thrust::device_vector<parts_dtype>>(parts, parts + n_elems);
-    auto d_out = std::make_unique<thrust::device_vector<out_dtype>>(actual_batch_size, 0.0f);
+    auto d_parts = std::make_unique<thrust::device_vector<T>>(parts, parts + n_elems);
+    auto d_out = std::make_unique<thrust::device_vector<R>>(actual_batch_size, 0.0f);
 
     // Track memory after allocations
     std::cout << "Memory after device allocations: ";
@@ -411,13 +409,13 @@ auto ari_core_device(const T *parts,
 
     // Define shared memory size for each block
     // Pre-compute the max value of the partitions
-    const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<parts_dtype>()) + 1;
-    const auto sz_parts_dtype = sizeof(parts_dtype);
+    const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<T>()) + 1;
+    const auto sz_T = sizeof(T);
     // Compute shared memory size
     auto s_mem_size = 0;
-    s_mem_size += k * k * sz_parts_dtype; // For contingency matrix
-    s_mem_size += 2 * k * sz_parts_dtype; // For the internal sum arrays
-    s_mem_size += 4 * sz_parts_dtype;     // For the pair confusion matrix
+    s_mem_size += k * k * sz_T; // For contingency matrix
+    s_mem_size += 2 * k * sz_T; // For the internal sum arrays
+    s_mem_size += 4 * sz_T;     // For the pair confusion matrix
 
     // Check if shared memory size exceeds device limits
     auto [is_valid, message] = check_shared_memory_size(s_mem_size);
@@ -504,8 +502,7 @@ auto ari_core_host(const T *parts,
     /*
      * Pre-computation
      */
-    using parts_dtype = T;
-    using out_dtype = float;
+    using R = float;
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
@@ -520,17 +517,17 @@ auto ari_core_host(const T *parts,
      * Memory Allocation
      */
     // Allocate host memory
-    thrust::host_vector<out_dtype> h_out(actual_batch_size);
-    // thrust::host_vector<parts_dtype> h_parts_pairs(n_aris * 2 * n_objs);
+    thrust::host_vector<R> h_out(actual_batch_size);
+    // thrust::host_vector<T> h_parts_pairs(n_aris * 2 * n_objs);
 
     // Call the device function ari_core_device
-    auto d_out = ari_core_device<parts_dtype, out_dtype>(parts, n_features, n_parts, n_objs, batch_start, actual_batch_size);
+    auto d_out = ari_core_device<T, R>(parts, n_features, n_parts, n_objs, batch_start, actual_batch_size);
 
     // Copy data back to host using -> operator since d_out is a unique_ptr
     thrust::copy(d_out->begin(), d_out->end(), h_out.begin());
 
     // Copy data to std::vector
-    std::vector<out_dtype> res(actual_batch_size);
+    std::vector<R> res(actual_batch_size);
     thrust::copy(h_out.begin(), h_out.end(), res.begin());
 
     // Return the ARI values
