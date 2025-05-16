@@ -182,7 +182,7 @@ def log_statistics(
         # ((4000, 1000), 0.0, True),
         # ((8000, 1000), 0.0, True),
         # ((12000, 1000), 0.0, True),
-        ((50000, 1000), 0.0, True),
+        ((56200, 755), 0.0, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
