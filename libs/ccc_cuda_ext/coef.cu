@@ -2,6 +2,7 @@
 #include <cub/cub.cuh>
 #include <thrust/device_vector.h>
 
+#include <execution>
 #include <iostream>
 #include <iomanip>
 #include <limits>
@@ -157,7 +158,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     size_t before_host_mem = 0;
 #endif
 
-    std::vector<R> cm_values(n_feature_comp, 0.0f);
+    std::vector<R> cm_values(n_feature_comp, -1.0f);
     std::vector<R> cm_pvalues;
 
     if (pvalue_n_perms.has_value())
@@ -215,7 +216,6 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             // Compute the ARIs for this batch
             const auto d_aris = ari_core_device<T, R>(
                 parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
-
 
             // Configure kernel launch parameters for this batch
             const int threadsPerBlock = 128;
@@ -275,6 +275,12 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             throw; // Re-throw to maintain error propagation
         }
     }
+
+    // Replace -1.0f with NaN using parallel transform
+    std::transform(std::execution::par,
+                   cm_values.begin(), cm_values.end(), cm_values.begin(),
+                   [](const R &val)
+                   { return val == -1.0f ? std::numeric_limits<R>::quiet_NaN() : val; });
 
     // Allocate py::arrays for the results
     const auto cm_values_py = py::array_t<R>(cm_values.size(), cm_values.data());

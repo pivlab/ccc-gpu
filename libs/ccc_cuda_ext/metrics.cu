@@ -127,12 +127,16 @@ __device__ void get_contingency_matrix(T *part0, T *part1, int n_objs, int *shar
 #pragma unroll
     for (int i = tid; i < n_objs; i += n_block_threads)
     {
+        // assert(i < n_objs);
         // Directly load row/col info from global memory into registers, no need to load into shared memory
-        const int row = part0[i];
-        const int col = part1[i];
+        const T row = part0[i];
+        const T col = part1[i];
 
         // Add bounds checking
         // assert(row >= 0 && row < k && col >= 0 && col < k);
+        // if (!(row >= 0 && row < k && col >= 0 && col < k)) {
+        //     printf("Invalid partition indices: row: %d, col: %d\n", row, col);
+        // }
         // OPT: can we use shared memory to avoid atomicAdd?
         atomicAdd(&shared_cont_mat[row * k + col], 1);
     }
@@ -292,6 +296,14 @@ __global__ void ari_kernel(T *parts,
     // Check on categorical partition marker, if the first object of either partition is -1 (actually all the objects are -1),
     // then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of -1.
     if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
+    {
+        return;
+    }
+
+    // Check on singletons.  -2 is used when singletons have been detected (partitions with one cluster), usually because of problems with the
+    // input data (it has all the same values, for example).
+    // Then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of -1.
+    if (t_data_part0[0] == -2 || t_data_part1[0] == -2)
     {
         return;
     }
