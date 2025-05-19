@@ -1,0 +1,164 @@
+Input Notebook:  10_compute_correlations/05_gtex_v8/all/05-01-gtex-var_pc_log2-ccc-gpu.ipynb
+Output Notebook: 10_compute_correlations/05_gtex_v8/all/05-01-gtex-var_pc_log2-ccc-gpu.run.ipynb
+Executing notebook with kernel: python3
+Executing Cell 1---------------------------------------
+Ending Cell 1------------------------------------------
+Executing Cell 2---------------------------------------
+Ending Cell 2------------------------------------------
+Executing Cell 3---------------------------------------
+Ending Cell 3------------------------------------------
+Executing Cell 4---------------------------------------
+Ending Cell 4------------------------------------------
+Executing Cell 5---------------------------------------
+Ending Cell 5------------------------------------------
+Executing Cell 6---------------------------------------
+Ending Cell 6------------------------------------------
+Executing Cell 7---------------------------------------
+Ending Cell 7------------------------------------------
+Executing Cell 8---------------------------------------
+Ending Cell 8------------------------------------------
+Executing Cell 9---------------------------------------
+'ccc_gpu'
+Ending Cell 9------------------------------------------
+Executing Cell 10--------------------------------------
+Ending Cell 10-----------------------------------------
+Executing Cell 11--------------------------------------
+PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all')
+Ending Cell 11-----------------------------------------
+Executing Cell 12--------------------------------------
+PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all')
+Ending Cell 12-----------------------------------------
+Executing Cell 13--------------------------------------
+Ending Cell 13-----------------------------------------
+Executing Cell 14--------------------------------------
+Ending Cell 14-----------------------------------------
+Executing Cell 15--------------------------------------
+1
+[PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_whole_blood-var_pc_log2.pkl')]
+Ending Cell 15-----------------------------------------
+Executing Cell 16--------------------------------------
+Ending Cell 16-----------------------------------------
+Executing Cell 17--------------------------------------
+Ending Cell 17-----------------------------------------
+Executing Cell 18--------------------------------------
+PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_whole_blood-var_pc_log2.pkl')
+Ending Cell 18-----------------------------------------
+Executing Cell 19--------------------------------------
+(56200, 755)
+Ending Cell 19-----------------------------------------
+Executing Cell 20--------------------------------------
+                    GTEX-111YS-0006-SM-5NQBE  GTEX-1122O-0005-SM-5O99J  \
+gene_ens_id
+ENSG00000169429.10                    0.5623                    0.8067
+ENSG00000135245.9                     0.6529                    1.3850
+ENSG00000163631.16                    1.8480                    0.2503
+ENSG00000277632.1                     1.6960                    1.3450
+ENSG00000239839.6                   185.2000                    1.7790
+
+                    GTEX-1128S-0005-SM-5P9HI  GTEX-113IC-0006-SM-5NQ9C  \
+gene_ens_id
+ENSG00000169429.10                 116.90000                     4.047
+ENSG00000135245.9                  199.20000                     2.266
+ENSG00000163631.16                   0.08429                     1.251
+ENSG00000277632.1                  235.10000                    11.770
+ENSG00000239839.6                  694.30000                    23.840
+
+                    GTEX-113JC-0006-SM-5O997  GTEX-117XS-0005-SM-5PNU6  \
+gene_ens_id
+ENSG00000169429.10                     211.0                    58.110
+ENSG00000135245.9                      116.7                   192.300
+ENSG00000163631.16                    1348.0                     9.971
+ENSG00000277632.1                      141.7                   199.100
+ENSG00000239839.6                      297.3                  3122.000
+
+                    GTEX-117YW-0005-SM-5NQ8Z  GTEX-1192W-0005-SM-5NQBQ  \
+gene_ens_id
+ENSG00000169429.10                     68.38                    249.50
+ENSG00000135245.9                     161.50                    263.50
+ENSG00000163631.16                    101.30                     95.09
+ENSG00000277632.1                     525.50                    659.90
+ENSG00000239839.6                    2521.00                   1504.00
+
+                    GTEX-1192X-0005-SM-5NQC3  GTEX-11DXW-0006-SM-5NQ7Y  ...  \
+gene_ens_id                                                             ...
+ENSG00000169429.10                     5.095                     295.9  ...
+ENSG00000135245.9                     23.540                     251.9  ...
+ENSG00000163631.16                     1.264                     119.3  ...
+ENSG00000277632.1                     10.910                     209.3  ...
+ENSG00000239839.6                     80.060                     652.0  ...
+
+                    GTEX-ZVE2-0006-SM-51MRW  GTEX-ZVP2-0005-SM-51MRK  \
+gene_ens_id
+ENSG00000169429.10                   39.960                   0.1393
+ENSG00000135245.9                   114.300                   1.8330
+ENSG00000163631.16                    2.092                   2.1100
+ENSG00000277632.1                    61.340                   2.2500
+ENSG00000239839.6                  1010.000                 253.8000
+
+                    GTEX-ZVT2-0005-SM-57WBW  GTEX-ZVT3-0006-SM-51MT9  \
+gene_ens_id
+ENSG00000169429.10                  0.22380                    245.0
+ENSG00000135245.9                   0.41150                    149.0
+ENSG00000163631.16                  0.03588                    171.8
+ENSG00000277632.1                   0.72310                    261.2
+ENSG00000239839.6                  94.52000                   6083.0
+
+                    GTEX-ZVT4-0006-SM-57WB8  GTEX-ZVTK-0006-SM-57WBK  \
+gene_ens_id
+ENSG00000169429.10                    513.6                  1626.00
+ENSG00000135245.9                     935.3                   233.60
+ENSG00000163631.16                    107.1                    71.25
+ENSG00000277632.1                     400.0                   288.50
+ENSG00000239839.6                    2768.0                    52.06
+
+                    GTEX-ZVZP-0006-SM-51MSW  GTEX-ZVZQ-0006-SM-51MR8  \
+gene_ens_id
+ENSG00000169429.10                   0.5633                   515.70
+ENSG00000135245.9                    0.8882                   134.00
+ENSG00000163631.16                   1.7720                   309.60
+ENSG00000277632.1                    2.6960                   287.50
+ENSG00000239839.6                   34.5700                    17.36
+
+                    GTEX-ZXES-0005-SM-57WCB  GTEX-ZXG5-0005-SM-57WCN
+gene_ens_id
+ENSG00000169429.10                  1.19400                  1163.00
+ENSG00000135245.9                   1.12000                   295.70
+ENSG00000163631.16                  0.07361                    17.75
+ENSG00000277632.1                   3.32300                   618.90
+ENSG00000239839.6                 352.30000                    63.85
+
+[5 rows x 755 columns]
+Ending Cell 20-----------------------------------------
+Executing Cell 21--------------------------------------
+Ending Cell 21-----------------------------------------
+Executing Cell 22--------------------------------------
+Ending Cell 22-----------------------------------------
+Executing Cell 23--------------------------------------
+
+  0%|                                                                         | 0/1 [00:00<?, ?it/s]
+
+gtex_v8_data_whole_blood-var_pc_log2:   0%|                                   | 0/1 [00:00<?, ?it/s]
+Kernel died while waiting for execute reply.
+Ending Cell 23-----------------------------------------
+Traceback (most recent call last):
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/papermill/cli.py", line 235, in papermill
+    execute_notebook(
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/papermill/execute.py", line 116, in execute_notebook
+    nb = papermill_engines.execute_notebook_with_engine(
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/papermill/engines.py", line 48, in execute_notebook_with_engine
+    return self.get_engine(engine_name).execute_notebook(nb, kernel_name, **kwargs)
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/papermill/engines.py", line 370, in execute_notebook
+    cls.execute_managed_notebook(nb_man, kernel_name, log_output=log_output, **kwargs)
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/papermill/engines.py", line 442, in execute_managed_notebook
+    return PapermillNotebookClient(nb_man, **final_kwargs).execute()
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/papermill/clientwrap.py", line 45, in execute
+    self.papermill_execute_cells()
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/papermill/clientwrap.py", line 72, in papermill_execute_cells
+    self.execute_cell(cell, index)
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/jupyter_core/utils/__init__.py", line 165, in wrapped
+    return loop.run_until_complete(inner)
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/haoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/nbclient/client.py", line 1009, in async_execute_cell
+    raise DeadKernelError("Kernel died") from None
+nbclient.exceptions.DeadKernelError: Kernel died

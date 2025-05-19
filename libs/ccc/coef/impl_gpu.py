@@ -863,6 +863,25 @@ def ccc(
             # update the partitions for each feature-k pair
             parts[f_idxs, c_idxs] = ps
 
+    # Debug export parts
+    # print("Exporting parts for debugging")
+    # # Write the array to disk
+    # with open('parts.txt', 'w') as outfile:
+    #     # I'm writing a header here just for the sake of readability
+    #     # Any line starting with "#" will be ignored by numpy.loadtxt
+    #     outfile.write('# Array shape: {0}\n'.format(parts.shape))
+
+    #     # Iterating through a ndimensional array produces slices along
+    #     # the last axis. This is equivalent to data[i,:,:] in this case
+    #     for data_slice in parts:
+    #         # The formatting string indicates that I'm writing out
+    #         # the values in left-justified columns 7 characters in width
+    #         # with 2 decimal places.
+    #         np.savetxt(outfile, data_slice, fmt='%-2.0f')
+
+    #         # Writing out a break to indicate different slices...
+    #         outfile.write('# New slice\n')
+
     # Compute the CCC coefficient for all feature pairs
     # Handle cases where the data has categorical features
     if X_has_cat_features:
