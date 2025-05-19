@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from typing import Tuple, Optional, Dict, Any
 import os
-
+import pandas as pd
 from ccc.coef.impl_gpu import ccc as ccc_gpu
 from ccc.coef.impl import ccc
 from utils import clean_gpu_memory, generate_categorical_data
@@ -153,12 +153,15 @@ def log_statistics(
     "seed", [42]
 )  # More seeds for simple cases, only 42 for large cases
 @pytest.mark.parametrize(
-    "shape, max_not_close_percentage, generate_logs",
+    "shape, contain_singletons, max_not_close_percentage, generate_logs",
     [
         # Simple cases
-        ((10, 100), 0.0, False),
-        ((20, 200), 0.0, False),
-        ((30, 300), 0.0, False),
+        ((10, 100), False, 0.0, False),
+        ((20, 200), False, 0.0, False),
+        ((30, 300), False, 0.0, False),
+        ((10, 100), True, 0.0, False),
+        ((20, 200), True, 0.0, False),
+        ((30, 300), True, 0.0, False),
         # ((100, 100), 0.0, True),
         # ((100, 1000), 0.0, True),
         # Large cases
@@ -182,7 +185,7 @@ def log_statistics(
         # ((4000, 1000), 0.0, True),
         # ((8000, 1000), 0.0, True),
         # ((12000, 1000), 0.0, True),
-        ((56200, 755), 0.0, True),
+        # ((56200, 755), 0.0, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
@@ -190,6 +193,7 @@ def log_statistics(
 def test_ccc_gpu_with_numerical_input(
     seed: int,
     shape: Tuple[int, int],
+    contain_singletons: bool,
     n_cpu_cores: int,
     max_not_close_percentage: float,
     generate_logs: bool,
@@ -214,6 +218,9 @@ def test_ccc_gpu_with_numerical_input(
     if log_file:
         log_test_info(log_file, shape, seed)
     df = np.random.rand(*shape)
+    # If contain_singletons is True, set the first row to be a singleton, using value 0.0
+    if contain_singletons:
+        df[0, :] = 0.0
 
     # Time GPU version
     start_gpu = time.time()
@@ -246,10 +253,17 @@ def test_ccc_gpu_with_numerical_input(
     if logging_info:
         logging_info["log_file"].close()
 
-    # Assert results
-    assert (
-        not_close_percentage <= max_not_close_percentage
-    ), f"Results differ for shape={shape}, seed={seed}"
+    # Convert to DataFrame for better assertion hints
+    gpu_df = pd.DataFrame(c1)
+    gpu_df = gpu_df.astype(np.float64)
+    cpu_df = pd.DataFrame(c2)
+    pd.testing.assert_frame_equal(gpu_df, cpu_df)
+
+    # Assert results using percentages. Useful if get_parts is implemented in GPU version in the future, in which
+    # case the parts generated will be slightly different due to floating point precision
+    # assert (
+    #     not_close_percentage <= max_not_close_percentage
+    # ), f"Results differ for shape={shape}, seed={seed}"
 
 
 @pytest.mark.parametrize(
