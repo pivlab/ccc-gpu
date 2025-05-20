@@ -37,6 +37,7 @@ __global__ void findMaxAriKernel(const T *aris,
     // Thread-local variables for reduction
     uint64_t max_idx = UINT64_MAX;
     T max_val = -1.0f;
+    bool has_nan = false;
 
     // Have threads collaboratively process all partition pairs
     for (uint64_t i = threadIdx.x; i < reduction_range; i += blockDim.x)
@@ -44,11 +45,25 @@ __global__ void findMaxAriKernel(const T *aris,
         uint64_t idx = reduce_start_idx + i;
         T val = aris[idx];
 
+        // Check for NaN
+        if (isnan(val))
+        {
+            has_nan = true;
+            continue;
+        }
+
         if (val > max_val)
         {
             max_val = val;
             max_idx = i;
         }
+    }
+
+    // If thread 0 found NaN, set output to NaN and return
+    if (threadIdx.x == 0 && has_nan)
+    {
+        cm_values[comp_idx] = NAN;
+        return;
     }
 
     // Shared memory for block reduction
@@ -69,7 +84,6 @@ __global__ void findMaxAriKernel(const T *aris,
     T max_block_val = cub::BlockReduce<T, 128>(temp_storage_val).Reduce(in.val, cub::Max());
 
     // Only threads with the max value participate in index selection
-    // (using __syncthreads to ensure all threads have computed max_block_val)
     __syncthreads();
 
     uint64_t selected_idx = UINT64_MAX;
@@ -85,6 +99,7 @@ __global__ void findMaxAriKernel(const T *aris,
     // Thread 0 writes the results
     if (threadIdx.x == 0)
     {
+
         cm_values[comp_idx] = max_block_val > 0.0f ? max_block_val : 0.0f;
 
         // Unravel the index to get partition indices
@@ -158,7 +173,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     size_t before_host_mem = 0;
 #endif
 
-    std::vector<R> cm_values(n_feature_comp, -1.0f);
+    std::vector<R> cm_values(n_feature_comp, std::numeric_limits<R>::quiet_NaN());
     std::vector<R> cm_pvalues;
 
     if (pvalue_n_perms.has_value())
@@ -183,7 +198,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     size_t before_mem = 0;
 #endif
 
-    thrust::device_vector<R> d_cm_values(max_batch_feature_comp);
+    thrust::device_vector<R> d_cm_values(max_batch_feature_comp, std::numeric_limits<R>::quiet_NaN());
     std::vector<R> batch_cm_values(max_batch_feature_comp);
 
 #if DEBUG_MODE
@@ -256,7 +271,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                 const uint64_t global_idx = batch_start / (n_partitions * n_partitions) + i;
                 if (global_idx < n_feature_comp)
                 {
-                    cm_values[global_idx] = std::max(cm_values[global_idx], batch_cm_values[i]);
+                    cm_values[global_idx] = batch_cm_values[i];
                 }
             }
 
@@ -275,12 +290,6 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             throw; // Re-throw to maintain error propagation
         }
     }
-
-    // Replace -1.0f with NaN using parallel transform
-    std::transform(std::execution::par,
-                   cm_values.begin(), cm_values.end(), cm_values.begin(),
-                   [](const R &val)
-                   { return val == -1.0f ? std::numeric_limits<R>::quiet_NaN() : val; });
 
     // Allocate py::arrays for the results
     const auto cm_values_py = py::array_t<R>(cm_values.size(), cm_values.data());

@@ -32,8 +32,8 @@ Debug Info:
   batch_n_aris: 1012297500
 
 Allocating host memory...
-  Memory before allocation: Host Memory Usage: 25637 MB (RSS), 62892 MB (Virtual)
-  Memory after allocation: Host Memory Usage: 31661 MB (RSS), 68916 MB (Virtual)
+  Memory before allocation: Host Memory Usage: 25790 MB (RSS), 62991 MB (Virtual)
+  Memory after allocation: Host Memory Usage: 31814 MB (RSS), 69016 MB (Virtual)
   Memory used: 6024 MB
 
 Allocating device memory...
@@ -2200,4 +2200,4 @@ Debug: d_out->size() = 365058900
   Launching reduction kernel with 4506900 blocks, 128 threads per block
   Memory after batch: Free memory: 21.480652 GB, Total memory: 23.502319 GB
   Memory used in batch: 1394 MB
-625.5872747898102
+638.0279824733734

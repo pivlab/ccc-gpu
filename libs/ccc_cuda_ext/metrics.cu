@@ -412,7 +412,7 @@ auto ari_core_device(const T *parts,
     const auto n_elems = n_features * n_parts * n_objs;
     // Todo: do not use smart pointers but vectors directly
     auto d_parts = std::make_unique<thrust::device_vector<T>>(parts, parts + n_elems);
-    auto d_out = std::make_unique<thrust::device_vector<R>>(actual_batch_size, 0.0f);
+    auto d_out = std::make_unique<thrust::device_vector<R>>(actual_batch_size, std::numeric_limits<R>::quiet_NaN());
 
     // Track memory after allocations
     std::cout << "Memory after device allocations: ";
