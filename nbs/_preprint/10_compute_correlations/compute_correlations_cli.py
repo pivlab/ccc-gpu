@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Callable
 from datetime import datetime
 import sys
-
-from ccc.corr import ccc_gpu
+import argparse
+from ccc.corr import ccc_gpu, pearson, spearman
 
 # Get the directory where this script is located
 SCRIPT_DIR = Path(__file__).parent.absolute()
@@ -21,7 +21,7 @@ LOG_DIR = SCRIPT_DIR / "logs"  # Directory for log files
 
 
 # Configure logging
-def setup_logging(log_dir: Path = None) -> None:
+def setup_logging(log_dir: Path = None, method_name: str = None) -> None:
     """Configure logging to write to both file and stdout.
 
     Args:
@@ -51,13 +51,42 @@ def setup_logging(log_dir: Path = None) -> None:
     if log_dir:
         log_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file = log_dir / "05-01-gtex-var_pc_log2-ccc-gpu.root.log"
+        log_file = log_dir / f"gtex-var_pc_log2-{method_name}.root.log"
 
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(file_formatter)
         root_logger.addHandler(file_handler)
 
         logging.info(f"Log file created at: {log_file}")
+
+
+def get_correlation_method(method_name: str) -> Callable:
+    """Get the correlation method function based on the method name.
+
+    Args:
+        method_name: Name of the correlation method ('ccc_gpu', 'pearson', or 'spearman')
+
+    Returns:
+        Callable: The correlation method function
+
+    Raises:
+        ValueError: If method_name is not one of the supported methods
+    """
+    method_map = {
+        "ccc_gpu": lambda x: ccc_gpu(x, n_jobs=N_CPU_CORES),
+        "pearson": pearson,
+        "spearman": spearman,
+    }
+
+    if method_name not in method_map:
+        raise ValueError(
+            f"Unsupported correlation method: {method_name}. "
+            f"Supported methods are: {', '.join(method_map.keys())}"
+        )
+
+    method = method_map[method_name]
+    method.__name__ = method_name
+    return method
 
 
 # Configuration constants
@@ -70,10 +99,6 @@ N_CPU_CORES = 24
 DATA_DIR = Path("/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8")
 INPUT_DIR = DATA_DIR / "gene_selection" / "all"
 OUTPUT_DIR = DATA_DIR / "similarity_matrices" / TOP_N_GENES
-
-# Correlation method configuration
-CORRELATION_METHOD: Callable = lambda x: ccc_gpu(x, n_jobs=N_CPU_CORES)
-CORRELATION_METHOD.__name__ = "ccc_gpu"
 
 
 def validate_input_data(data: pd.DataFrame) -> None:
@@ -120,12 +145,39 @@ def process_tissue_data(
     return data_corrs
 
 
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments
+    """
+    parser = argparse.ArgumentParser(
+        description="Compute correlation matrices for GTEx v8 gene expression data"
+    )
+    parser.add_argument(
+        "--method",
+        type=str,
+        choices=["ccc_gpu", "pearson", "spearman"],
+        default="ccc_gpu",
+        help="Correlation method to use (default: ccc_gpu)",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
     """Main execution function."""
     try:
+        # Parse command line arguments
+        args = parse_args()
+
         # Setup logging
-        setup_logging(LOG_DIR)
-        logging.info("Starting GTEx correlation computation")
+        setup_logging(LOG_DIR, args.method)
+        logging.info(
+            f"Starting GTEx correlation computation using {args.method} method"
+        )
+
+        # Get correlation method
+        correlation_method = get_correlation_method(args.method)
 
         # Validate directories
         if not INPUT_DIR.exists():
@@ -147,10 +199,12 @@ def main() -> None:
         for tissue_data_file in tqdm(input_files, ncols=100, desc="Processing tissues"):
             try:
                 # Compute correlations
-                data_corrs = process_tissue_data(tissue_data_file, CORRELATION_METHOD)
+                data_corrs = process_tissue_data(tissue_data_file, correlation_method)
 
                 # Save results
-                output_filename = f"{tissue_data_file.stem}-{CORRELATION_METHOD.__name__}-{TOP_N_GENES}.pkl"
+                output_filename = (
+                    f"{tissue_data_file.stem}-{correlation_method.__name__}.pkl"
+                )
                 output_path = OUTPUT_DIR / output_filename
                 data_corrs.to_pickle(path=output_path)
                 logging.info(f"Saved correlations to {output_path}\n")

@@ -1,12 +1,19 @@
 Preprocessing for the GTEx data was done in notebooks in the _glibio folder.
 
 ## Compute correlations
+### Pearson
 Commands:
 ```bash
-nohup python 10_compute_correlations/05-01-gtex-var_pc_log2-ccc-gpu.py > 05-01-gtex-var_pc_log2-ccc-gpu.terminal.log 2> 05-01-gtex-var_pc_log2-ccc-gpu.progress.log &
+nohup python ./compute_correlations_cli.py --method pearson > logs/gtex-var_pc_log2-pearson.terminal.log 2> logs/gtex-var_pc_log2-pearson.progress.log < /dev/null &
 ```
 
 In total, 54 tissues were processed, and three logs were generated:
-- `05-01-gtex-var_pc_log2-ccc-gpu.terminal.log`: Terminal output.
-- `05-01-gtex-var_pc_log2-ccc-gpu.progress.log`: Progress output.
-- `05-01-gtex-var_pc_log2-ccc-gpu.root.log`: Root output.
+- `gtex-var_pc_log2-pearson.terminal.log`: Terminal output.
+- `gtex-var_pc_log2-pearson.progress.log`: Progress output.
+- `gtex-var_pc_log2-pearson.root.log`: Root output.
+
+### Spearman
+Commands:
+```bash
+nohup python 10_compute_correlations/compute_correlations_cli.py --method spearman > logs/gtex-var_pc_log2-spearman.terminal.log 2> logs/gtex-var_pc_log2-spearman.progress.log &
+```
