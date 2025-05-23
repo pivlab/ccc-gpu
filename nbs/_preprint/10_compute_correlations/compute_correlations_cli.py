@@ -137,6 +137,7 @@ def process_tissue_data(
     # Compute correlations
     start_time = time()
     data_corrs = correlation_method(data)
+    data_corrs = data_corrs.astype("float32")  # Convert from double to float
     elapsed_time = time() - start_time
 
     logging.info(
