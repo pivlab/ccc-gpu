@@ -1,0 +1,220 @@
+2025-05-22 23:12:35 - INFO - Log file created at: /home/haoyu/_database/projs/ccc-gpu/nbs/_preprint/10_compute_correlations/logs/gtex-var_pc_log2-pearson.root.log
+2025-05-22 23:12:35 - INFO - Starting GTEx correlation computation using pearson method
+2025-05-22 23:12:35 - INFO - Output directory: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all
+2025-05-22 23:12:35 - INFO - Found 54 input files
+2025-05-22 23:12:35 - INFO - Input files: [PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_adipose_visceral_omentum-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_adrenal_gland-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_artery_aorta-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_artery_coronary-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_artery_tibial-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_bladder-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_amygdala-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_anterior_cingulate_cortex_ba24-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_caudate_basal_ganglia-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_cerebellar_hemisphere-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_cerebellum-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_cortex-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_frontal_cortex_ba9-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_hippocampus-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_hypothalamus-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_nucleus_accumbens_basal_ganglia-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_putamen_basal_ganglia-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_spinal_cord_cervical_c1-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_brain_substantia_nigra-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_breast_mammary_tissue-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_cells_cultured_fibroblasts-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_cells_ebvtransformed_lymphocytes-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_cervix_ectocervix-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_cervix_endocervix-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_colon_sigmoid-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_colon_transverse-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_esophagus_gastroesophageal_junction-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_esophagus_mucosa-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_esophagus_muscularis-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_fallopian_tube-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_heart_atrial_appendage-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_heart_left_ventricle-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_kidney_cortex-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_kidney_medulla-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_liver-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_lung-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_minor_salivary_gland-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_muscle_skeletal-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_nerve_tibial-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_ovary-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_pancreas-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_pituitary-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_prostate-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_skin_not_sun_exposed_suprapubic-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_skin_sun_exposed_lower_leg-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_small_intestine_terminal_ileum-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_spleen-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_stomach-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_testis-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_thyroid-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_uterus-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_vagina-var_pc_log2.pkl'), PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_whole_blood-var_pc_log2.pkl')]
+2025-05-22 23:12:35 - INFO - Processing tissue data file: gtex_v8_data_adipose_subcutaneous-var_pc_log2
+2025-05-22 23:18:28 - INFO - Computed correlations for gtex_v8_data_adipose_subcutaneous-var_pc_log2 in 353.03 seconds
+2025-05-22 23:20:38 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-pearson.pkl
+
+2025-05-22 23:20:38 - INFO - Processing tissue data file: gtex_v8_data_adipose_visceral_omentum-var_pc_log2
+2025-05-22 23:25:30 - INFO - Computed correlations for gtex_v8_data_adipose_visceral_omentum-var_pc_log2 in 290.08 seconds
+2025-05-22 23:28:17 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_visceral_omentum-var_pc_log2-pearson.pkl
+
+2025-05-22 23:28:17 - INFO - Processing tissue data file: gtex_v8_data_adrenal_gland-var_pc_log2
+2025-05-22 23:30:41 - INFO - Computed correlations for gtex_v8_data_adrenal_gland-var_pc_log2 in 143.01 seconds
+2025-05-22 23:33:00 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adrenal_gland-var_pc_log2-pearson.pkl
+
+2025-05-22 23:33:00 - INFO - Processing tissue data file: gtex_v8_data_artery_aorta-var_pc_log2
+2025-05-22 23:36:55 - INFO - Computed correlations for gtex_v8_data_artery_aorta-var_pc_log2 in 233.11 seconds
+2025-05-22 23:37:56 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_artery_aorta-var_pc_log2-pearson.pkl
+
+2025-05-22 23:37:56 - INFO - Processing tissue data file: gtex_v8_data_artery_coronary-var_pc_log2
+2025-05-22 23:40:07 - INFO - Computed correlations for gtex_v8_data_artery_coronary-var_pc_log2 in 130.54 seconds
+2025-05-22 23:43:18 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_artery_coronary-var_pc_log2-pearson.pkl
+
+2025-05-22 23:43:18 - INFO - Processing tissue data file: gtex_v8_data_artery_tibial-var_pc_log2
+2025-05-22 23:49:17 - INFO - Computed correlations for gtex_v8_data_artery_tibial-var_pc_log2 in 355.95 seconds
+2025-05-22 23:51:57 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_artery_tibial-var_pc_log2-pearson.pkl
+
+2025-05-22 23:51:57 - INFO - Processing tissue data file: gtex_v8_data_bladder-var_pc_log2
+2025-05-22 23:52:25 - INFO - Computed correlations for gtex_v8_data_bladder-var_pc_log2 in 27.88 seconds
+2025-05-22 23:54:43 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_bladder-var_pc_log2-pearson.pkl
+
+2025-05-22 23:54:43 - INFO - Processing tissue data file: gtex_v8_data_brain_amygdala-var_pc_log2
+2025-05-22 23:56:15 - INFO - Computed correlations for gtex_v8_data_brain_amygdala-var_pc_log2 in 91.82 seconds
+2025-05-22 23:58:28 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_amygdala-var_pc_log2-pearson.pkl
+
+2025-05-22 23:58:28 - INFO - Processing tissue data file: gtex_v8_data_brain_anterior_cingulate_cortex_ba24-var_pc_log2
+2025-05-23 00:00:04 - INFO - Computed correlations for gtex_v8_data_brain_anterior_cingulate_cortex_ba24-var_pc_log2 in 95.42 seconds
+2025-05-23 00:02:25 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_anterior_cingulate_cortex_ba24-var_pc_log2-pearson.pkl
+
+2025-05-23 00:02:25 - INFO - Processing tissue data file: gtex_v8_data_brain_caudate_basal_ganglia-var_pc_log2
+2025-05-23 00:04:38 - INFO - Computed correlations for gtex_v8_data_brain_caudate_basal_ganglia-var_pc_log2 in 131.71 seconds
+2025-05-23 00:06:58 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_caudate_basal_ganglia-var_pc_log2-pearson.pkl
+
+2025-05-23 00:06:58 - INFO - Processing tissue data file: gtex_v8_data_brain_cerebellar_hemisphere-var_pc_log2
+2025-05-23 00:08:58 - INFO - Computed correlations for gtex_v8_data_brain_cerebellar_hemisphere-var_pc_log2 in 118.82 seconds
+2025-05-23 00:11:50 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_cerebellar_hemisphere-var_pc_log2-pearson.pkl
+
+2025-05-23 00:11:50 - INFO - Processing tissue data file: gtex_v8_data_brain_cerebellum-var_pc_log2
+2025-05-23 00:14:06 - INFO - Computed correlations for gtex_v8_data_brain_cerebellum-var_pc_log2 in 134.86 seconds
+2025-05-23 00:16:21 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_cerebellum-var_pc_log2-pearson.pkl
+
+2025-05-23 00:16:21 - INFO - Processing tissue data file: gtex_v8_data_brain_cortex-var_pc_log2
+2025-05-23 00:18:42 - INFO - Computed correlations for gtex_v8_data_brain_cortex-var_pc_log2 in 139.70 seconds
+2025-05-23 00:20:28 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_cortex-var_pc_log2-pearson.pkl
+
+2025-05-23 00:20:28 - INFO - Processing tissue data file: gtex_v8_data_brain_frontal_cortex_ba9-var_pc_log2
+2025-05-23 00:22:32 - INFO - Computed correlations for gtex_v8_data_brain_frontal_cortex_ba9-var_pc_log2 in 123.28 seconds
+2025-05-23 00:24:53 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_frontal_cortex_ba9-var_pc_log2-pearson.pkl
+
+2025-05-23 00:24:53 - INFO - Processing tissue data file: gtex_v8_data_brain_hippocampus-var_pc_log2
+2025-05-23 00:26:47 - INFO - Computed correlations for gtex_v8_data_brain_hippocampus-var_pc_log2 in 113.08 seconds
+2025-05-23 00:29:53 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_hippocampus-var_pc_log2-pearson.pkl
+
+2025-05-23 00:29:53 - INFO - Processing tissue data file: gtex_v8_data_brain_hypothalamus-var_pc_log2
+2025-05-23 00:31:47 - INFO - Computed correlations for gtex_v8_data_brain_hypothalamus-var_pc_log2 in 113.58 seconds
+2025-05-23 00:34:19 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_hypothalamus-var_pc_log2-pearson.pkl
+
+2025-05-23 00:34:19 - INFO - Processing tissue data file: gtex_v8_data_brain_nucleus_accumbens_basal_ganglia-var_pc_log2
+2025-05-23 00:36:36 - INFO - Computed correlations for gtex_v8_data_brain_nucleus_accumbens_basal_ganglia-var_pc_log2 in 136.18 seconds
+2025-05-23 00:38:49 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_nucleus_accumbens_basal_ganglia-var_pc_log2-pearson.pkl
+
+2025-05-23 00:38:49 - INFO - Processing tissue data file: gtex_v8_data_brain_putamen_basal_ganglia-var_pc_log2
+2025-05-23 00:40:43 - INFO - Computed correlations for gtex_v8_data_brain_putamen_basal_ganglia-var_pc_log2 in 114.33 seconds
+2025-05-23 00:43:00 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_putamen_basal_ganglia-var_pc_log2-pearson.pkl
+
+2025-05-23 00:43:00 - INFO - Processing tissue data file: gtex_v8_data_brain_spinal_cord_cervical_c1-var_pc_log2
+2025-05-23 00:44:26 - INFO - Computed correlations for gtex_v8_data_brain_spinal_cord_cervical_c1-var_pc_log2 in 85.66 seconds
+2025-05-23 00:48:05 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_spinal_cord_cervical_c1-var_pc_log2-pearson.pkl
+
+2025-05-23 00:48:05 - INFO - Processing tissue data file: gtex_v8_data_brain_substantia_nigra-var_pc_log2
+2025-05-23 00:49:28 - INFO - Computed correlations for gtex_v8_data_brain_substantia_nigra-var_pc_log2 in 82.58 seconds
+2025-05-23 00:51:21 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_substantia_nigra-var_pc_log2-pearson.pkl
+
+2025-05-23 00:51:21 - INFO - Processing tissue data file: gtex_v8_data_breast_mammary_tissue-var_pc_log2
+2025-05-23 00:55:28 - INFO - Computed correlations for gtex_v8_data_breast_mammary_tissue-var_pc_log2 in 245.20 seconds
+2025-05-23 00:57:23 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_breast_mammary_tissue-var_pc_log2-pearson.pkl
+
+2025-05-23 00:57:23 - INFO - Processing tissue data file: gtex_v8_data_cells_cultured_fibroblasts-var_pc_log2
+2025-05-23 01:01:58 - INFO - Computed correlations for gtex_v8_data_cells_cultured_fibroblasts-var_pc_log2 in 272.49 seconds
+2025-05-23 01:04:01 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_cells_cultured_fibroblasts-var_pc_log2-pearson.pkl
+
+2025-05-23 01:04:01 - INFO - Processing tissue data file: gtex_v8_data_cells_ebvtransformed_lymphocytes-var_pc_log2
+2025-05-23 01:05:37 - INFO - Computed correlations for gtex_v8_data_cells_ebvtransformed_lymphocytes-var_pc_log2 in 95.73 seconds
+2025-05-23 01:07:11 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_cells_ebvtransformed_lymphocytes-var_pc_log2-pearson.pkl
+
+2025-05-23 01:07:11 - INFO - Processing tissue data file: gtex_v8_data_cervix_ectocervix-var_pc_log2
+2025-05-23 01:07:37 - INFO - Computed correlations for gtex_v8_data_cervix_ectocervix-var_pc_log2 in 25.99 seconds
+2025-05-23 01:11:10 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_cervix_ectocervix-var_pc_log2-pearson.pkl
+
+2025-05-23 01:11:10 - INFO - Processing tissue data file: gtex_v8_data_cervix_endocervix-var_pc_log2
+2025-05-23 01:11:35 - INFO - Computed correlations for gtex_v8_data_cervix_endocervix-var_pc_log2 in 24.62 seconds
+2025-05-23 01:13:50 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_cervix_endocervix-var_pc_log2-pearson.pkl
+
+2025-05-23 01:13:50 - INFO - Processing tissue data file: gtex_v8_data_colon_sigmoid-var_pc_log2
+2025-05-23 01:17:05 - INFO - Computed correlations for gtex_v8_data_colon_sigmoid-var_pc_log2 in 194.59 seconds
+2025-05-23 01:18:09 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_colon_sigmoid-var_pc_log2-pearson.pkl
+
+2025-05-23 01:18:09 - INFO - Processing tissue data file: gtex_v8_data_colon_transverse-var_pc_log2
+2025-05-23 01:21:40 - INFO - Computed correlations for gtex_v8_data_colon_transverse-var_pc_log2 in 210.93 seconds
+2025-05-23 01:23:24 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_colon_transverse-var_pc_log2-pearson.pkl
+
+2025-05-23 01:23:24 - INFO - Processing tissue data file: gtex_v8_data_esophagus_gastroesophageal_junction-var_pc_log2
+2025-05-23 01:26:44 - INFO - Computed correlations for gtex_v8_data_esophagus_gastroesophageal_junction-var_pc_log2 in 198.66 seconds
+2025-05-23 01:27:58 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_esophagus_gastroesophageal_junction-var_pc_log2-pearson.pkl
+
+2025-05-23 01:27:58 - INFO - Processing tissue data file: gtex_v8_data_esophagus_mucosa-var_pc_log2
+2025-05-23 01:32:43 - INFO - Computed correlations for gtex_v8_data_esophagus_mucosa-var_pc_log2 in 284.72 seconds
+2025-05-23 01:34:30 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_esophagus_mucosa-var_pc_log2-pearson.pkl
+
+2025-05-23 01:34:30 - INFO - Processing tissue data file: gtex_v8_data_esophagus_muscularis-var_pc_log2
+2025-05-23 01:38:59 - INFO - Computed correlations for gtex_v8_data_esophagus_muscularis-var_pc_log2 in 267.94 seconds
+2025-05-23 01:40:14 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_esophagus_muscularis-var_pc_log2-pearson.pkl
+
+2025-05-23 01:40:14 - INFO - Processing tissue data file: gtex_v8_data_fallopian_tube-var_pc_log2
+2025-05-23 01:40:39 - INFO - Computed correlations for gtex_v8_data_fallopian_tube-var_pc_log2 in 25.46 seconds
+2025-05-23 01:42:06 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_fallopian_tube-var_pc_log2-pearson.pkl
+
+2025-05-23 01:42:06 - INFO - Processing tissue data file: gtex_v8_data_heart_atrial_appendage-var_pc_log2
+2025-05-23 01:45:53 - INFO - Computed correlations for gtex_v8_data_heart_atrial_appendage-var_pc_log2 in 225.53 seconds
+2025-05-23 01:47:39 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_heart_atrial_appendage-var_pc_log2-pearson.pkl
+
+2025-05-23 01:47:39 - INFO - Processing tissue data file: gtex_v8_data_heart_left_ventricle-var_pc_log2
+2025-05-23 01:51:25 - INFO - Computed correlations for gtex_v8_data_heart_left_ventricle-var_pc_log2 in 225.68 seconds
+2025-05-23 01:53:09 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_heart_left_ventricle-var_pc_log2-pearson.pkl
+
+2025-05-23 01:53:09 - INFO - Processing tissue data file: gtex_v8_data_kidney_cortex-var_pc_log2
+2025-05-23 01:53:59 - INFO - Computed correlations for gtex_v8_data_kidney_cortex-var_pc_log2 in 50.29 seconds
+2025-05-23 01:55:38 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_kidney_cortex-var_pc_log2-pearson.pkl
+
+2025-05-23 01:55:38 - INFO - Processing tissue data file: gtex_v8_data_kidney_medulla-var_pc_log2
+2025-05-23 01:56:00 - INFO - Computed correlations for gtex_v8_data_kidney_medulla-var_pc_log2 in 21.80 seconds
+2025-05-23 01:59:35 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_kidney_medulla-var_pc_log2-pearson.pkl
+
+2025-05-23 01:59:35 - INFO - Processing tissue data file: gtex_v8_data_liver-var_pc_log2
+2025-05-23 02:01:36 - INFO - Computed correlations for gtex_v8_data_liver-var_pc_log2 in 120.53 seconds
+2025-05-23 02:03:15 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_liver-var_pc_log2-pearson.pkl
+
+2025-05-23 02:03:15 - INFO - Processing tissue data file: gtex_v8_data_lung-var_pc_log2
+2025-05-23 02:08:09 - INFO - Computed correlations for gtex_v8_data_lung-var_pc_log2 in 293.63 seconds
+2025-05-23 02:09:42 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_lung-var_pc_log2-pearson.pkl
+
+2025-05-23 02:09:42 - INFO - Processing tissue data file: gtex_v8_data_minor_salivary_gland-var_pc_log2
+2025-05-23 02:11:11 - INFO - Computed correlations for gtex_v8_data_minor_salivary_gland-var_pc_log2 in 88.54 seconds
+2025-05-23 02:12:45 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_minor_salivary_gland-var_pc_log2-pearson.pkl
+
+2025-05-23 02:12:45 - INFO - Processing tissue data file: gtex_v8_data_muscle_skeletal-var_pc_log2
+2025-05-23 02:19:43 - INFO - Computed correlations for gtex_v8_data_muscle_skeletal-var_pc_log2 in 412.45 seconds
+2025-05-23 02:21:57 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_muscle_skeletal-var_pc_log2-pearson.pkl
+
+2025-05-23 02:21:57 - INFO - Processing tissue data file: gtex_v8_data_nerve_tibial-var_pc_log2
+2025-05-23 02:27:15 - INFO - Computed correlations for gtex_v8_data_nerve_tibial-var_pc_log2 in 317.01 seconds
+2025-05-23 02:29:02 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_nerve_tibial-var_pc_log2-pearson.pkl
+
+2025-05-23 02:29:02 - INFO - Processing tissue data file: gtex_v8_data_ovary-var_pc_log2
+2025-05-23 02:30:41 - INFO - Computed correlations for gtex_v8_data_ovary-var_pc_log2 in 98.17 seconds
+2025-05-23 02:32:16 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_ovary-var_pc_log2-pearson.pkl
+
+2025-05-23 02:32:16 - INFO - Processing tissue data file: gtex_v8_data_pancreas-var_pc_log2
+2025-05-23 02:35:09 - INFO - Computed correlations for gtex_v8_data_pancreas-var_pc_log2 in 172.45 seconds
+2025-05-23 02:36:46 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pancreas-var_pc_log2-pearson.pkl
+
+2025-05-23 02:36:46 - INFO - Processing tissue data file: gtex_v8_data_pituitary-var_pc_log2
+2025-05-23 02:39:17 - INFO - Computed correlations for gtex_v8_data_pituitary-var_pc_log2 in 150.01 seconds
+2025-05-23 02:41:31 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pituitary-var_pc_log2-pearson.pkl
+
+2025-05-23 02:41:31 - INFO - Processing tissue data file: gtex_v8_data_prostate-var_pc_log2
+2025-05-23 02:43:39 - INFO - Computed correlations for gtex_v8_data_prostate-var_pc_log2 in 128.24 seconds
+2025-05-23 02:45:40 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_prostate-var_pc_log2-pearson.pkl
+
+2025-05-23 02:45:40 - INFO - Processing tissue data file: gtex_v8_data_skin_not_sun_exposed_suprapubic-var_pc_log2
+2025-05-23 02:50:54 - INFO - Computed correlations for gtex_v8_data_skin_not_sun_exposed_suprapubic-var_pc_log2 in 313.30 seconds
+2025-05-23 02:51:55 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_not_sun_exposed_suprapubic-var_pc_log2-pearson.pkl
+
+2025-05-23 02:51:55 - INFO - Processing tissue data file: gtex_v8_data_skin_sun_exposed_lower_leg-var_pc_log2
+2025-05-23 02:57:44 - INFO - Computed correlations for gtex_v8_data_skin_sun_exposed_lower_leg-var_pc_log2 in 348.33 seconds
+2025-05-23 02:59:32 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_sun_exposed_lower_leg-var_pc_log2-pearson.pkl
+
+2025-05-23 02:59:32 - INFO - Processing tissue data file: gtex_v8_data_small_intestine_terminal_ileum-var_pc_log2
+2025-05-23 03:01:11 - INFO - Computed correlations for gtex_v8_data_small_intestine_terminal_ileum-var_pc_log2 in 99.44 seconds
+2025-05-23 03:02:57 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_small_intestine_terminal_ileum-var_pc_log2-pearson.pkl
+
+2025-05-23 03:02:57 - INFO - Processing tissue data file: gtex_v8_data_spleen-var_pc_log2
+2025-05-23 03:05:10 - INFO - Computed correlations for gtex_v8_data_spleen-var_pc_log2 in 133.14 seconds
+2025-05-23 03:07:31 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_spleen-var_pc_log2-pearson.pkl
+
+2025-05-23 03:07:31 - INFO - Processing tissue data file: gtex_v8_data_stomach-var_pc_log2
+2025-05-23 03:10:40 - INFO - Computed correlations for gtex_v8_data_stomach-var_pc_log2 in 188.45 seconds
+2025-05-23 03:12:58 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_stomach-var_pc_log2-pearson.pkl
+
+2025-05-23 03:12:58 - INFO - Processing tissue data file: gtex_v8_data_testis-var_pc_log2
+2025-05-23 03:16:08 - INFO - Computed correlations for gtex_v8_data_testis-var_pc_log2 in 190.23 seconds
+2025-05-23 03:17:43 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_testis-var_pc_log2-pearson.pkl
+
+2025-05-23 03:17:43 - INFO - Processing tissue data file: gtex_v8_data_thyroid-var_pc_log2
+2025-05-23 03:23:21 - INFO - Computed correlations for gtex_v8_data_thyroid-var_pc_log2 in 337.84 seconds
+2025-05-23 03:25:25 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_thyroid-var_pc_log2-pearson.pkl
+
+2025-05-23 03:25:25 - INFO - Processing tissue data file: gtex_v8_data_uterus-var_pc_log2
+2025-05-23 03:26:48 - INFO - Computed correlations for gtex_v8_data_uterus-var_pc_log2 in 82.55 seconds
+2025-05-23 03:30:19 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_uterus-var_pc_log2-pearson.pkl
+
+2025-05-23 03:30:19 - INFO - Processing tissue data file: gtex_v8_data_vagina-var_pc_log2
+2025-05-23 03:31:44 - INFO - Computed correlations for gtex_v8_data_vagina-var_pc_log2 in 84.43 seconds
+2025-05-23 03:34:23 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_vagina-var_pc_log2-pearson.pkl
+
+2025-05-23 03:34:23 - INFO - Processing tissue data file: gtex_v8_data_whole_blood-var_pc_log2
+2025-05-23 03:40:42 - INFO - Computed correlations for gtex_v8_data_whole_blood-var_pc_log2 in 376.77 seconds
+2025-05-23 03:42:11 - INFO - Saved correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-pearson.pkl
