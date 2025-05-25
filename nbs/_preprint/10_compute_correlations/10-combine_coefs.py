@@ -12,6 +12,9 @@ import argparse
 import logging
 from datetime import datetime
 import sys
+import concurrent.futures
+from typing import List
+from tqdm import tqdm
 
 from ccc.utils import get_upper_triag
 
@@ -77,6 +80,18 @@ def parse_args() -> argparse.Namespace:
         default="var_pc_log2",
         help="Gene selection strategy (default: var_pc_log2)",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=1000,
+        help="Number of genes to process in each batch (default: 1000)",
+    )
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=4,
+        help="Number of worker threads (default: 4)",
+    )
     return parser.parse_args()
 
 
@@ -85,6 +100,99 @@ TOP_N_GENES = "all"
 DATA_DIR = Path("/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8")
 GENE_SELECTION_DIR = DATA_DIR / "gene_selection" / TOP_N_GENES
 SIMILARITY_MATRICES_DIR = DATA_DIR / "similarity_matrices" / TOP_N_GENES
+
+
+def process_batch(
+    batch_genes: List[str],
+    clustermatch_df: pd.DataFrame,
+    pearson_df: pd.DataFrame,
+    spearman_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Process a batch of genes and combine their correlation coefficients.
+
+    Args:
+        batch_genes: List of genes to process
+        clustermatch_df: CCC-GPU correlation matrix
+        pearson_df: Pearson correlation matrix
+        spearman_df: Spearman correlation matrix
+
+    Returns:
+        DataFrame containing combined coefficients for the batch
+    """
+    # Get upper triangle and unstack for the batch
+    clustermatch_batch = get_upper_triag(clustermatch_df.loc[batch_genes, batch_genes])
+    clustermatch_batch = clustermatch_batch.unstack().rename_axis((None, None))
+
+    pearson_batch = get_upper_triag(pearson_df.loc[batch_genes, batch_genes])
+    pearson_batch = pearson_batch.unstack().rename_axis((None, None)).abs()
+
+    spearman_batch = get_upper_triag(spearman_df.loc[batch_genes, batch_genes])
+    spearman_batch = spearman_batch.unstack().rename_axis((None, None)).abs()
+
+    # Combine methods
+    return pd.DataFrame(
+        {
+            "ccc": clustermatch_batch,
+            "pearson": pearson_batch,
+            "spearman": spearman_batch,
+        }
+    ).sort_index()
+
+
+def save_batch(
+    batch_df: pd.DataFrame,
+    output_dir: Path,
+    batch_num: int,
+) -> Path:
+    """Save a batch of results to a separate file.
+
+    Args:
+        batch_df: DataFrame containing the batch results
+        output_dir: Directory to save the batch files
+        batch_num: Batch number for the filename
+
+    Returns:
+        Path to the saved batch file
+    """
+    # Create output directory if it doesn't exist
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save batch to a numbered file
+    batch_file = output_dir / f"batch_{batch_num:04d}.pkl"
+    batch_df.to_pickle(batch_file)
+    logging.info(f"Saved batch {batch_num} with shape {batch_df.shape} to {batch_file}")
+    logging.info(f"Batch file exists: {batch_file.exists()}")
+
+    return batch_file
+
+
+def combine_batch_files(batch_files: List[Path], output_file: Path) -> None:
+    """Combine all batch files into a single output file.
+
+    Args:
+        batch_files: List of batch file paths in order
+        output_file: Path to save the combined results
+    """
+    logging.info("Combining batch files...")
+
+    # Load and concatenate all batches in order
+    dfs = []
+    for batch_file in tqdm(batch_files, desc="Loading batches"):
+        df = pd.read_pickle(batch_file)
+        dfs.append(df)
+
+    # Concatenate all dataframes
+    combined_df = pd.concat(dfs)
+    logging.info(f"Combined shape: {combined_df.shape}")
+
+    # Save combined results
+    combined_df.to_pickle(output_file)
+    logging.info(f"Saved combined results to {output_file}")
+
+    # Clean up batch files
+    for batch_file in batch_files:
+        batch_file.unlink()
+    logging.info("Cleaned up batch files")
 
 
 def main() -> None:
@@ -120,7 +228,14 @@ def main() -> None:
             gene_sel_strategy=args.gene_selection,
             corr_method="all",
         )
-        logging.info(f"Output file will be: {output_file}")
+        logging.info(f"Final output will be saved to: {output_file}")
+
+        # Create temporary directory for batch files
+        temp_dir = output_file.parent / f"{output_file.stem}_batches"
+        logging.info(f"Creating temporary directory for batch files: {temp_dir}")
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        logging.info(f"Temporary directory exists: {temp_dir.exists()}")
+        logging.info(f"Temporary directory contents: {list(temp_dir.glob('*.pkl'))}")
 
         # Load gene mapping
         logging.info("Loading gene mapping...")
@@ -172,50 +287,49 @@ def main() -> None:
         assert data.index.equals(pearson_df.index), "Index mismatch in Pearson matrix"
         assert data.index.equals(spearman_df.index), "Index mismatch in Spearman matrix"
 
-        # Process matrices
-        logging.info("Processing correlation matrices...")
+        # Get list of genes and create batches
+        genes = list(data.index)
+        n_genes = len(genes)
+        n_batches = (n_genes + args.batch_size - 1) // args.batch_size
+        gene_batches = [
+            genes[i : i + args.batch_size] for i in range(0, n_genes, args.batch_size)
+        ]
 
-        # Get upper triangle and unstack
-        clustermatch_df = get_upper_triag(clustermatch_df)
-        # clustermatch_df = clustermatch_df.unstack().rename_axis((None, None)).dropna()
-        clustermatch_df = clustermatch_df.unstack().rename_axis((None, None))
+        logging.info(
+            f"Processing {n_genes} genes in {n_batches} batches of size {args.batch_size}"
+        )
 
-        pearson_df = get_upper_triag(pearson_df)
-        pearson_df = pearson_df.unstack().rename_axis((None, None))
-        # Apply abs only to non-NaN values
-        pearson_df = pearson_df.fillna(-100).abs().replace(-100, pd.NA)
+        # Process batches in parallel
+        batch_files = []
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=args.num_workers
+        ) as executor:
+            futures = []
+            for i, batch_genes in enumerate(gene_batches):
+                future = executor.submit(
+                    process_batch, batch_genes, clustermatch_df, pearson_df, spearman_df
+                )
+                futures.append((i, future))
 
-        spearman_df = get_upper_triag(spearman_df)
-        spearman_df = spearman_df.unstack().rename_axis((None, None))
-        # Apply abs only to non-NaN values
-        spearman_df = spearman_df.fillna(-100).abs().replace(-100, pd.NA)
+            # Save results as they complete
+            for i, future in tqdm(futures, desc="Processing batches"):
+                batch_df = future.result()
+                batch_file = save_batch(batch_df, temp_dir, i)
+                batch_files.append(batch_file)
+                logging.info(f"Current batch files: {[f.name for f in batch_files]}")
 
-        # Validate processed data
-        assert clustermatch_df.index.equals(
-            pearson_df.index
-        ), "Index mismatch after processing"
-        assert clustermatch_df.index.equals(
-            spearman_df.index
-        ), "Index mismatch after processing"
+        # List all batch files before combining
+        logging.info(
+            f"All batch files before combining: {[f.name for f in temp_dir.glob('*.pkl')]}"
+        )
 
-        # Combine all methods
-        logging.info("Combining all methods...")
-        df = pd.DataFrame(
-            {
-                "ccc": clustermatch_df,
-                "pearson": pearson_df,
-                "spearman": spearman_df,
-            }
-        ).sort_index()
+        # Combine all batch files
+        combine_batch_files(batch_files, output_file)
 
-        # Final validation
-        # assert not df.isna().any().any(), "Found NaN values in final dataframe"
-        logging.info(f"Final combined matrix shape: {df.shape}")
-
-        # Save results
-        logging.info(f"Saving combined coefficients to {output_file}")
-        df.to_pickle(output_file)
-        logging.info("Done!")
+        # Clean up temporary directory
+        logging.info(f"Cleaning up temporary directory: {temp_dir}")
+        temp_dir.rmdir()
+        logging.info("✅ Done!")
 
     except Exception as e:
         logging.error(f"Fatal error: {str(e)}")
@@ -224,6 +338,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-# In[ ]:
