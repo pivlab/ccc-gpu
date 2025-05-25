@@ -23,3 +23,15 @@ In total, 54 tissues will be processed, and three logs will be generated, for ea
 - `gtex-var_pc_log2-{method}.terminal.log`: Terminal output.
 - `gtex-var_pc_log2-{method}.progress.log`: Progress output.
 - `gtex-var_pc_log2-{method}.root.log`: Root output.
+
+
+## Combine coefficients
+
+```bash
+python ./10-combine_coefs.py --tissue {tissue} --gene_selection {gene_selection} --batch_size {batch_size} --num_workers {num_workers}
+```
+
+Example:
+```bash
+nohup python 10-combine_coefs.py --tissue whole_blood --batch-size 5000 --num-workers 12 > combine_coefs.log 2>&1 &
+```

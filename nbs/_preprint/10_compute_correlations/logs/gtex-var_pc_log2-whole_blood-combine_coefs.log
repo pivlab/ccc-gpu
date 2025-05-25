@@ -1,0 +1,57 @@
+2025-05-25 17:10:06 - INFO - Log file created at: logs/combine_coefs_20250525_171006.log
+2025-05-25 17:10:06 - INFO - Starting to combine coefficients for tissue 'whole_blood'
+2025-05-25 17:10:06 - INFO - Input gene expression file: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_whole_blood-var_pc_log2.pkl
+2025-05-25 17:10:06 - INFO - Final output will be saved to: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all.pkl
+2025-05-25 17:10:06 - INFO - Creating temporary directory for batch files: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches
+2025-05-25 17:10:06 - INFO - Temporary directory exists: True
+2025-05-25 17:10:06 - INFO - Temporary directory contents: []
+2025-05-25 17:10:06 - INFO - Loading gene mapping...
+2025-05-25 17:10:06 - INFO - Loading gene expression data...
+2025-05-25 17:10:07 - INFO - Gene expression data shape: (56200, 755)
+2025-05-25 17:10:07 - INFO - Loading correlation matrices...
+2025-05-25 17:10:11 - INFO - CCC-GPU matrix shape: (56200, 56200)
+2025-05-25 17:10:15 - INFO - Pearson matrix shape: (56200, 56200)
+2025-05-25 17:10:18 - INFO - Spearman matrix shape: (56200, 56200)
+2025-05-25 17:10:18 - INFO - Processing 56200 genes in 12 batches of size 5000
+2025-05-25 17:16:43 - INFO - Saved batch 0 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0000.pkl
+2025-05-25 17:16:43 - INFO - Batch file exists: True
+2025-05-25 17:16:43 - INFO - Current batch files: ['batch_0000.pkl']
+2025-05-25 17:16:43 - INFO - Saved batch 1 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0001.pkl
+2025-05-25 17:16:43 - INFO - Batch file exists: True
+2025-05-25 17:16:43 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl']
+2025-05-25 17:16:43 - INFO - Saved batch 2 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0002.pkl
+2025-05-25 17:16:43 - INFO - Batch file exists: True
+2025-05-25 17:16:43 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl']
+2025-05-25 17:16:43 - INFO - Saved batch 3 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0003.pkl
+2025-05-25 17:16:43 - INFO - Batch file exists: True
+2025-05-25 17:16:43 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl', 'batch_0003.pkl']
+2025-05-25 17:16:44 - INFO - Saved batch 4 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0004.pkl
+2025-05-25 17:16:44 - INFO - Batch file exists: True
+2025-05-25 17:16:44 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl', 'batch_0003.pkl', 'batch_0004.pkl']
+2025-05-25 17:16:44 - INFO - Saved batch 5 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0005.pkl
+2025-05-25 17:16:44 - INFO - Batch file exists: True
+2025-05-25 17:16:44 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl', 'batch_0003.pkl', 'batch_0004.pkl', 'batch_0005.pkl']
+2025-05-25 17:16:44 - INFO - Saved batch 6 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0006.pkl
+2025-05-25 17:16:44 - INFO - Batch file exists: True
+2025-05-25 17:16:44 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl', 'batch_0003.pkl', 'batch_0004.pkl', 'batch_0005.pkl', 'batch_0006.pkl']
+2025-05-25 17:16:44 - INFO - Saved batch 7 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0007.pkl
+2025-05-25 17:16:44 - INFO - Batch file exists: True
+2025-05-25 17:16:44 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl', 'batch_0003.pkl', 'batch_0004.pkl', 'batch_0005.pkl', 'batch_0006.pkl', 'batch_0007.pkl']
+2025-05-25 17:16:47 - INFO - Saved batch 8 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0008.pkl
+2025-05-25 17:16:47 - INFO - Batch file exists: True
+2025-05-25 17:16:47 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl', 'batch_0003.pkl', 'batch_0004.pkl', 'batch_0005.pkl', 'batch_0006.pkl', 'batch_0007.pkl', 'batch_0008.pkl']
+2025-05-25 17:16:51 - INFO - Saved batch 9 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0009.pkl
+2025-05-25 17:16:51 - INFO - Batch file exists: True
+2025-05-25 17:16:51 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl', 'batch_0003.pkl', 'batch_0004.pkl', 'batch_0005.pkl', 'batch_0006.pkl', 'batch_0007.pkl', 'batch_0008.pkl', 'batch_0009.pkl']
+2025-05-25 17:16:56 - INFO - Saved batch 10 with shape (25000000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0010.pkl
+2025-05-25 17:16:56 - INFO - Batch file exists: True
+2025-05-25 17:16:56 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl', 'batch_0003.pkl', 'batch_0004.pkl', 'batch_0005.pkl', 'batch_0006.pkl', 'batch_0007.pkl', 'batch_0008.pkl', 'batch_0009.pkl', 'batch_0010.pkl']
+2025-05-25 17:16:56 - INFO - Saved batch 11 with shape (1440000, 3) to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all_batches/batch_0011.pkl
+2025-05-25 17:16:56 - INFO - Batch file exists: True
+2025-05-25 17:16:56 - INFO - Current batch files: ['batch_0000.pkl', 'batch_0001.pkl', 'batch_0002.pkl', 'batch_0003.pkl', 'batch_0004.pkl', 'batch_0005.pkl', 'batch_0006.pkl', 'batch_0007.pkl', 'batch_0008.pkl', 'batch_0009.pkl', 'batch_0010.pkl', 'batch_0011.pkl']
+2025-05-25 17:16:56 - INFO - All batch files before combining: ['batch_0006.pkl', 'batch_0008.pkl', 'batch_0005.pkl', 'batch_0004.pkl', 'batch_0000.pkl', 'batch_0011.pkl', 'batch_0010.pkl', 'batch_0009.pkl', 'batch_0007.pkl', 'batch_0003.pkl', 'batch_0002.pkl', 'batch_0001.pkl']
+2025-05-25 17:16:56 - INFO - Combining batch files...
+2025-05-25 17:16:59 - INFO - Combined shape: (276440000, 3)
+2025-05-25 17:17:21 - INFO - Saved combined results to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all.pkl
+2025-05-25 17:17:22 - INFO - Cleaned up batch files
+2025-05-25 17:17:22 - INFO - Done!
