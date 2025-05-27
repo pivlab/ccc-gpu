@@ -1,0 +1,8 @@
+2025-05-26 20:20:43 - INFO - Log file created at: logs/intersections_20250526_202043.log
+2025-05-26 20:20:43 - INFO - Starting intersection analysis for tissue 'whole_blood'
+2025-05-26 20:20:45 - INFO - Loaded correlation data with shape: (276440000, 3)
+2025-05-26 20:20:52 - INFO - Prepared plot data with shape: (276440000, 9)
+2025-05-26 20:20:57 - INFO - Saved intersection data to: /mnt/data/projs/manuscripts/ccc-gpu/results/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+2025-05-26 20:22:27 - INFO - Saved intersection plot to: /mnt/data/projs/manuscripts/ccc-gpu/figures/coefs_comp/gtex_whole_blood/upsetplot.svg
+2025-05-26 20:22:27 - INFO - Saved intersection plot copy to: logs/intersection_plot_20250526_202227.svg
+2025-05-26 20:22:27 - INFO - ✅ Done!
