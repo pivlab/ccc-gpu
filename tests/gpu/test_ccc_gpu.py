@@ -183,12 +183,16 @@ def log_statistics(
         # ((1000, 1000), 0.0, True),
         # ((2000, 1000), 0.0, True),
         # ((4000, 1000), 0.0, True),
+        ((6000, 1000), False, 0.0, True),
+        # ((12000, 1000), 0.0, True),
+        ((16000, 1000), False, 0.0, True),
+        ((20000, 1000), False, 0.0, True),
         # ((8000, 1000), 0.0, True),
         # ((12000, 1000), 0.0, True),
         # ((56200, 755), 0.0, True),
     ],
 )
-@pytest.mark.parametrize("n_cpu_cores", [24])
+@pytest.mark.parametrize("n_cpu_cores", [6, 12, 24])
 @clean_gpu_memory
 def test_ccc_gpu_with_numerical_input(
     seed: int,
@@ -257,7 +261,7 @@ def test_ccc_gpu_with_numerical_input(
     gpu_df = pd.DataFrame(c1)
     gpu_df = gpu_df.astype(np.float64)
     cpu_df = pd.DataFrame(c2)
-    pd.testing.assert_frame_equal(gpu_df, cpu_df)
+    pd.testing.assert_frame_equal(gpu_df, cpu_df, atol=1e-6, rtol=1e-6)
 
     # Assert results using percentages. Useful if get_parts is implemented in GPU version in the future, in which
     # case the parts generated will be slightly different due to floating point precision
