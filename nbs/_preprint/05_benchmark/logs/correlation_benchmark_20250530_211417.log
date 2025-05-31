@@ -1,0 +1,140 @@
+2025-05-30 21:14:17 - INFO - Log file created at: /home/haoyu/_database/projs/ccc-gpu/nbs/_preprint/05_benchmark/logs/correlation_benchmark_20250530_211417.log
+2025-05-30 21:14:17 - INFO - Starting correlation methods benchmark
+2025-05-30 21:14:17 - INFO - Benchmark shapes: [(500, 1000), (1000, 1000), (2000, 1000), (4000, 1000), (6000, 1000), (8000, 1000), (10000, 1000), (16000, 1000), (20000, 1000)]
+2025-05-30 21:14:17 - INFO - Methods to benchmark: ['pearson', 'spearman']
+2025-05-30 21:14:17 - INFO -
+==================================================
+2025-05-30 21:14:17 - INFO - Benchmarking shape: (500, 1000)
+2025-05-30 21:14:17 - INFO - ==================================================
+2025-05-30 21:14:17 - INFO - Generated random data with shape: (500, 1000)
+2025-05-30 21:14:17 - INFO - Method: pearson
+  Data shape: (500, 1000)
+  Time taken: 0.02 seconds
+  Result memory: 1.91 MB
+  Result shape: (500, 500)
+2025-05-30 21:14:17 - INFO - Method: spearman
+  Data shape: (500, 1000)
+  Time taken: 0.05 seconds
+  Result memory: 1.91 MB
+  Result shape: (500, 500)
+2025-05-30 21:14:17 - INFO -
+==================================================
+2025-05-30 21:14:17 - INFO - Benchmarking shape: (1000, 1000)
+2025-05-30 21:14:17 - INFO - ==================================================
+2025-05-30 21:14:17 - INFO - Generated random data with shape: (1000, 1000)
+2025-05-30 21:14:17 - INFO - Method: pearson
+  Data shape: (1000, 1000)
+  Time taken: 0.05 seconds
+  Result memory: 7.63 MB
+  Result shape: (1000, 1000)
+2025-05-30 21:14:17 - INFO - Method: spearman
+  Data shape: (1000, 1000)
+  Time taken: 0.09 seconds
+  Result memory: 7.63 MB
+  Result shape: (1000, 1000)
+2025-05-30 21:14:17 - INFO -
+==================================================
+2025-05-30 21:14:17 - INFO - Benchmarking shape: (2000, 1000)
+2025-05-30 21:14:17 - INFO - ==================================================
+2025-05-30 21:14:17 - INFO - Generated random data with shape: (2000, 1000)
+2025-05-30 21:14:17 - INFO - Method: pearson
+  Data shape: (2000, 1000)
+  Time taken: 0.14 seconds
+  Result memory: 30.52 MB
+  Result shape: (2000, 2000)
+2025-05-30 21:14:17 - INFO - Method: spearman
+  Data shape: (2000, 1000)
+  Time taken: 0.24 seconds
+  Result memory: 30.52 MB
+  Result shape: (2000, 2000)
+2025-05-30 21:14:17 - INFO -
+==================================================
+2025-05-30 21:14:17 - INFO - Benchmarking shape: (4000, 1000)
+2025-05-30 21:14:17 - INFO - ==================================================
+2025-05-30 21:14:17 - INFO - Generated random data with shape: (4000, 1000)
+2025-05-30 21:14:18 - INFO - Method: pearson
+  Data shape: (4000, 1000)
+  Time taken: 0.49 seconds
+  Result memory: 122.07 MB
+  Result shape: (4000, 4000)
+2025-05-30 21:14:19 - INFO - Method: spearman
+  Data shape: (4000, 1000)
+  Time taken: 0.68 seconds
+  Result memory: 122.07 MB
+  Result shape: (4000, 4000)
+2025-05-30 21:14:19 - INFO -
+==================================================
+2025-05-30 21:14:19 - INFO - Benchmarking shape: (6000, 1000)
+2025-05-30 21:14:19 - INFO - ==================================================
+2025-05-30 21:14:19 - INFO - Generated random data with shape: (6000, 1000)
+2025-05-30 21:14:20 - INFO - Method: pearson
+  Data shape: (6000, 1000)
+  Time taken: 1.09 seconds
+  Result memory: 274.66 MB
+  Result shape: (6000, 6000)
+2025-05-30 21:14:21 - INFO - Method: spearman
+  Data shape: (6000, 1000)
+  Time taken: 1.38 seconds
+  Result memory: 274.66 MB
+  Result shape: (6000, 6000)
+2025-05-30 21:14:21 - INFO -
+==================================================
+2025-05-30 21:14:21 - INFO - Benchmarking shape: (8000, 1000)
+2025-05-30 21:14:21 - INFO - ==================================================
+2025-05-30 21:14:21 - INFO - Generated random data with shape: (8000, 1000)
+2025-05-30 21:14:23 - INFO - Method: pearson
+  Data shape: (8000, 1000)
+  Time taken: 1.97 seconds
+  Result memory: 488.28 MB
+  Result shape: (8000, 8000)
+2025-05-30 21:14:26 - INFO - Method: spearman
+  Data shape: (8000, 1000)
+  Time taken: 2.44 seconds
+  Result memory: 488.28 MB
+  Result shape: (8000, 8000)
+2025-05-30 21:14:26 - INFO -
+==================================================
+2025-05-30 21:14:26 - INFO - Benchmarking shape: (10000, 1000)
+2025-05-30 21:14:26 - INFO - ==================================================
+2025-05-30 21:14:26 - INFO - Generated random data with shape: (10000, 1000)
+2025-05-30 21:14:30 - INFO - Method: pearson
+  Data shape: (10000, 1000)
+  Time taken: 3.45 seconds
+  Result memory: 762.94 MB
+  Result shape: (10000, 10000)
+2025-05-30 21:14:34 - INFO - Method: spearman
+  Data shape: (10000, 1000)
+  Time taken: 4.38 seconds
+  Result memory: 762.94 MB
+  Result shape: (10000, 10000)
+2025-05-30 21:14:34 - INFO -
+==================================================
+2025-05-30 21:14:34 - INFO - Benchmarking shape: (16000, 1000)
+2025-05-30 21:14:34 - INFO - ==================================================
+2025-05-30 21:14:34 - INFO - Generated random data with shape: (16000, 1000)
+2025-05-30 21:14:44 - INFO - Method: pearson
+  Data shape: (16000, 1000)
+  Time taken: 9.31 seconds
+  Result memory: 1953.13 MB
+  Result shape: (16000, 16000)
+2025-05-30 21:14:55 - INFO - Method: spearman
+  Data shape: (16000, 1000)
+  Time taken: 11.17 seconds
+  Result memory: 1953.13 MB
+  Result shape: (16000, 16000)
+2025-05-30 21:14:55 - INFO -
+==================================================
+2025-05-30 21:14:55 - INFO - Benchmarking shape: (20000, 1000)
+2025-05-30 21:14:55 - INFO - ==================================================
+2025-05-30 21:14:55 - INFO - Generated random data with shape: (20000, 1000)
+2025-05-30 21:15:13 - INFO - Method: pearson
+  Data shape: (20000, 1000)
+  Time taken: 17.24 seconds
+  Result memory: 3051.76 MB
+  Result shape: (20000, 20000)
+2025-05-30 21:15:34 - INFO - Method: spearman
+  Data shape: (20000, 1000)
+  Time taken: 20.28 seconds
+  Result memory: 3051.76 MB
+  Result shape: (20000, 20000)
+2025-05-30 21:15:34 - INFO - Saved benchmark results to: /home/haoyu/_database/projs/ccc-gpu/nbs/_preprint/05_benchmark/logs/benchmark_results_20250530_211534.csv
