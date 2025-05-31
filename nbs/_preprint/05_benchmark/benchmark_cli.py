@@ -33,7 +33,7 @@ BENCHMARK_SHAPES = [
 ]
 
 # Configuration constants
-N_CPU_CORES = 24
+N_CPU_CORES = 12
 
 
 def setup_logging(log_dir: Path = None) -> None:

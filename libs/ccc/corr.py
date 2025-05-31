@@ -26,7 +26,7 @@ def pearson(data: pd.DataFrame) -> pd.DataFrame:
     """
     Compute the Pearson correlation coefficient.
     """
-    corr_mat = 1 - pairwise_distances(data.to_numpy(), metric="correlation", n_jobs=1)
+    corr_mat = 1 - pairwise_distances(data.to_numpy(), metric="correlation", n_jobs=12)
 
     np.fill_diagonal(corr_mat, 1.0)
 
@@ -44,7 +44,7 @@ def spearman(data: pd.DataFrame) -> pd.DataFrame:
     # compute ranks
     data = data.rank(axis=1)
 
-    corr_mat = 1 - pairwise_distances(data.to_numpy(), metric="correlation", n_jobs=1)
+    corr_mat = 1 - pairwise_distances(data.to_numpy(), metric="correlation", n_jobs=12)
 
     np.fill_diagonal(corr_mat, 1.0)
 
