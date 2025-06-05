@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 #include <cub/block/block_load.cuh>
+#include <spdlog/spdlog.h>
 
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
@@ -380,7 +381,7 @@ auto ari_core_device(const T *parts,
     /*
      * Show debugging and device information
      */
-    // printf("Max shared memory per block: %zu bytes\n", get_max_shared_memory_per_block());
+    // spdlog::debug("Max shared memory per block: {} bytes", get_max_shared_memory_per_block());
 
     // Input validation
     if (!parts || n_features == 0 || n_parts == 0 || n_objs == 0)
@@ -405,7 +406,7 @@ auto ari_core_device(const T *parts,
      * Memory Allocation
      */
     // Track memory before allocations
-    std::cout << "\nMemory before device allocations: ";
+    spdlog::debug("Memory before device allocations: ");
     size_t before_device_mem = print_cuda_memory_info();
 
     // Create device vectors using unique_ptr
@@ -415,9 +416,9 @@ auto ari_core_device(const T *parts,
     auto d_out = std::make_unique<thrust::device_vector<R>>(actual_batch_size, std::numeric_limits<R>::quiet_NaN());
 
     // Track memory after allocations
-    std::cout << "Memory after device allocations: ";
+    spdlog::debug("Memory after device allocations: ");
     size_t after_device_mem = print_cuda_memory_info();
-    std::cout << "  Device memory used: " << (before_device_mem - after_device_mem) / 1024 / 1024 << " MB" << std::endl;
+    spdlog::debug("  Device memory used: {} MB", (before_device_mem - after_device_mem) / 1024 / 1024);
 
     // Define shared memory size for each block
     // Pre-compute the max value of the partitions
@@ -444,10 +445,9 @@ auto ari_core_device(const T *parts,
     const auto block_size = 128;
 
     // Track memory before kernel launch
-    std::cout << "Memory before kernel launch: ";
+    spdlog::debug("Memory before kernel launch: ");
     before_device_mem = print_cuda_memory_info();
 
-    // throw std::runtime_error("test");
     // Launch the kernel
     ari_kernel<<<grid_size, block_size, s_mem_size>>>(
         thrust::raw_pointer_cast(d_parts->data()),
@@ -462,18 +462,12 @@ auto ari_core_device(const T *parts,
         thrust::raw_pointer_cast(d_out->data()));
 
     // Track memory after kernel launch
-    std::cout << "Memory after kernel launch: ";
+    spdlog::debug("Memory after kernel launch: ");
     after_device_mem = print_cuda_memory_info();
-    std::cout << "  Device memory used in kernel: " << (before_device_mem - after_device_mem)  << " bytes" << std::endl;
+    spdlog::debug("  Device memory used in kernel: {} bytes", (before_device_mem - after_device_mem));
 
     // Return the device vector
-    // d_parts.clear();
-    // thrust::device_vector<T>().swap(d_parts);
-    // d_out.clear();
-    // thrust::device_vector<R>().swap(d_out);
-    // d_parts.reset();
-    // d_out.reset();
-    std::cout << "Debug: d_out->size() = " << d_out->size() << std::endl;
+    spdlog::debug("Debug: d_out->size() = {}", d_out->size());
     return d_out;
 }
 

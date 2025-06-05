@@ -209,65 +209,54 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         const uint64_t current_batch_size = std::min(batch_n_aris, n_aris - batch_start);
         spdlog::debug("  Current batch size: {}", current_batch_size);
 
-        try
+        // Compute the ARIs for this batch
+        const auto d_aris = ari_core_device<T, R>(
+            parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
+
+        // Configure kernel launch parameters for this batch
+        const int threadsPerBlock = 128;
+        const int numBlocks = current_batch_size / (n_partitions * n_partitions);
+        spdlog::debug("  Launching reduction kernel with {} blocks, {} threads per block",
+                        numBlocks, threadsPerBlock);
+
+        // Launch kernel to find maximum values on device for this batch
+        findMaxAriKernel<R><<<numBlocks, threadsPerBlock>>>(
+            thrust::raw_pointer_cast(d_aris->data()),
+            thrust::raw_pointer_cast(d_cm_values.data()),
+            n_partitions,
+            reduction_range);
+
+        // Check for kernel errors
+        cudaError_t kernelError = cudaGetLastError();
+        if (kernelError != cudaSuccess)
         {
-            // Compute the ARIs for this batch
-            const auto d_aris = ari_core_device<T, R>(
-                parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
-
-            // Configure kernel launch parameters for this batch
-            const int threadsPerBlock = 128;
-            const int numBlocks = current_batch_size / (n_partitions * n_partitions);
-            spdlog::debug("  Launching reduction kernel with {} blocks, {} threads per block",
-                          numBlocks, threadsPerBlock);
-
-            // Launch kernel to find maximum values on device for this batch
-            findMaxAriKernel<R><<<numBlocks, threadsPerBlock>>>(
-                thrust::raw_pointer_cast(d_aris->data()),
-                thrust::raw_pointer_cast(d_cm_values.data()),
-                n_partitions,
-                reduction_range);
-
-            // Check for kernel errors
-            cudaError_t kernelError = cudaGetLastError();
-            if (kernelError != cudaSuccess)
-            {
-                throw std::runtime_error("Kernel launch failed: " + std::string(cudaGetErrorString(kernelError)));
-            }
-
-            // Synchronize to ensure kernel completion
-            cudaError_t syncError = cudaDeviceSynchronize();
-            if (syncError != cudaSuccess)
-            {
-                throw std::runtime_error("Device synchronization failed: " + std::string(cudaGetErrorString(syncError)));
-            }
-
-            // Copy reduced results back to host
-            thrust::copy(d_cm_values.begin(), d_cm_values.begin() + current_batch_size / (n_partitions * n_partitions),
-                         batch_cm_values.begin());
-
-            // Update the main cm_values array with the batch results
-            for (uint64_t i = 0; i < current_batch_size / (n_partitions * n_partitions); ++i)
-            {
-                const uint64_t global_idx = batch_start / (n_partitions * n_partitions) + i;
-                if (global_idx < n_feature_comp)
-                {
-                    cm_values[global_idx] = batch_cm_values[i];
-                }
-            }
-
-            spdlog::debug("  Memory after batch: ");
-            size_t after_mem = print_cuda_memory_info();
-            spdlog::debug("  Memory used in batch: {} MB", (before_mem - after_mem) / 1024 / 1024);
+            throw std::runtime_error("Kernel launch failed: " + std::string(cudaGetErrorString(kernelError)));
         }
-        catch (const std::exception &e)
+
+        // Synchronize to ensure kernel completion
+        cudaError_t syncError = cudaDeviceSynchronize();
+        if (syncError != cudaSuccess)
         {
-            spdlog::error("Error in batch processing:");
-            spdlog::error("  Batch start: {}", batch_start);
-            spdlog::error("  Batch size: {}", current_batch_size);
-            spdlog::error("  Error: {}", e.what());
-            throw; // Re-throw to maintain error propagation
+            throw std::runtime_error("Device synchronization failed: " + std::string(cudaGetErrorString(syncError)));
         }
+
+        // Copy reduced results back to host
+        thrust::copy(d_cm_values.begin(), d_cm_values.begin() + current_batch_size / (n_partitions * n_partitions),
+                        batch_cm_values.begin());
+
+        // Update the main cm_values array with the batch results
+        for (uint64_t i = 0; i < current_batch_size / (n_partitions * n_partitions); ++i)
+        {
+            const uint64_t global_idx = batch_start / (n_partitions * n_partitions) + i;
+            if (global_idx < n_feature_comp)
+            {
+                cm_values[global_idx] = batch_cm_values[i];
+            }
+        }
+
+        spdlog::debug("  Memory after batch: ");
+        size_t after_mem = print_cuda_memory_info();
+        spdlog::debug("  Memory used in batch: {} MB", (before_mem - after_mem) / 1024 / 1024);
     }
 
     // Allocate py::arrays for the results

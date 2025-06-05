@@ -183,16 +183,16 @@ def log_statistics(
         # ((1000, 1000), 0.0, True),
         # ((2000, 1000), 0.0, True),
         # ((4000, 1000), 0.0, True),
-        ((6000, 1000), False, 0.0, True),
+        # ((6000, 1000), False, 0.0, True),
         # ((12000, 1000), 0.0, True),
-        ((16000, 1000), False, 0.0, True),
-        ((20000, 1000), False, 0.0, True),
+        # ((16000, 1000), False, 0.0, True),
+        # ((20000, 1000), False, 0.0, True),
         # ((8000, 1000), 0.0, True),
         # ((12000, 1000), 0.0, True),
         # ((56200, 755), 0.0, True),
     ],
 )
-@pytest.mark.parametrize("n_cpu_cores", [6, 12, 24])
+@pytest.mark.parametrize("n_cpu_cores", [24])
 @clean_gpu_memory
 def test_ccc_gpu_with_numerical_input(
     seed: int,

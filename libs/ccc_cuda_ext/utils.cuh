@@ -25,6 +25,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 /**
  * @brief Main error checking macro for CUDA operations
@@ -74,7 +75,7 @@ inline void gpu_assert(cudaError_t code, const char *file, int line, bool abort 
 {
     if (code != cudaSuccess)
     {
-        fprintf(stderr, "CUDA Error: %s at %s:%d\n", cudaGetErrorString(code), file, line);
+        spdlog::error("CUDA Error: {} at {}:{}", cudaGetErrorString(code), file, line);
         if (abort)
         {
             exit(code);
@@ -104,7 +105,7 @@ inline void check_cuda_device()
     CUDA_CHECK_MANDATORY(cudaGetDeviceCount(&deviceCount));
     if (deviceCount == 0)
     {
-        fprintf(stderr, "No CUDA devices available\n");
+        spdlog::error("No CUDA devices available");
         exit(-1);
     }
 }
@@ -205,26 +206,25 @@ inline void print_cuda_device_info(int device_id = 0)
     CUDA_CHECK_MANDATORY(cudaSetDevice(device_id));
     cudaDeviceProp deviceProp;
     CUDA_CHECK_MANDATORY(cudaGetDeviceProperties(&deviceProp, device_id));
-    std::cout << "Device " << device_id << ": \"" << deviceProp.name << "\"" << std::endl;
+    spdlog::debug("Device {}: \"{}\"", device_id, deviceProp.name);
 
     cudaDriverGetVersion(&driverVersion);
     cudaRuntimeGetVersion(&runtimeVersion);
-    std::cout << "  CUDA Driver Version / Runtime Version          "
-              << driverVersion / 1000 << "." << (driverVersion % 100) / 10 << " / "
-              << runtimeVersion / 1000 << "." << (runtimeVersion % 100) / 10 << std::endl;
-    std::cout << "  CUDA Capability Major/Minor version number:    "
-              << deviceProp.major << "." << deviceProp.minor << std::endl;
-    std::cout << "  Total amount of global memory:                 "
-              << std::fixed << std::setprecision(2)
-              << (float)deviceProp.totalGlobalMem / pow(1024.0, 3) << " GBytes ("
-              << (unsigned long long)deviceProp.totalGlobalMem << " bytes)" << std::endl;
-    std::cout << "  GPU Clock rate:                                "
-              << std::fixed << std::setprecision(0) << deviceProp.clockRate * 1e-3f << " MHz ("
-              << std::fixed << std::setprecision(2) << deviceProp.clockRate * 1e-6f << " GHz)" << std::endl;
-    std::cout << "  Memory Clock rate:                             "
-              << std::fixed << std::setprecision(0) << deviceProp.memoryClockRate * 1e-3f << " Mhz" << std::endl;
-    std::cout << "  Memory Bus Width:                              "
-              << deviceProp.memoryBusWidth << "-bit" << std::endl;
+    spdlog::debug("  CUDA Driver Version / Runtime Version          {}.{} / {}.{}",
+                 driverVersion / 1000, (driverVersion % 100) / 10,
+                 runtimeVersion / 1000, (runtimeVersion % 100) / 10);
+    spdlog::debug("  CUDA Capability Major/Minor version number:    {}.{}",
+                 deviceProp.major, deviceProp.minor);
+    spdlog::debug("  Total amount of global memory:                 {:.2f} GBytes ({} bytes)",
+                 (float)deviceProp.totalGlobalMem / pow(1024.0, 3),
+                 (unsigned long long)deviceProp.totalGlobalMem);
+    spdlog::debug("  GPU Clock rate:                                {:.0f} MHz ({:.2f} GHz)",
+                 deviceProp.clockRate * 1e-3f,
+                 deviceProp.clockRate * 1e-6f);
+    spdlog::debug("  Memory Clock rate:                             {:.0f} Mhz",
+                 deviceProp.memoryClockRate * 1e-3f);
+    spdlog::debug("  Memory Bus Width:                              {}-bit",
+                 deviceProp.memoryBusWidth);
 }
 
 /**
@@ -273,8 +273,8 @@ inline size_t print_cuda_memory_info(int device_id = 0)
         }
     };
 
-    std::cout << "Free memory: " << format_memory(free_mem)
-              << ", Total memory: " << format_memory(total_mem) << std::endl;
+    spdlog::debug("Free memory: {}, Total memory: {}",
+                 format_memory(free_mem), format_memory(total_mem));
     return free_mem;
 }
 
@@ -295,7 +295,7 @@ inline size_t print_host_memory_info()
     FILE *file = fopen("/proc/self/status", "r");
     if (!file)
     {
-        std::cerr << "Failed to open /proc/self/status" << std::endl;
+        spdlog::error("Failed to open /proc/self/status");
         return 0;
     }
 
@@ -320,7 +320,7 @@ inline size_t print_host_memory_info()
     vm_size = vm_size / 1024;
     vm_rss = vm_rss / 1024;
 
-    std::cout << "Host Memory Usage: " << vm_rss << " MB (RSS), " << vm_size << " MB (Virtual)" << std::endl;
+    spdlog::debug("Host Memory Usage: {} MB (RSS), {} MB (Virtual)", vm_rss, vm_size);
     return vm_rss;
 }
 
