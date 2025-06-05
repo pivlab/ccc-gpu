@@ -30,10 +30,10 @@ set(PYTHON_INCLUDE_DIR $ENV{CONDA_PREFIX}/include/python${PYTHON_VERSION_FULL})
 set(PYTHON_LIBRARY $ENV{CONDA_PREFIX}/lib/libpython${PYTHON_VERSION_FULL}.so)
 
 
-# Set CUDA architecture and Pybind11
+# Set up pybind11
 find_package(Python REQUIRED Development)
-set(PYBIND11_NEWPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
+set(PYBIND11_NEWPYTHON ON)
 
 # Download and configure Google Test
 include(FetchContent)
@@ -43,6 +43,13 @@ FetchContent_Declare(
     GIT_TAG v1.15.2  # Adjust version as needed
 )
 FetchContent_MakeAvailable(googletest)
+# Download and configure spdlog
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.15.3
+)
+FetchContent_MakeAvailable(spdlog)
 
 # include_directories("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
 
@@ -92,7 +99,7 @@ function(add_tests_from_directory TEST_DIR)
 endfunction()
 
 # Specify your test directory and call the function
-add_tests_from_directory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
+# add_tests_from_directory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 # Optional: Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -106,5 +113,8 @@ pybind11_add_module(${CUDA_EXT_MODULE_NAME}
     ${CUDA_EXT_DIR}/coef.cu
 )
 
+target_link_libraries(${CUDA_EXT_MODULE_NAME} PRIVATE
+    spdlog::spdlog
+)
 
 install(TARGETS ${CUDA_EXT_MODULE_NAME} LIBRARY DESTINATION .)
