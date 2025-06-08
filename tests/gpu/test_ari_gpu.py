@@ -46,7 +46,7 @@ def generate_pairwise_combinations(arr):
         (2, 2, 100, 2, 42),
         (5, 10, 200, 2, 42),
         (2, 2, 1024, 2, 42),
-        (200, 20, 300, 10, 42),
+        (50, 10, 2048, 10, 42),
     ],
 )
 def test_pairwise_ari(n_features, n_parts, n_objs, k, seed):
