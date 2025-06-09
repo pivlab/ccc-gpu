@@ -22,25 +22,52 @@ namespace py = pybind11;
 // Debug mode macro - set to 1 to enable debug output, 0 to disable
 #define DEBUG_MODE 1
 
+/**
+ * @brief CUDA kernel to find maximum ARI values and their corresponding partition pairs
+ *
+ * This kernel processes a range of ARIs for a single feature comparison and finds:
+ * 1. The maximum ARI value
+ * 2. The partition pair (m,n) that achieved this maximum
+ *
+ * @tparam T The floating-point type for ARI values (float or double)
+ * @param aris Input array of ARI values
+ * @param max_parts Output array for partition pairs that achieved maximum ARIs
+ * @param cm_values Output array for maximum ARI values
+ * @param n_partitions Number of partitions to consider
+ * @param reduction_range Number of partition pairs to process per feature comparison
+ */
 template <typename T>
 __global__ void findMaxAriKernel(const T *aris,
-                                 unsigned int *max_parts,
+                                 uint8_t *max_parts,
                                  T *cm_values,
                                  const int n_partitions,
                                  const int reduction_range)
 {
-    // Each block handles one feature comparison
+    /*
+     * Thread and Block Setup
+     * --------------------
+     * Each block handles one feature comparison, with threads collaboratively
+     * processing all partition pairs for that comparison.
+     */
     const uint64_t comp_idx = blockIdx.x;
-
-    // Calculate start index for this feature comparison
     const uint64_t reduce_start_idx = comp_idx * reduction_range;
 
-    // Thread-local variables for reduction
+    /*
+     * Thread-local Reduction Variables
+     * -----------------------------
+     * Each thread maintains its own maximum value and index,
+     * which will be reduced across the block later.
+     */
     uint64_t max_idx = UINT64_MAX;
     T max_val = -1.0f;
     bool has_nan = false;
 
-    // Have threads collaboratively process all partition pairs
+    /*
+     * Initial Reduction Phase
+     * ---------------------
+     * Each thread processes a subset of partition pairs to find local maximum.
+     * Handles NaN values by marking them and skipping in the reduction.
+     */
     for (uint64_t i = threadIdx.x; i < reduction_range; i += blockDim.x)
     {
         uint64_t idx = reduce_start_idx + i;
@@ -60,20 +87,33 @@ __global__ void findMaxAriKernel(const T *aris,
         }
     }
 
-    // If thread 0 found NaN, set output to NaN and return
+    /*
+     * NaN Handling
+     * -----------
+     * If any thread found a NaN, the entire feature comparison is marked as invalid.
+     */
     if (threadIdx.x == 0 && has_nan)
     {
         cm_values[comp_idx] = NAN;
-        max_parts[comp_idx * 2] = UINT_MAX;
-        max_parts[comp_idx * 2 + 1] = UINT_MAX;
+        max_parts[comp_idx * 2] = UINT8_MAX;
+        max_parts[comp_idx * 2 + 1] = UINT8_MAX;
         return;
     }
 
-    // Shared memory for block reduction
+    /*
+     * Block-level Reduction Setup
+     * -------------------------
+     * Prepare shared memory for CUB block reduction operations.
+     * We need separate storage for values and indices.
+     */
     __shared__ typename cub::BlockReduce<T, 128>::TempStorage temp_storage_val;
     __shared__ typename cub::BlockReduce<uint64_t, 128>::TempStorage temp_storage_idx;
 
-    // Pair-wise reduction within the block
+    /*
+     * Value Reduction
+     * -------------
+     * First reduce to find the maximum ARI value across all threads.
+     */
     struct
     {
         T val;
@@ -83,10 +123,15 @@ __global__ void findMaxAriKernel(const T *aris,
     in.val = max_val;
     in.idx = max_idx;
 
-    // Find the maximum value and its index within the block
+    // Find the maximum value within the block
     T max_block_val = cub::BlockReduce<T, 128>(temp_storage_val).Reduce(in.val, cub::Max());
 
-    // Only threads with the max value participate in index selection
+    /*
+     * Index Selection
+     * -------------
+     * After finding the maximum value, select the smallest index
+     * among threads that found this maximum value.
+     */
     __syncthreads();
 
     uint64_t selected_idx = UINT64_MAX;
@@ -99,16 +144,22 @@ __global__ void findMaxAriKernel(const T *aris,
     uint64_t min_idx = cub::BlockReduce<uint64_t, 128>(temp_storage_idx).Reduce(selected_idx, [](uint64_t a, uint64_t b)
                                                                                 { return (a == UINT64_MAX) ? b : ((b == UINT64_MAX) ? a : min(a, b)); });
 
-    // Thread 0 writes the results
+    /*
+     * Result Writing
+     * ------------
+     * Thread 0 writes the final results for this feature comparison.
+     * Converts the linear index back to partition pair (m,n).
+     */
     if (threadIdx.x == 0)
     {
+        // Store the maximum ARI value
         cm_values[comp_idx] = max_block_val > 0.0f ? max_block_val : 0.0f;
 
-        // Unravel the index to get partition indices
-        unsigned int m, n;
-        m = min_idx / n_partitions;
-        n = min_idx % n_partitions;
+        // Convert linear index to partition pair
+        unsigned int m = min_idx / n_partitions;
+        unsigned int n = min_idx % n_partitions;
 
+        // Store the partition pair
         max_parts[comp_idx * 2] = m;
         max_parts[comp_idx * 2 + 1] = n;
     }
@@ -121,7 +172,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const size_t n_partitions,
                   const size_t n_objects,
                   const bool return_parts,
-                  std::optional<unsigned int> pvalue_n_perms) -> py::object
+                  std::optional<uint32_t> pvalue_n_perms) -> py::object
 {
     // Check CUDA info
     spdlog::debug("CUDA Device Info:");
@@ -129,13 +180,23 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     spdlog::debug("CUDA Memory Info:");
     print_cuda_memory_info();
 
-    // Batch-computing configs, to be tuned and dynamically set based on the GPU memory size
+    /*
+     * Configuration and Constants
+     * --------------------------
+     * These values determine the batch processing parameters and memory allocation sizes.
+     * They should be tuned based on available GPU memory and performance requirements.
+     */
     const uint64_t batch_n_features = 5000;
-    const uint64_t batch_n_parts = n_partitions; // k from 2 to 10
+    const uint64_t batch_n_parts = n_partitions;
     const uint64_t batch_n_feature_comp = batch_n_features * (batch_n_features - 1) / 2;
     const uint64_t batch_n_aris = batch_n_feature_comp * batch_n_parts * batch_n_parts;
 
-    // Pre-computation
+    /*
+     * Pre-computation of Array Sizes
+     * -----------------------------
+     * Calculate the total number of comparisons and ARIs to be processed.
+     * Includes overflow checks to prevent undefined behavior.
+     */
     // Check for overflow in n_feature_comp calculation
     if (n_features > 1 && n_features > UINT64_MAX / (n_features - 1))
     {
@@ -164,15 +225,22 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     spdlog::debug("  n_aris: {}", n_aris);
     spdlog::debug("  batch_n_aris: {}", batch_n_aris);
 
-    // Allocate host memory for results
+    /*
+     * Host-side Memory Allocation
+     * --------------------------
+     * Allocate memory for the final results that will be returned to Python.
+     * These arrays store the maximum ARI values and their corresponding partition pairs.
+     */
     spdlog::debug("Allocating host memory...");
     spdlog::debug("  Memory before allocation: ");
     size_t before_host_mem = print_host_memory_info();
 
+    // Main result containers
     std::vector<R> cm_values(n_feature_comp, std::numeric_limits<R>::quiet_NaN());
-    std::vector<R> cm_pvalues;
-    std::vector<unsigned int> max_parts(n_feature_comp * 2, UINT_MAX);
+    std::vector<uint8_t> max_parts(n_feature_comp * 2, UINT8_MAX);
 
+    // Optional p-value container
+    std::vector<R> cm_pvalues;
     if (pvalue_n_perms.has_value())
     {
         cm_pvalues.resize(n_feature_comp, std::numeric_limits<R>::quiet_NaN());
@@ -182,23 +250,36 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     size_t after_host_mem = print_host_memory_info();
     spdlog::debug("  Memory used: {} MB", (after_host_mem - before_host_mem));
 
-    // Pre-allocate device memory for the maximum batch size
+    /*
+     * Device-side Memory Allocation
+     * ---------------------------
+     * Pre-allocate device memory for batch processing.
+     * These vectors are reused for each batch to minimize memory allocation overhead.
+     */
     const uint64_t max_batch_feature_comp = batch_n_feature_comp;
     spdlog::debug("Allocating device memory...");
     spdlog::debug("  max_batch_feature_comp: {}", max_batch_feature_comp);
     spdlog::debug("  Memory before allocation: ");
     size_t before_mem = print_cuda_memory_info();
 
+    // Device vectors for batch processing
     thrust::device_vector<R> d_cm_values(max_batch_feature_comp, std::numeric_limits<R>::quiet_NaN());
-    thrust::device_vector<unsigned int> d_max_parts(max_batch_feature_comp * 2, UINT_MAX);
+    thrust::device_vector<uint8_t> d_max_parts(max_batch_feature_comp * 2, UINT8_MAX);
+
+    // Host vectors for batch results
     std::vector<R> batch_cm_values(max_batch_feature_comp);
-    std::vector<unsigned int> batch_max_parts(max_batch_feature_comp * 2);
+    std::vector<uint8_t> batch_max_parts(max_batch_feature_comp * 2);
 
     spdlog::debug("  Memory after allocation: ");
     size_t after_mem = print_cuda_memory_info();
     spdlog::debug("  Memory used: {} MB", (before_mem - after_mem) / 1024 / 1024);
 
-    // Process ARIs in batches
+    /*
+     * Batch Processing Loop
+     * -------------------
+     * Process ARIs in batches to manage memory usage and improve performance.
+     * Each batch computes a subset of feature comparisons.
+     */
     for (uint64_t batch_start = 0; batch_start < n_aris; batch_start += batch_n_aris)
     {
         spdlog::debug("Processing batch {} of {}",
@@ -213,17 +294,17 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         const uint64_t current_batch_size = std::min(batch_n_aris, n_aris - batch_start);
         spdlog::debug("  Current batch size: {}", current_batch_size);
 
-        // Compute the ARIs for this batch
+        // Compute ARIs for this batch
         const auto d_aris = ari_core_device<T, R>(
             parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
 
-        // Configure kernel launch parameters for this batch
+        // Configure kernel launch parameters
         const int threadsPerBlock = 128;
         const int numBlocks = current_batch_size / (n_partitions * n_partitions);
         spdlog::debug("  Launching reduction kernel with {} blocks, {} threads per block",
                       numBlocks, threadsPerBlock);
 
-        // Launch kernel to find maximum values on device for this batch
+        // Launch kernel to find maximum values and their partition pairs
         findMaxAriKernel<R><<<numBlocks, threadsPerBlock>>>(
             thrust::raw_pointer_cast(d_aris->data()),
             thrust::raw_pointer_cast(d_max_parts.data()),
@@ -245,13 +326,13 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             throw std::runtime_error("Device synchronization failed: " + std::string(cudaGetErrorString(syncError)));
         }
 
-        // Copy reduced results back to host
+        // Copy batch results back to host
         thrust::copy(d_cm_values.begin(), d_cm_values.begin() + current_batch_size / (n_partitions * n_partitions),
                      batch_cm_values.begin());
         thrust::copy(d_max_parts.begin(), d_max_parts.begin() + (current_batch_size / (n_partitions * n_partitions)) * 2,
                      batch_max_parts.begin());
 
-        // Update the main arrays with the batch results
+        // Update main result arrays with batch results
         for (uint64_t i = 0; i < current_batch_size / (n_partitions * n_partitions); ++i)
         {
             const uint64_t global_idx = batch_start / (n_partitions * n_partitions) + i;
@@ -268,14 +349,17 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         spdlog::debug("  Memory used in batch: {} MB", (before_mem - after_mem) / 1024 / 1024);
     }
 
-    // Allocate py::arrays for the results
+    /*
+     * Prepare Return Values
+     * -------------------
+     * Convert the results to numpy arrays and return them as a tuple.
+     */
     const auto cm_values_py = py::array_t<R>(cm_values.size(), cm_values.data());
     const auto cm_pvalues_py = pvalue_n_perms.has_value()
                                    ? py::object(py::array_t<R>(cm_pvalues.size(), cm_pvalues.data()))
                                    : py::object(py::none());
-    const auto max_parts_py = py::array_t<unsigned int>(max_parts.size(), max_parts.data());
+    const auto max_parts_py = py::array_t<uint8_t>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, static_cast<uint64_t>(2)});
 
-    // Return the results as a tuple
     return py::make_tuple(
         cm_values_py,
         cm_pvalues_py,
