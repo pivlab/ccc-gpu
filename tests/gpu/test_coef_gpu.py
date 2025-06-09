@@ -62,14 +62,14 @@ def test_example_return_optional_vectors_types():
 @pytest.mark.parametrize(
     "parts, expected_ari",
     [
-        (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 2]]], dtype=np.int32), 0.57),
-        (np.array([[[0, 0, 1, 1]], [[0, 1, 0, 1]]], dtype=np.int32), 0.0),  # -0.5
-        (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 1]]], dtype=np.int32), 1.0),
-        (np.array([[[0, 0, 1, 1]], [[1, 1, 0, 0]]], dtype=np.int32), 1.0),
-        (np.array([[[0, 0, 1, 1]], [[2, 1, 2, 0]]], dtype=np.int32), 0.0),  # -0.287
-        (np.array([[[0, 0, 0, 0]], [[0, 1, 2, 3]]], dtype=np.int32), 0.0),
-        (np.array([[[0, 1, 0, 1]], [[1, 1, 0, 0]]], dtype=np.int32), 0.0),  # -0.5
-        (np.array([[[1, 1, 0, 0]], [[0, 0, 1, 2]]], dtype=np.int32), 0.57),
+        (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 2]]], dtype=np.int8), 0.57),
+        (np.array([[[0, 0, 1, 1]], [[0, 1, 0, 1]]], dtype=np.int8), 0.0),  # -0.5
+        (np.array([[[0, 0, 1, 1]], [[0, 0, 1, 1]]], dtype=np.int8), 1.0),
+        (np.array([[[0, 0, 1, 1]], [[1, 1, 0, 0]]], dtype=np.int8), 1.0),
+        (np.array([[[0, 0, 1, 1]], [[2, 1, 2, 0]]], dtype=np.int8), 0.0),  # -0.287
+        (np.array([[[0, 0, 0, 0]], [[0, 1, 2, 3]]], dtype=np.int8), 0.0),
+        (np.array([[[0, 1, 0, 1]], [[1, 1, 0, 0]]], dtype=np.int8), 0.0),  # -0.5
+        (np.array([[[1, 1, 0, 0]], [[0, 0, 1, 2]]], dtype=np.int8), 0.57),
     ],
 )
 def test_compute_coef_simple_2_1_4(parts, expected_ari):
@@ -93,7 +93,7 @@ def test_compute_coef_simple_2_1_4(parts, expected_ari):
                     [[0, 1, 0, 1]],
                     [[1, 1, 0, 0]],
                 ],
-                dtype=np.int32,
+                dtype=np.int8,
             ),
             # np.array([1.0, -0.5, 1.0, -0.5, 1.0, -0.5]),
             np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0]),
@@ -121,7 +121,7 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
                     [[0, 1, 0, 1], [2, 1, 2, 0]],  # Feature 1 with 2 partitions
                     [[0, 0, 1, 2], [0, 1, 0, 1]],  # Feature 2 with 2 partitions
                 ],
-                dtype=np.int32,
+                dtype=np.int8,
             ),
             np.array(
                 [
@@ -136,7 +136,7 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
                     [0, 0],
                     [0, 0],  # TODO: double check this case
                 ],
-                dtype=np.int32,
+                dtype=np.int8,
             ),
         ),
     ],
