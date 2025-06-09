@@ -24,7 +24,7 @@ namespace py = pybind11;
 
 template <typename T>
 __global__ void findMaxAriKernel(const T *aris,
-                                 // unsigned int* max_parts,
+                                 unsigned int *max_parts,
                                  T *cm_values,
                                  const int n_partitions,
                                  const int reduction_range)
@@ -64,6 +64,8 @@ __global__ void findMaxAriKernel(const T *aris,
     if (threadIdx.x == 0 && has_nan)
     {
         cm_values[comp_idx] = NAN;
+        max_parts[comp_idx * 2] = UINT_MAX;
+        max_parts[comp_idx * 2 + 1] = UINT_MAX;
         return;
     }
 
@@ -100,16 +102,15 @@ __global__ void findMaxAriKernel(const T *aris,
     // Thread 0 writes the results
     if (threadIdx.x == 0)
     {
-
         cm_values[comp_idx] = max_block_val > 0.0f ? max_block_val : 0.0f;
 
         // Unravel the index to get partition indices
-        // unsigned int m, n;
-        // m = min_idx / n_partitions;
-        // n = min_idx % n_partitions;
+        unsigned int m, n;
+        m = min_idx / n_partitions;
+        n = min_idx % n_partitions;
 
-        // max_parts[comp_idx >> 1] = m;
-        // max_parts[comp_idx >> 1 + 1] = n;
+        max_parts[comp_idx * 2] = m;
+        max_parts[comp_idx * 2 + 1] = n;
     }
 }
 
@@ -170,6 +171,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 
     std::vector<R> cm_values(n_feature_comp, std::numeric_limits<R>::quiet_NaN());
     std::vector<R> cm_pvalues;
+    std::vector<unsigned int> max_parts(n_feature_comp * 2, UINT_MAX);
 
     if (pvalue_n_perms.has_value())
     {
@@ -188,7 +190,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     size_t before_mem = print_cuda_memory_info();
 
     thrust::device_vector<R> d_cm_values(max_batch_feature_comp, std::numeric_limits<R>::quiet_NaN());
+    thrust::device_vector<unsigned int> d_max_parts(max_batch_feature_comp * 2, UINT_MAX);
     std::vector<R> batch_cm_values(max_batch_feature_comp);
+    std::vector<unsigned int> batch_max_parts(max_batch_feature_comp * 2);
 
     spdlog::debug("  Memory after allocation: ");
     size_t after_mem = print_cuda_memory_info();
@@ -217,11 +221,12 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         const int threadsPerBlock = 128;
         const int numBlocks = current_batch_size / (n_partitions * n_partitions);
         spdlog::debug("  Launching reduction kernel with {} blocks, {} threads per block",
-                        numBlocks, threadsPerBlock);
+                      numBlocks, threadsPerBlock);
 
         // Launch kernel to find maximum values on device for this batch
         findMaxAriKernel<R><<<numBlocks, threadsPerBlock>>>(
             thrust::raw_pointer_cast(d_aris->data()),
+            thrust::raw_pointer_cast(d_max_parts.data()),
             thrust::raw_pointer_cast(d_cm_values.data()),
             n_partitions,
             reduction_range);
@@ -242,15 +247,19 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 
         // Copy reduced results back to host
         thrust::copy(d_cm_values.begin(), d_cm_values.begin() + current_batch_size / (n_partitions * n_partitions),
-                        batch_cm_values.begin());
+                     batch_cm_values.begin());
+        thrust::copy(d_max_parts.begin(), d_max_parts.begin() + (current_batch_size / (n_partitions * n_partitions)) * 2,
+                     batch_max_parts.begin());
 
-        // Update the main cm_values array with the batch results
+        // Update the main arrays with the batch results
         for (uint64_t i = 0; i < current_batch_size / (n_partitions * n_partitions); ++i)
         {
             const uint64_t global_idx = batch_start / (n_partitions * n_partitions) + i;
             if (global_idx < n_feature_comp)
             {
                 cm_values[global_idx] = batch_cm_values[i];
+                max_parts[global_idx * 2] = batch_max_parts[i * 2];
+                max_parts[global_idx * 2 + 1] = batch_max_parts[i * 2 + 1];
             }
         }
 
@@ -264,12 +273,13 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     const auto cm_pvalues_py = pvalue_n_perms.has_value()
                                    ? py::object(py::array_t<R>(cm_pvalues.size(), cm_pvalues.data()))
                                    : py::object(py::none());
+    const auto max_parts_py = py::array_t<unsigned int>(max_parts.size(), max_parts.data());
 
     // Return the results as a tuple
     return py::make_tuple(
         cm_values_py,
         cm_pvalues_py,
-        py::object(py::none()));
+        max_parts_py);
 }
 
 auto example_return_optional_vectors(bool include_first,
