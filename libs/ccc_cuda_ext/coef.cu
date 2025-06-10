@@ -165,7 +165,67 @@ __global__ void findMaxAriKernel(const T *aris,
     }
 }
 
-// TODO: Add mode check to decide whether to do batch processing or not
+/**
+ * @brief Check if feature comparison count would exceed maximum representable value
+ *
+ * @param n_features Number of features
+ * @throws std::range_error if calculation would exceed maximum representable value
+ */
+void check_feature_comp_bounds(const size_t n_features)
+{
+    if (n_features > 1 && n_features > UINT64_MAX / (n_features - 1))
+    {
+        throw std::range_error("Feature comparison count would exceed maximum representable value: n_features too large");
+    }
+}
+
+/**
+ * @brief Check if ARI count would exceed maximum representable value
+ *
+ * @param n_feature_comp Number of feature comparisons
+ * @param n_partitions Number of partitions
+ * @throws std::range_error if calculation would exceed maximum representable value
+ */
+void check_ari_count_bounds(const uint64_t n_feature_comp, const size_t n_partitions)
+{
+    if (n_feature_comp > UINT64_MAX / n_partitions)
+    {
+        throw std::range_error("ARI count would exceed maximum representable value: n_feature_comp * n_partitions too large");
+    }
+    const uint64_t temp = n_feature_comp * n_partitions;
+    if (temp > UINT64_MAX / n_partitions)
+    {
+        throw std::range_error("ARI count would exceed maximum representable value: n_feature_comp * n_partitions * n_partitions too large");
+    }
+}
+
+/**
+ * @brief Calculate the number of feature comparisons
+ *
+ * @param n_features Number of features
+ * @return uint64_t Number of feature comparisons
+ * @throws std::range_error if calculation would exceed maximum representable value
+ */
+uint64_t calculate_feature_comparisons(const size_t n_features)
+{
+    check_feature_comp_bounds(n_features);
+    return n_features * (n_features - 1) / 2;
+}
+
+/**
+ * @brief Calculate the total number of ARIs to process
+ *
+ * @param n_feature_comp Number of feature comparisons
+ * @param n_partitions Number of partitions
+ * @return uint64_t Total number of ARIs
+ * @throws std::range_error if calculation would exceed maximum representable value
+ */
+uint64_t calculate_total_aris(const uint64_t n_feature_comp, const size_t n_partitions)
+{
+    check_ari_count_bounds(n_feature_comp, n_partitions);
+    return n_feature_comp * n_partitions * n_partitions;
+}
+
 template <typename T, typename R>
 auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const size_t n_features,
@@ -197,24 +257,8 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
      * Calculate the total number of comparisons and ARIs to be processed.
      * Includes overflow checks to prevent undefined behavior.
      */
-    // Check for overflow in n_feature_comp calculation
-    if (n_features > 1 && n_features > UINT64_MAX / (n_features - 1))
-    {
-        throw std::overflow_error("Overflow in n_feature_comp calculation: n_features too large");
-    }
-    const uint64_t n_feature_comp = n_features * (n_features - 1) / 2;
-
-    // Check for overflow in n_aris calculation
-    if (n_feature_comp > UINT64_MAX / n_partitions)
-    {
-        throw std::overflow_error("Overflow in n_aris calculation: n_feature_comp * n_partitions too large");
-    }
-    const uint64_t temp = n_feature_comp * n_partitions;
-    if (temp > UINT64_MAX / n_partitions)
-    {
-        throw std::overflow_error("Overflow in n_aris calculation: n_feature_comp * n_partitions * n_partitions too large");
-    }
-    const uint64_t n_aris = temp * n_partitions;
+    const uint64_t n_feature_comp = calculate_feature_comparisons(n_features);
+    const uint64_t n_aris = calculate_total_aris(n_feature_comp, n_partitions);
     const uint64_t reduction_range = n_partitions * n_partitions;
 
     spdlog::debug("Debug Info:");

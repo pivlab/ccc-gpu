@@ -135,3 +135,6 @@ __dev
 
 # Binary files
 libs/ccc/sklearn/metrics
+
+# VSCode
+.vscode/*
