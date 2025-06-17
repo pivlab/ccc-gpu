@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 import ccc_cuda_ext
 import pytest
+from ccc.coef.impl_gpu import ccc as ccc_gpu
 
 
 def test_example_return_optional_vectors():
@@ -111,53 +113,145 @@ def test_compute_coef_simple_4_1_4(parts, expected_ari):
     assert np.allclose(cm_values, expected_ari, atol=1e-2)
 
 
-@pytest.mark.parametrize(
-    "parts, expected_ari, expected_max_parts",
-    [
-        (
-            np.array(
-                [
-                    [[0, 0, 1, 1], [1, 1, 0, 0]],  # Feature 0 with 2 partitions
-                    [[0, 1, 0, 1], [2, 1, 2, 0]],  # Feature 1 with 2 partitions
-                    [[0, 0, 1, 2], [0, 1, 0, 1]],  # Feature 2 with 2 partitions
-                ],
-                dtype=np.int8,
-            ),
-            np.array(
-                [
-                    0.0,  # Feature 0 vs 1 (partition 0,0) -0.287
-                    0.57,  # Feature 0 vs 2 (partition 0,0)
-                    1.0,  # Feature 1 vs 2 (partition 0,1)
-                ]
-            ),
-            np.array(
-                [
-                    [1, 0],
-                    [0, 0],
-                    [0, 0],  # TODO: double check this case
-                ],
-                dtype=np.int8,
-            ),
-        ),
-    ],
-)
-def test_compute_coef_simple_3_2_4(parts, expected_ari, expected_max_parts):
-    """
-    Test case with parts of shape (3, 2, 4), 3 features, 2 partitions, 4 objects
-    """
-    n_features, n_parts, n_objs = parts.shape
-    res = ccc_cuda_ext.compute_coef(parts, n_features, n_parts, n_objs)
+def test_cm_return_parts_quadratic():
+    # Prepare
+    np.random.seed(0)
 
-    cm_values, cm_pvalues, max_parts = res
-    assert np.allclose(cm_values, expected_ari, atol=1e-2)
+    # two features with a quadratic relationship
+    feature0 = np.array([-4, -3, -2, -1, 0, 0, 1, 2, 3, 4])
+    feature1 = np.array([10, 9, 8, 7, 6, 6, 7, 8, 9, 10])
 
-    # Check max_parts shape
-    n_feature_comp = int(n_features * (n_features - 1) / 2)
-    # Convert max_parts from list to numpy array
-    max_parts = np.array(max_parts)
-    assert max_parts.shape == (n_feature_comp, 2)
+    # Run
+    cm_value, max_parts, parts = ccc_gpu(
+        feature0, feature1, internal_n_clusters=[2, 3], return_parts=True
+    )
 
-    # Check that max_parts contains valid partition indices
-    assert np.all(max_parts >= 0)
-    assert np.all(max_parts < n_parts)
-    assert np.all(max_parts == expected_max_parts)
+    # Validate
+    assert np.isclose(np.round(cm_value, 2), 0.31)
+
+    assert parts is not None
+    assert len(parts) == 2
+    assert parts[0].shape == (2, 10)
+    assert len(np.unique(parts[0][0])) == 2
+    assert len(np.unique(parts[0][1])) == 3
+    assert parts[1].shape == (2, 10)
+    assert len(np.unique(parts[1][0])) == 2
+    assert len(np.unique(parts[1][1])) == 3
+
+    assert max_parts is not None
+    assert hasattr(max_parts, "shape")
+    assert max_parts.shape == (2,)
+    # the set of partitions that maximize ari is:
+    #   - k == 3 for feature0
+    #   - k == 2 for feature1
+    np.testing.assert_array_equal(max_parts, np.array([1, 0]))
+
+
+def test_cm_return_parts_linear():
+    # Prepare
+    np.random.seed(0)
+
+    # two features on 100 objects with a linear relationship
+    feature0 = np.random.rand(100)
+    feature1 = feature0 * 5.0
+
+    # Run
+    cm_value, max_parts, parts = ccc_gpu(feature0, feature1, return_parts=True)
+
+    # Validate
+    assert np.isclose(cm_value, 1.0)
+
+    assert parts is not None
+    assert len(parts) == 2
+    assert parts[0].shape == (9, 100)
+    assert parts[1].shape == (9, 100)
+
+    assert max_parts is not None
+    assert hasattr(max_parts, "shape")
+    assert max_parts.shape == (2,)
+    # even in this test we do not specify internal_n_clusters (so it goes from
+    # k=2 to k=10, nine partitions), k=2 for both features should already have
+    # the maximum value
+    np.testing.assert_array_equal(max_parts, np.array([0, 0]))
+
+
+def test_cm_return_parts_categorical_variable():
+    # Prepare
+    np.random.seed(0)
+
+    # two features on 100 objects
+    numerical_feature0 = np.random.rand(100)
+    numerical_feature0_median = np.percentile(numerical_feature0, 50)
+
+    # create a categorical variable perfectly correlated with the numerical one (this is actually an ordinal feature)
+    categorical_feature1 = np.full(numerical_feature0.shape[0], "", dtype=np.str_)
+    categorical_feature1[numerical_feature0 < numerical_feature0_median] = "l"
+    categorical_feature1[numerical_feature0 >= numerical_feature0_median] = "u"
+    _unique_values = np.unique(categorical_feature1)
+    # some internal checks
+    assert _unique_values.shape[0] == 2
+    assert set(_unique_values) == {"l", "u"}
+
+    # Run
+    cm_value, max_parts, parts = ccc_gpu(
+        numerical_feature0, categorical_feature1, return_parts=True
+    )
+
+    # Validate
+    assert cm_value == 1.0
+
+    assert parts is not None
+    assert len(parts) == 2
+
+    # for numerical_feature0 all partititions should be there
+    assert parts[0].shape == (9, 100)
+    assert set(range(2, 10 + 1)) == set(map(lambda x: np.unique(x).shape[0], parts[0]))
+
+    # for categorical_feature1 only the first partition is meaningful
+    assert parts[1].shape == (9, 100)
+    assert np.unique(parts[1][0, :]).shape[0] == 2
+    _unique_in_rest = np.unique(parts[1][1:, :])
+    assert _unique_in_rest.shape[0] == 1
+    assert _unique_in_rest[0] == -1
+
+    assert max_parts is not None
+    assert hasattr(max_parts, "shape")
+    assert max_parts.shape == (2,)
+    # even in this test we do not specify internal_n_clusters (so it goes from
+    # k=2 to k=10, nine partitions), k=2 for both features should already have
+    # the maximum value
+    np.testing.assert_array_equal(max_parts, np.array([0, 0]))
+
+
+def test_cm_return_parts_with_matrix_as_input():
+    # Prepare
+    np.random.seed(0)
+
+    # two features on 100 objects with a linear relationship
+    feature0 = np.random.rand(100)
+    feature1 = feature0 * 5.0
+    X = pd.DataFrame(
+        {
+            "feature0": feature0,
+            "feature1": feature1,
+        }
+    )
+
+    # Run
+    cm_value, max_parts, parts = ccc_gpu(X, return_parts=True)
+
+    # Validate
+    assert cm_value == 1.0
+
+    assert parts is not None
+    assert len(parts) == 2
+    assert parts[0].shape == (9, 100)
+    assert parts[1].shape == (9, 100)
+
+    assert max_parts is not None
+    assert hasattr(max_parts, "shape")
+    assert max_parts.shape == (2,)
+    # even in this test we do not specify internal_n_clusters (so it goes from
+    # k=2 to k=10, nine partitions), k=2 for both features should already have
+    # the maximum value (because the relationship is linear)
+    np.testing.assert_array_equal(max_parts, np.array([0, 0]))
