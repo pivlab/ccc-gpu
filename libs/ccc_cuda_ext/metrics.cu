@@ -384,10 +384,7 @@ auto ari_core_device(const T *parts,
     // spdlog::debug("Max shared memory per block: {} bytes", get_max_shared_memory_per_block());
 
     // Input validation
-    if (!parts || n_features == 0 || n_parts == 0 || n_objs == 0)
-    {
-        throw std::invalid_argument("Invalid input parameters");
-    }
+    if (!parts || n_features == 0 || n_parts == 0 || n_objs == 0) { throw std::invalid_argument("Invalid input parameters"); }
 
     /*
      * Pre-computation
@@ -397,10 +394,7 @@ auto ari_core_device(const T *parts,
 
     // Determine the actual batch size
     const auto actual_batch_size = batch_size == 0 ? n_aris : std::min(batch_size, n_aris - batch_start);
-    if (batch_start >= n_aris)
-    {
-        throw std::invalid_argument("Batch start index exceeds total number of ARIs");
-    }
+    if (batch_start >= n_aris) { throw std::invalid_argument("Batch start index exceeds total number of ARIs"); }
 
     /*
      * Memory Allocation
@@ -432,10 +426,7 @@ auto ari_core_device(const T *parts,
 
     // Check if shared memory size exceeds device limits
     auto [is_valid, message] = check_shared_memory_size(s_mem_size);
-    if (!is_valid)
-    {
-        throw std::runtime_error(message);
-    }
+    if (!is_valid) { throw std::runtime_error(message); }
 
     /*
      * Launch the kernel
@@ -514,10 +505,7 @@ auto ari_core_host(const T *parts,
 
     // Determine the actual batch size
     const auto actual_batch_size = batch_size == 0 ? n_aris : std::min(batch_size, n_aris - batch_start);
-    if (batch_start >= n_aris)
-    {
-        throw std::invalid_argument("Batch start index exceeds total number of ARIs");
-    }
+    if (batch_start >= n_aris) { throw std::invalid_argument("Batch start index exceeds total number of ARIs"); }
 
     /*
      * Memory Allocation
