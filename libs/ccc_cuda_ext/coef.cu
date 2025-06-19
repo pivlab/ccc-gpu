@@ -19,8 +19,6 @@
 #include "utils.cuh"
 namespace py = pybind11;
 
-// Debug mode macro - set to 1 to enable debug output, 0 to disable
-#define DEBUG_MODE 1
 
 /**
  * @brief CUDA kernel to find maximum ARI values and their corresponding partition pairs
@@ -234,6 +232,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const bool return_parts,
                   std::optional<uint32_t> pvalue_n_perms) -> py::object
 {
+    spdlog::set_level(spdlog::level::debug);
     // Check CUDA info
     spdlog::debug("CUDA Device Info:");
     print_cuda_device_info();
