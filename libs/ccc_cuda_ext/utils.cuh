@@ -156,7 +156,8 @@ inline std::tuple<bool, std::string> check_shared_memory_size(const size_t reque
                                    " bytes) is close to device limit (" + std::to_string(max_shared_mem) + " bytes)");
     }
 
-    return std::make_tuple(true, "");
+    return std::make_tuple(true, std::string("Required shared memory size: ") + std::to_string(requested_size) +
+                                   " bytes, within available: " + std::to_string(max_shared_mem) + " bytes");
 }
 
 /**
