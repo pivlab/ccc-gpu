@@ -211,20 +211,26 @@ inline void print_cuda_device_info(int device_id = 0)
     cudaDriverGetVersion(&driverVersion);
     cudaRuntimeGetVersion(&runtimeVersion);
     spdlog::debug("  CUDA Driver Version / Runtime Version          {}.{} / {}.{}",
-                 driverVersion / 1000, (driverVersion % 100) / 10,
-                 runtimeVersion / 1000, (runtimeVersion % 100) / 10);
+                  driverVersion / 1000, (driverVersion % 100) / 10,
+                  runtimeVersion / 1000, (runtimeVersion % 100) / 10);
     spdlog::debug("  CUDA Capability Major/Minor version number:    {}.{}",
-                 deviceProp.major, deviceProp.minor);
+                  deviceProp.major, deviceProp.minor);
     spdlog::debug("  Total amount of global memory:                 {:.2f} GBytes ({} bytes)",
-                 (float)deviceProp.totalGlobalMem / pow(1024.0, 3),
-                 (unsigned long long)deviceProp.totalGlobalMem);
+                  (float)deviceProp.totalGlobalMem / pow(1024.0, 3),
+                  (unsigned long long)deviceProp.totalGlobalMem);
     spdlog::debug("  GPU Clock rate:                                {:.0f} MHz ({:.2f} GHz)",
-                 deviceProp.clockRate * 1e-3f,
-                 deviceProp.clockRate * 1e-6f);
+                  deviceProp.clockRate * 1e-3f,
+                  deviceProp.clockRate * 1e-6f);
     spdlog::debug("  Memory Clock rate:                             {:.0f} Mhz",
-                 deviceProp.memoryClockRate * 1e-3f);
+                  deviceProp.memoryClockRate * 1e-3f);
     spdlog::debug("  Memory Bus Width:                              {}-bit",
-                 deviceProp.memoryBusWidth);
+                  deviceProp.memoryBusWidth);
+    spdlog::debug("  Shared Memory per Block:                       {:.2f} KB",
+                  deviceProp.sharedMemPerBlock / 1024.0f);
+    spdlog::debug("  Shared Memory per Multiprocessor:              {:.2f} KB",
+                  deviceProp.sharedMemPerMultiprocessor / 1024.0f);
+    spdlog::debug("  Number of Multiprocessors:                     {}",
+                  deviceProp.multiProcessorCount);
 }
 
 /**
@@ -274,7 +280,7 @@ inline size_t print_cuda_memory_info(int device_id = 0)
     };
 
     spdlog::debug("Free memory: {}, Total memory: {}",
-                 format_memory(free_mem), format_memory(total_mem));
+                  format_memory(free_mem), format_memory(total_mem));
     return free_mem;
 }
 
