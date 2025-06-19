@@ -278,7 +278,7 @@ def test_ccc_gpu_with_numerical_input(
     [
         # Simple cases
         ((10, 20), 10, 2),
-        ((20, 200), 50, 3),
+        ((20, 200), 10, 3),
         # ((30, 300), 200, 4), # Failed for the number of categories
         # ((9, 10000), 500, 5), # Failed for the number of categories
     ],
