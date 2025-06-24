@@ -1,0 +1,607 @@
+Output directory: /mnt/data/proj_data/ccc-gpu/metadata_correlation/nperm=1000000
+Found 1 expression files to process:
+  whole_blood: gtex_v8_data_whole_blood-var_pc_log2.pkl
+Loading metadata and gene mapping files...
+Loaded metadata: (22951, 262)
+Loaded gene mapping: (56200, 2)
+
+[1/1] Starting processing for whole_blood...
+
+============================================================
+Processing tissue: whole_blood
+File: gtex_v8_data_whole_blood-var_pc_log2.pkl
+============================================================
+Loading expression data...
+Expression data shape: (56200, 755)
+Gene ID for RASSF2: ENSG00000101265.15
+Number of samples: 755
+Common samples: 755
+Computing CCC between RASSF2 expression and all metadata columns...
+Using 1000000 permutations and 24 jobs
+Processing 262 metadata columns...
+Processing column 1/262: SUBJID
+  CCC: 0.000000, p-value: 1.00e+00
+Processing column 2/262: COHORT
+  CCC: 0.553714, p-value: 1.00e-06
+Processing column 3/262: SEX
+  CCC: 0.007134, p-value: 1.25e-02
+Processing column 4/262: AGE
+  CCC: 0.100699, p-value: 1.00e-06
+Processing column 5/262: RACE
+  CCC: 0.011143, p-value: 2.80e-05
+Processing column 6/262: ETHNCTY
+  CCC: 0.195811, p-value: 1.00e-06
+Processing column 7/262: HGHT
+  CCC: 0.019109, p-value: 8.80e-05
+Processing column 8/262: HGHTU
+  Skipping HGHTU: only 1 unique value(s)
+Processing column 9/262: WGHT
+  CCC: 0.024164, p-value: 2.00e-05
+Processing column 10/262: WGHTU
+  Skipping WGHTU: only 1 unique value(s)
+Processing column 11/262: BMI
+  CCC: 0.005917, p-value: 1.25e-01
+Processing column 12/262: INCEXC
+  CCC: 0.000135, p-value: 9.70e-02
+Processing column 13/262: TRISCH
+  CCC: 0.003208, p-value: 1.00e-06
+Processing column 14/262: TRISCHD
+  CCC: 0.535868, p-value: 1.00e-06
+Processing column 15/262: TRCHSTIN
+  Error processing TRCHSTIN: '<' not supported between instances of 'float' and 'str'
+Processing column 16/262: TRCHSTIND
+  CCC: 0.535868, p-value: 1.00e-06
+Processing column 17/262: TRCCLMP
+  Error processing TRCCLMP: '<' not supported between instances of 'float' and 'str'
+Processing column 18/262: TRCCLMPD
+  CCC: 0.490252, p-value: 1.00e-06
+Processing column 19/262: TRORGNS
+  Error processing TRORGNS: '<' not supported between instances of 'float' and 'str'
+Processing column 20/262: TRAMP
+  Error processing TRAMP: '<' not supported between instances of 'str' and 'float'
+Processing column 21/262: TRCRTMP
+  CCC: 0.203103, p-value: 1.00e-06
+Processing column 22/262: TRCRTMPU
+  Error processing TRCRTMPU: '<' not supported between instances of 'float' and 'str'
+Processing column 23/262: TRCRTMPL
+  Error processing TRCRTMPL: '<' not supported between instances of 'float' and 'str'
+Processing column 24/262: TRTPTREF
+  CCC: 0.001587, p-value: 1.42e-03
+Processing column 25/262: TRVNTSR
+  Skipping TRVNTSR: only 1 unique value(s)
+Processing column 26/262: TRDNISCH
+  CCC: 0.509012, p-value: 1.00e-06
+Processing column 27/262: DTHPRNINT
+  Error processing DTHPRNINT: '<' not supported between instances of 'float' and 'str'
+Processing column 28/262: DTHTPTREF
+  Error processing DTHTPTREF: '<' not supported between instances of 'float' and 'str'
+Processing column 29/262: DTHATPSY
+  CCC: 0.059133, p-value: 1.00e-06
+Processing column 30/262: DTHRFG
+  CCC: 0.490255, p-value: 1.00e-06
+Processing column 31/262: DTHCERT
+  CCC: 0.106079, p-value: 1.00e-06
+Processing column 32/262: DTHVNT
+  CCC: 0.443140, p-value: 1.00e-06
+Processing column 33/262: DTHFUCOD
+  Error processing DTHFUCOD: '<' not supported between instances of 'float' and 'str'
+Processing column 34/262: DTHHRDY
+  CCC: 0.464582, p-value: 1.00e-06
+Processing column 35/262: DTHCOD
+  Error processing DTHCOD: '<' not supported between instances of 'float' and 'str'
+Processing column 36/262: DTHFUCODDU
+  Skipping DTHFUCODDU: only 1 unique value(s)
+Processing column 37/262: DTHFUCODD
+  CCC: 0.170768, p-value: 1.00e-06
+Processing column 38/262: DTHCODDU
+  Skipping DTHCODDU: only 1 unique value(s)
+Processing column 39/262: DTHCODD
+  CCC: 0.167829, p-value: 1.00e-06
+Processing column 40/262: DTHLUCODDU
+  Skipping DTHLUCODDU: only 1 unique value(s)
+Processing column 41/262: DTHLUCODD
+  CCC: 0.052359, p-value: 1.00e-06
+Processing column 42/262: DTHLUCOD
+  Error processing DTHLUCOD: '<' not supported between instances of 'float' and 'str'
+Processing column 43/262: DTHMNNR
+  Error processing DTHMNNR: '<' not supported between instances of 'float' and 'str'
+Processing column 44/262: DTHRFGDU
+  Skipping DTHRFGDU: only 1 unique value(s)
+Processing column 45/262: DTHRFGD
+  CCC: 0.021034, p-value: 5.00e-05
+Processing column 46/262: DTHDTRMN
+  Error processing DTHDTRMN: '<' not supported between instances of 'str' and 'float'
+Processing column 47/262: DTHPLCE
+  Error processing DTHPLCE: '<' not supported between instances of 'float' and 'str'
+Processing column 48/262: DTHVNTDU
+  Skipping DTHVNTDU: only 1 unique value(s)
+Processing column 49/262: DTHVNTD
+  CCC: 0.418721, p-value: 1.00e-06
+Processing column 50/262: DTHWTNS
+  CCC: 0.002250, p-value: 1.98e-04
+Processing column 51/262: DTHCLS
+  Skipping DTHCLS: all values are NaN
+Processing column 52/262: DTHTYP
+  Skipping DTHTYP: all values are NaN
+Processing column 53/262: DTHCAT
+  Skipping DTHCAT: all values are NaN
+Processing column 54/262: DTHICD10
+  Skipping DTHICD10: all values are NaN
+Processing column 55/262: LBCMVTAB
+  CCC: 0.505233, p-value: 1.00e-06
+Processing column 56/262: LBEBVGAB
+  CCC: 0.497715, p-value: 1.00e-06
+Processing column 57/262: LBEBVMAB
+  CCC: 0.497715, p-value: 1.00e-06
+Processing column 58/262: LBHBCABM
+  CCC: 0.091879, p-value: 1.00e-06
+Processing column 59/262: LBHBCABT
+  CCC: 0.006129, p-value: 5.90e-05
+Processing column 60/262: LBHBSAB
+  CCC: 0.011724, p-value: 1.00e-06
+Processing column 61/262: LBHBSAG
+  CCC: 0.001030, p-value: 3.40e-02
+Processing column 62/262: LBHCV1NT
+  CCC: 0.004123, p-value: 1.65e-03
+Processing column 63/262: LBHBHCVAB
+  CCC: 0.003896, p-value: 3.16e-04
+Processing column 64/262: LBHIV1NT
+  CCC: 0.002826, p-value: 6.91e-03
+Processing column 65/262: LBHIVAB
+  CCC: 0.003168, p-value: 1.47e-01
+Processing column 66/262: LBHIVO
+  CCC: 0.000326, p-value: 3.44e-01
+Processing column 67/262: LBPRRVDRL
+  CCC: 0.099360, p-value: 1.00e-06
+Processing column 68/262: LBRPR
+  CCC: 0.002122, p-value: 4.28e-03
+Processing column 69/262: MHABNWBC
+  CCC: 0.270010, p-value: 1.00e-06
+Processing column 70/262: MHALS
+  CCC: 0.000022, p-value: 6.63e-01
+Processing column 71/262: MHALZDMT
+  CCC: 0.000292, p-value: 7.10e-02
+Processing column 72/262: MHALZHMR
+  CCC: 0.000001, p-value: 8.28e-01
+Processing column 73/262: MHARTHTS
+  CCC: 0.000254, p-value: 5.79e-01
+Processing column 74/262: MHASCITES
+  CCC: 0.000731, p-value: 4.55e-02
+Processing column 75/262: MHASTHMA
+  CCC: 0.000349, p-value: 5.47e-01
+Processing column 76/262: MHBCTINF
+  CCC: 0.000217, p-value: 5.03e-01
+Processing column 77/262: MHBLDDND
+  CCC: 0.000059, p-value: 7.20e-01
+Processing column 78/262: MHBLDDNDR
+  Error processing MHBLDDNDR: '<' not supported between instances of 'float' and 'str'
+Processing column 79/262: MHBLDOCNT
+  CCC: 0.000141, p-value: 1.49e-01
+Processing column 80/262: MHBRNPH
+  CCC: 0.349664, p-value: 1.00e-06
+Processing column 81/262: MHBRNWGHT
+  CCC: 0.349664, p-value: 1.00e-06
+Processing column 82/262: MHCANCER5
+  CCC: 0.000082, p-value: 5.71e-01
+Processing column 83/262: MHCANCERC
+  CCC: 0.000027, p-value: 7.03e-01
+Processing column 84/262: MHCANCERNM
+  CCC: 0.001802, p-value: 1.76e-02
+Processing column 85/262: MHCLLULTS
+  CCC: 0.000044, p-value: 6.08e-01
+Processing column 86/262: MHCLRD
+  CCC: 0.000038, p-value: 7.14e-01
+Processing column 87/262: MHCOCAINE5
+  CCC: 0.004175, p-value: 6.45e-04
+Processing column 88/262: MHCOPD
+  CCC: 0.005287, p-value: 8.60e-03
+Processing column 89/262: MHCOUGHU
+  CCC: 0.000000, p-value: 1.00e+00
+Processing column 90/262: MHCVD
+  CCC: 0.000435, p-value: 4.40e-01
+Processing column 91/262: MHDLYSIS
+  CCC: 0.000838, p-value: 5.45e-02
+Processing column 92/262: MHDMNTIA
+  CCC: 0.000251, p-value: 8.17e-02
+Processing column 93/262: MHDPRSSN
+  CCC: 0.003373, p-value: 6.79e-03
+Processing column 94/262: MHDRNKSTS
+  Error processing MHDRNKSTS: '<' not supported between instances of 'float' and 'str'
+Processing column 95/262: MHDRNKTP
+  Error processing MHDRNKTP: '<' not supported between instances of 'float' and 'str'
+Processing column 96/262: MHDRNKNMB
+  CCC: 0.006303, p-value: 8.48e-02
+Processing column 97/262: MHDRNKPRD
+  Error processing MHDRNKPRD: '<' not supported between instances of 'float' and 'str'
+Processing column 98/262: MHDRNKYRS
+  CCC: 0.023703, p-value: 9.00e-06
+Processing column 99/262: MHDRNKCMT
+  Error processing MHDRNKCMT: '<' not supported between instances of 'float' and 'str'
+Processing column 100/262: MHDTND72H
+  CCC: 0.000349, p-value: 1.29e-01
+Processing column 101/262: MHENCEPHA
+  CCC: 0.000169, p-value: 3.17e-02
+Processing column 102/262: MHEURO5
+  CCC: 0.000030, p-value: 6.93e-01
+Processing column 103/262: MHFLU
+  CCC: 0.000052, p-value: 2.73e-01
+Processing column 104/262: MHFNGINF
+  CCC: 0.000048, p-value: 4.19e-01
+Processing column 105/262: MHFVRU
+  CCC: 0.000098, p-value: 2.92e-01
+Processing column 106/262: MHGENCMT
+  Error processing MHGENCMT: '<' not supported between instances of 'float' and 'str'
+Processing column 107/262: MHGNRR12M
+  CCC: 0.000039, p-value: 4.46e-01
+Processing column 108/262: MHHEPBCT
+  CCC: 0.000019, p-value: 6.96e-01
+Processing column 109/262: MHHEPCCT
+  CCC: 0.000092, p-value: 4.05e-01
+Processing column 110/262: MHHEROIN
+  CCC: 0.000777, p-value: 1.66e-02
+Processing column 111/262: MHHGH
+  CCC: 0.000232, p-value: 4.46e-02
+Processing column 112/262: MHHIVCT
+  CCC: 0.000072, p-value: 3.01e-01
+Processing column 113/262: MHHIVNT
+  CCC: 0.000092, p-value: 1.72e-01
+Processing column 114/262: MHHMPHLIA
+  CCC: 0.000232, p-value: 4.47e-02
+Processing column 115/262: MHHMPHLIAB
+  CCC: 0.000219, p-value: 7.78e-02
+Processing column 116/262: MHHRTATT
+  CCC: 0.023312, p-value: 1.00e-06
+Processing column 117/262: MHHRTDIS
+  CCC: 0.014988, p-value: 1.50e-05
+Processing column 118/262: MHHRTDISB
+  CCC: 0.000350, p-value: 1.25e-01
+Processing column 119/262: MHHTN
+  CCC: 0.022731, p-value: 2.50e-05
+Processing column 120/262: MHINFLNE
+  CCC: 0.000012, p-value: 6.66e-01
+Processing column 121/262: MHIVDRG5
+  CCC: 0.000429, p-value: 1.19e-02
+Processing column 122/262: MHJAKOB
+  CCC: 0.000092, p-value: 1.72e-01
+Processing column 123/262: MHLAPTHU
+  CCC: 0.000092, p-value: 1.73e-01
+Processing column 124/262: MHLUPUS
+  CCC: 0.000416, p-value: 2.30e-02
+Processing column 125/262: MHLVRDIS
+  CCC: 0.002085, p-value: 7.61e-03
+Processing column 126/262: MHMENINA
+  CCC: 0.000169, p-value: 3.22e-02
+Processing column 127/262: MHMS
+  CCC: 0.000213, p-value: 9.96e-02
+Processing column 128/262: MHMSXWMA
+  CCC: 0.000128, p-value: 2.27e-01
+Processing column 129/262: MHMSXWMB
+  CCC: 0.000297, p-value: 6.96e-02
+Processing column 130/262: MHNEPH
+  CCC: 0.000074, p-value: 3.18e-01
+Processing column 131/262: MHNGHTSWT
+  CCC: 0.000128, p-value: 2.28e-01
+Processing column 132/262: MHNPHYS4W
+  CCC: 0.000176, p-value: 2.23e-01
+Processing column 133/262: MHNRTHEUR
+  CCC: 0.000602, p-value: 4.86e-02
+Processing column 134/262: MHOPNWND
+  CCC: 0.001444, p-value: 1.04e-02
+Processing column 135/262: MHOPPINF
+  CCC: 0.000155, p-value: 8.60e-02
+Processing column 136/262: MHORGNTP
+  CCC: 0.002620, p-value: 3.46e-03
+Processing column 137/262: MHOSTMYLTS
+  CCC: 0.000059, p-value: 4.41e-01
+Processing column 138/262: MHPLLABS
+  CCC: 0.004606, p-value: 8.20e-05
+Processing column 139/262: MHPNMIAB
+  CCC: 0.000885, p-value: 1.32e-01
+Processing column 140/262: MHPNMNIA
+  CCC: 0.002668, p-value: 9.18e-03
+Processing column 141/262: MHPRCNP
+  CCC: 0.000816, p-value: 3.86e-03
+Processing column 142/262: MHPRKNSN
+  CCC: 0.000014, p-value: 3.89e-01
+Processing column 143/262: MHPSBLDCLT
+  CCC: 0.000349, p-value: 1.28e-01
+Processing column 144/262: MHRA
+  CCC: 0.000002, p-value: 8.23e-01
+Processing column 145/262: MHRBSANML
+  CCC: 0.000013, p-value: 7.44e-01
+Processing column 146/262: MHREYES
+  CCC: 0.000092, p-value: 1.73e-01
+Processing column 147/262: MHRNLFLR
+  CCC: 0.007326, p-value: 1.80e-04
+Processing column 148/262: MHSARS
+  CCC: 0.000029, p-value: 5.76e-01
+Processing column 149/262: MHSCHZ
+  CCC: 0.000104, p-value: 4.89e-01
+Processing column 150/262: MHSCLRDRM
+  CCC: 0.000002, p-value: 8.06e-01
+Processing column 151/262: MHSDRGABS
+  CCC: 0.000549, p-value: 6.38e-03
+Processing column 152/262: MHSEPSIS
+  CCC: 0.000061, p-value: 6.22e-01
+Processing column 153/262: MHSKNSPT
+  CCC: 0.000232, p-value: 4.44e-02
+Processing column 154/262: MHSMKSTS
+  Error processing MHSMKSTS: '<' not supported between instances of 'float' and 'str'
+Processing column 155/262: MHSMKTP
+  Error processing MHSMKTP: '<' not supported between instances of 'float' and 'str'
+Processing column 156/262: MHSMKNMB
+  CCC: 0.006048, p-value: 8.90e-02
+Processing column 157/262: MHSMKPRD
+  Error processing MHSMKPRD: '<' not supported between instances of 'float' and 'str'
+Processing column 158/262: MHSMKYRS
+  CCC: 0.012460, p-value: 2.17e-03
+Processing column 159/262: MHSMKCMT
+  Error processing MHSMKCMT: '<' not supported between instances of 'float' and 'str'
+Processing column 160/262: MHSMLPXCT
+  CCC: 0.000324, p-value: 2.29e-02
+Processing column 161/262: MHSMLPXVC
+  CCC: 0.000078, p-value: 2.90e-01
+Processing column 162/262: MHSRC
+  CCC: 0.066982, p-value: 1.00e-06
+Processing column 163/262: MHSRCDSS
+  CCC: 0.000015, p-value: 7.45e-01
+Processing column 164/262: MHSRGHM
+  CCC: 0.000145, p-value: 3.21e-01
+Processing column 165/262: MHSTD
+  CCC: 0.000965, p-value: 4.13e-03
+Processing column 166/262: MHSTRDLT
+  CCC: 0.001171, p-value: 4.21e-02
+Processing column 167/262: MHSUBABSA
+  CCC: 0.000219, p-value: 7.73e-02
+Processing column 168/262: MHSUBABSB
+  CCC: 0.001167, p-value: 4.74e-04
+Processing column 169/262: MHSXMDA
+  CCC: 0.000155, p-value: 8.66e-02
+Processing column 170/262: MHSXMDB
+  CCC: 0.000429, p-value: 1.20e-02
+Processing column 171/262: MHSYPH12M
+  CCC: 0.000039, p-value: 4.46e-01
+Processing column 172/262: MHSZRSU
+  CCC: 0.002452, p-value: 4.48e-04
+Processing column 173/262: MHT1D
+  CCC: 0.001357, p-value: 2.59e-02
+Processing column 174/262: MHT2D
+  CCC: 0.005213, p-value: 1.38e-02
+Processing column 175/262: MHTBHX
+  CCC: 0.000416, p-value: 2.32e-02
+Processing column 176/262: MHTEMPU
+  CCC: 0.000092, p-value: 1.73e-01
+Processing column 177/262: MHTTCMT
+  Error processing MHTTCMT: '<' not supported between instances of 'str' and 'float'
+Processing column 178/262: MHTTOO12M
+  CCC: 0.000803, p-value: 7.14e-03
+Processing column 179/262: MHTTOONP
+  CCC: 0.000912, p-value: 1.90e-02
+Processing column 180/262: MHTXCEXP
+  CCC: 0.000697, p-value: 1.08e-01
+Processing column 181/262: MHUK8096
+  CCC: 0.000178, p-value: 2.31e-01
+Processing column 182/262: MHUREMIA
+  CCC: 0.000012, p-value: 7.24e-01
+Processing column 183/262: MHWKNSSU
+  CCC: 0.000160, p-value: 3.98e-01
+Processing column 184/262: MHWNVCT
+  CCC: 0.000092, p-value: 1.72e-01
+Processing column 185/262: MHWNVHX
+  CCC: 0.000092, p-value: 1.72e-01
+Processing column 186/262: MHWTLSUA
+  CCC: 0.000039, p-value: 7.22e-01
+Processing column 187/262: MHWTLSUB
+  CCC: 0.000324, p-value: 2.29e-02
+Processing column 188/262: DTHSEASON
+  Error processing DTHSEASON: '<' not supported between instances of 'float' and 'str'
+Processing column 189/262: DTHTIME
+  Error processing DTHTIME: '<' not supported between instances of 'float' and 'str'
+Processing column 190/262: SMATSSCR
+  Skipping SMATSSCR: all values are NaN
+Processing column 191/262: SMCAT
+  Skipping SMCAT: only 1 unique value(s)
+Processing column 192/262: SMCENTER
+  CCC: 0.108148, p-value: 1.00e-06
+Processing column 193/262: SMMTRLTP
+  CCC: 0.000061, p-value: 5.32e-01
+Processing column 194/262: SMNOTES
+  Skipping SMNOTES: all values are NaN
+Processing column 195/262: SMOMTRLTP
+  CCC: 0.000065, p-value: 4.85e-01
+Processing column 196/262: SMPTHNTS
+  Skipping SMPTHNTS: all values are NaN
+Processing column 197/262: SMRIN
+  CCC: 0.048847, p-value: 1.00e-06
+Processing column 198/262: SMSMPSTE
+  Skipping SMSMPSTE: all values are NaN
+Processing column 199/262: SMSTYP
+  Skipping SMSTYP: only 1 unique value(s)
+Processing column 200/262: SMTS
+  Skipping SMTS: only 1 unique value(s)
+Processing column 201/262: SMTSC
+  Error processing SMTSC: '<' not supported between instances of 'float' and 'str'
+Processing column 202/262: SMTSD
+  Skipping SMTSD: only 1 unique value(s)
+Processing column 203/262: SMUBRID
+  Skipping SMUBRID: only 1 unique value(s)
+Processing column 204/262: SMUBRTRM
+  Skipping SMUBRTRM: only 1 unique value(s)
+Processing column 205/262: SMTSISCH
+  CCC: 0.528125, p-value: 1.00e-06
+Processing column 206/262: SMTSPAX
+  Skipping SMTSPAX: all values are NaN
+Processing column 207/262: SMNABTCH
+  CCC: 0.000884, p-value: 1.66e-01
+Processing column 208/262: SMNABTCHT
+  Skipping SMNABTCHT: only 1 unique value(s)
+Processing column 209/262: SMNABTCHD
+  CCC: 0.000900, p-value: 1.62e-01
+Processing column 210/262: SMGEBTCH
+  CCC: 0.003663, p-value: 3.80e-03
+Processing column 211/262: SMGEBTCHD
+  CCC: 0.005827, p-value: 3.14e-04
+Processing column 212/262: SMGEBTCHT
+  Skipping SMGEBTCHT: only 1 unique value(s)
+Processing column 213/262: ANALYTE_TYPE
+  Skipping ANALYTE_TYPE: only 1 unique value(s)
+Processing column 214/262: SMTORMVE
+  Skipping SMTORMVE: all values are NaN
+Processing column 215/262: SMFLGRMRK
+  Skipping SMFLGRMRK: all values are NaN
+Processing column 216/262: SMAFRZE
+  Skipping SMAFRZE: only 1 unique value(s)
+Processing column 217/262: SMGTC
+  Skipping SMGTC: all values are NaN
+Processing column 218/262: SME2MPRT
+  CCC: 0.172974, p-value: 1.00e-06
+Processing column 219/262: SMCHMPRS
+  CCC: 0.143365, p-value: 1.00e-06
+Processing column 220/262: SMNTRART
+  CCC: 0.243071, p-value: 1.00e-06
+Processing column 221/262: SMNUMGPS
+  Skipping SMNUMGPS: all values are NaN
+Processing column 222/262: SMMAPRT
+  CCC: 0.168576, p-value: 1.00e-06
+Processing column 223/262: SMEXNCRT
+  CCC: 0.040140, p-value: 1.00e-06
+Processing column 224/262: SM550NRM
+  Skipping SM550NRM: all values are NaN
+Processing column 225/262: SMGNSDTC
+  CCC: 0.043013, p-value: 1.00e-06
+Processing column 226/262: SMUNMPRT
+  Skipping SMUNMPRT: only 1 unique value(s)
+Processing column 227/262: SM350NRM
+  Skipping SM350NRM: all values are NaN
+Processing column 228/262: SMRDLGTH
+  CCC: 0.000028, p-value: 1.71e-01
+Processing column 229/262: SMMNCPB
+  Skipping SMMNCPB: all values are NaN
+Processing column 230/262: SME1MMRT
+  CCC: 0.018125, p-value: 1.38e-04
+Processing column 231/262: SMSFLGTH
+  CCC: 0.047258, p-value: 1.00e-06
+Processing column 232/262: SMESTLBS
+  Skipping SMESTLBS: only 1 unique value(s)
+Processing column 233/262: SMMPPD
+  CCC: 0.007761, p-value: 3.44e-02
+Processing column 234/262: SMNTERRT
+  CCC: 0.250997, p-value: 1.00e-06
+Processing column 235/262: SMRRNANM
+  CCC: 0.036631, p-value: 1.00e-06
+Processing column 236/262: SMRDTTL
+  CCC: 0.010388, p-value: 6.27e-03
+Processing column 237/262: SMVQCFL
+  CCC: 0.001442, p-value: 9.23e-01
+Processing column 238/262: SMMNCV
+  Skipping SMMNCV: all values are NaN
+Processing column 239/262: SMTRSCPT
+  CCC: 0.042714, p-value: 1.00e-06
+Processing column 240/262: SMMPPDPR
+  CCC: 0.007761, p-value: 3.47e-02
+Processing column 241/262: SMCGLGTH
+  Skipping SMCGLGTH: all values are NaN
+Processing column 242/262: SMGAPPCT
+  Skipping SMGAPPCT: all values are NaN
+Processing column 243/262: SMUNPDRD
+  Skipping SMUNPDRD: only 1 unique value(s)
+Processing column 244/262: SMNTRNRT
+  CCC: 0.202936, p-value: 1.00e-06
+Processing column 245/262: SMMPUNRT
+  CCC: 0.168576, p-value: 1.00e-06
+Processing column 246/262: SMEXPEFF
+  CCC: 0.059931, p-value: 1.00e-06
+Processing column 247/262: SMMPPDUN
+  CCC: 0.007761, p-value: 3.48e-02
+Processing column 248/262: SME2MMRT
+  CCC: 0.003990, p-value: 4.05e-01
+Processing column 249/262: SME2ANTI
+  CCC: 0.020742, p-value: 5.20e-05
+Processing column 250/262: SMALTALG
+  CCC: 0.177009, p-value: 1.00e-06
+Processing column 251/262: SME2SNSE
+  CCC: 0.019048, p-value: 7.70e-05
+Processing column 252/262: SMMFLGTH
+  CCC: 0.019296, p-value: 9.90e-05
+Processing column 253/262: SME1ANTI
+  CCC: 0.021058, p-value: 4.80e-05
+Processing column 254/262: SMSPLTRD
+  CCC: 0.057786, p-value: 1.00e-06
+Processing column 255/262: SMBSMMRT
+  CCC: 0.005333, p-value: 1.85e-01
+Processing column 256/262: SME1SNSE
+  CCC: 0.022008, p-value: 3.10e-05
+Processing column 257/262: SME1PCTS
+  CCC: 0.032073, p-value: 1.00e-06
+Processing column 258/262: SMRRNART
+  CCC: 0.048437, p-value: 1.00e-06
+Processing column 259/262: SME1MPRT
+  CCC: 0.181940, p-value: 1.00e-06
+Processing column 260/262: SMNUM5CD
+  Skipping SMNUM5CD: all values are NaN
+Processing column 261/262: SMDPMPRT
+  Skipping SMDPMPRT: only 1 unique value(s)
+Processing column 262/262: SME2PCTS
+  CCC: 0.029344, p-value: 5.00e-06
+Results for whole_blood saved to: /mnt/data/proj_data/ccc-gpu/metadata_correlation/nperm=1000000/RASSF2_whole_blood_correlation_results.pkl
+Runtime for whole_blood: 3069.06 seconds (51.15 minutes)
+
+================================================================================
+COMBINED RESULTS SUMMARY
+================================================================================
+Gene Symbol: RASSF2
+Gene ID: ENSG00000101265.15
+Permutations: 1,000,000
+Tissues processed: 1
+Combined results saved to: /mnt/data/proj_data/ccc-gpu/metadata_correlation/nperm=1000000/RASSF2_all_tissues_correlation_results.pkl
+Combined results (CSV) saved to: /mnt/data/proj_data/ccc-gpu/metadata_correlation/nperm=1000000/RASSF2_all_tissues_correlation_results.csv
+
+Total successful analyses across all tissues: 192
+
+================================================================================
+TOP CORRELATIONS ACROSS ALL TISSUES (by absolute CCC value)
+================================================================================
+Tissue               Metadata Column           CCC Value    P-value      Significance   
+------------------------------------------------------------------------------------------
+whole_blood          COHORT                      0.553714    1.00e-06  ***            
+whole_blood          TRCHSTIND                   0.535868    1.00e-06  ***            
+whole_blood          TRISCHD                     0.535868    1.00e-06  ***            
+whole_blood          SMTSISCH                    0.528125    1.00e-06  ***            
+whole_blood          TRDNISCH                    0.509012    1.00e-06  ***            
+whole_blood          LBCMVTAB                    0.505233    1.00e-06  ***            
+whole_blood          LBEBVGAB                    0.497715    1.00e-06  ***            
+whole_blood          LBEBVMAB                    0.497715    1.00e-06  ***            
+whole_blood          DTHRFG                      0.490255    1.00e-06  ***            
+whole_blood          TRCCLMPD                    0.490252    1.00e-06  ***            
+whole_blood          DTHHRDY                     0.464582    1.00e-06  ***            
+whole_blood          DTHVNT                      0.443140    1.00e-06  ***            
+whole_blood          DTHVNTD                     0.418721    1.00e-06  ***            
+whole_blood          MHBRNWGHT                   0.349664    1.00e-06  ***            
+whole_blood          MHBRNPH                     0.349664    1.00e-06  ***            
+whole_blood          MHABNWBC                    0.270010    1.00e-06  ***            
+whole_blood          SMNTERRT                    0.250997    1.00e-06  ***            
+whole_blood          SMNTRART                    0.243071    1.00e-06  ***            
+whole_blood          TRCRTMP                     0.203103    1.00e-06  ***            
+whole_blood          SMNTRNRT                    0.202936    1.00e-06  ***            
+
+================================================================================
+SUMMARY BY TISSUE
+================================================================================
+Tissue               N Samples  Successful   Mean |CCC|   Max |CCC|   
+----------------------------------------------------------------------
+whole_blood          755        192          0.060103     0.553714    
+
+================================================================================
+RUNTIME SUMMARY
+================================================================================
+Total runtime: 3069.06 seconds (51.15 minutes)
+Average runtime per tissue: 3069.06 seconds
+
+Runtime by tissue:
+Tissue                    Runtime (sec)   Runtime (min)   Status    
+----------------------------------------------------------------------
+whole_blood               3069.06         51.15           Success   
+
+Fastest: whole_blood (3069.06 seconds)
+Slowest: whole_blood (3069.06 seconds)
+Speed ratio: 1.0x
