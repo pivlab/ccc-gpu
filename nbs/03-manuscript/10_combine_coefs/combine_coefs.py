@@ -502,9 +502,15 @@ class CorrelationProcessor:
             f"  Memory saved: {(processed_series.memory_usage(deep=True) - aligned_series.memory_usage(deep=True)) / 1024**2:.2f} MB"
         )
 
-        # Cache the aligned result
+                # Cache the aligned result
         self._save_aligned_matrix(aligned_series, method)
-
+        
+        # Free up memory by deleting the original correlation matrix
+        if method in correlation_matrices:
+            original_memory = correlation_matrices[method].memory_usage(deep=True).sum() / 1024**2
+            del correlation_matrices[method]
+            self.logger.info(f"  Freed {original_memory:.2f} MB by deleting original {method} correlation matrix from memory")
+        
         return aligned_series
 
     def combine_correlations(self) -> pd.DataFrame:
@@ -566,6 +572,12 @@ class CorrelationProcessor:
 
             # Save as aligned cache (Spearman is the reference, so it's "aligned" to itself)
             self._save_aligned_matrix(spearman_series, "spearman")
+            
+            # Free up memory by deleting the original Spearman correlation matrix
+            if "spearman" in correlation_matrices:
+                original_memory = correlation_matrices["spearman"].memory_usage(deep=True).sum() / 1024**2
+                del correlation_matrices["spearman"]
+                self.logger.info(f"  Freed {original_memory:.2f} MB by deleting original spearman correlation matrix from memory")
 
         common_indices = spearman_series.index
 
