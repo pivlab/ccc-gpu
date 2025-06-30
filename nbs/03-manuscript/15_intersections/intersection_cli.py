@@ -232,16 +232,18 @@ def plot_intersections(
     tissue: str,
     output_file: Optional[Path] = None,
     log_dir: Optional[Path] = None,
+    plot_types: str = "both",
 ) -> None:
     """Plot intersections between correlation methods.
 
-    Generates both a full UpSet plot (showing all intersections) and a trimmed plot
-    (using predefined subset ordering for better visualization).
+    Generates UpSet plots based on the specified plot_types parameter.
 
     Args:
         paths: Dictionary of paths
+        tissue: Tissue name
         output_file: Path to save the plot. If None, uses default location.
         log_dir: Directory to save a copy of the plot in logs. If None, no copy is saved.
+        plot_types: Which plots to generate - "full", "trimmed", or "both" (default: "both")
     """
     if df_plot is None:
         raise ValueError("Plot data not prepared. Call prepare_plot_data() first.")
@@ -277,65 +279,70 @@ def plot_intersections(
         inplace=True,
     )
 
-    # Generate FULL plot (all intersections)
-    _plot_upset_figure(
-        gene_pairs_by_cats_renamed,
-        paths=paths,
-        tissue=tissue,
-        plot_type="full",
-        output_file=output_file,
-        log_dir=log_dir,
-    )
-
-    # Define the order of subsets for trimmed plot
-    ordered_subsets = [
-        # full agreements on high:
-        (False, False, False, True, True, True),
-        # agreements on top
-        (False, False, False, False, True, True),
-        (False, False, False, True, False, True),
-        (False, False, False, True, True, False),
-        # agreements on bottom
-        (False, True, True, False, False, False),
-        (True, False, True, False, False, False),
-        (True, True, False, False, False, False),
-        # full agreements on low:
-        (True, True, True, False, False, False),
-        # disagreements
-        #   ccc
-        (False, True, False, True, False, True),
-        (False, True, False, False, False, True),
-        (True, False, False, False, False, True),
-        (True, True, False, False, False, True),
-        #   pearson
-        (False, False, True, False, True, False),
-        (True, False, False, False, True, False),
-        (True, False, True, False, True, False),
-        #   spearman
-        (False, True, False, True, False, False),
-    ]
-
-    # Filter for trimmed plot - only include subsets that exist in the data
-    available_subsets = set(gene_pairs_by_cats_renamed.index.tolist())
-    trimmed_subsets = [
-        subset for subset in ordered_subsets if subset in available_subsets
-    ]
-
-    if trimmed_subsets:
-        # Create trimmed dataset
-        gene_pairs_by_cats_trimmed = gene_pairs_by_cats_renamed.loc[trimmed_subsets]
-
-        # Generate TRIMMED plot (selected intersections only)
+    # Generate plots based on plot_types parameter
+    if plot_types in ["full", "both"]:
+        logging.info(f"Generating full UpSet plot for {tissue}...")
+        # Generate FULL plot (all intersections)
         _plot_upset_figure(
-            gene_pairs_by_cats_trimmed,
+            gene_pairs_by_cats_renamed,
             paths=paths,
             tissue=tissue,
-            plot_type="trimmed",
+            plot_type="full",
             output_file=output_file,
             log_dir=log_dir,
         )
-    else:
-        logging.warning("No trimmed subsets found in the data. Skipping trimmed plot.")
+
+    if plot_types in ["trimmed", "both"]:
+        logging.info(f"Generating trimmed UpSet plot for {tissue}...")
+        # Define the order of subsets for trimmed plot
+        ordered_subsets = [
+            # full agreements on high:
+            (False, False, False, True, True, True),
+            # agreements on top
+            (False, False, False, False, True, True),
+            (False, False, False, True, False, True),
+            (False, False, False, True, True, False),
+            # agreements on bottom
+            (False, True, True, False, False, False),
+            (True, False, True, False, False, False),
+            (True, True, False, False, False, False),
+            # full agreements on low:
+            (True, True, True, False, False, False),
+            # disagreements
+            #   ccc
+            (False, True, False, True, False, True),
+            (False, True, False, False, False, True),
+            (True, False, False, False, False, True),
+            (True, True, False, False, False, True),
+            #   pearson
+            (False, False, True, False, True, False),
+            (True, False, False, False, True, False),
+            (True, False, True, False, True, False),
+            #   spearman
+            (False, True, False, True, False, False),
+        ]
+
+        # Filter for trimmed plot - only include subsets that exist in the data
+        available_subsets = set(gene_pairs_by_cats_renamed.index.tolist())
+        trimmed_subsets = [
+            subset for subset in ordered_subsets if subset in available_subsets
+        ]
+
+        if trimmed_subsets:
+            # Create trimmed dataset
+            gene_pairs_by_cats_trimmed = gene_pairs_by_cats_renamed.loc[trimmed_subsets]
+
+            # Generate TRIMMED plot (selected intersections only)
+            _plot_upset_figure(
+                gene_pairs_by_cats_trimmed,
+                paths=paths,
+                tissue=tissue,
+                plot_type="trimmed",
+                output_file=output_file,
+                log_dir=log_dir,
+            )
+        else:
+            logging.warning("No trimmed subsets found in the data. Skipping trimmed plot.")
 
 
 def _plot_upset_figure(
@@ -528,6 +535,13 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Output directory for saving results",
     )
+    parser.add_argument(
+        "--upset-plot",
+        type=str,
+        choices=["full", "trimmed", "both"],
+        default="both",
+        help="Which UpSet plot(s) to generate: 'full' (all intersections), 'trimmed' (selected intersections), or 'both' (default: both)",
+    )
     return parser.parse_args()
 
 
@@ -588,9 +602,9 @@ def main() -> None:
                 else:
                     save_intersections(paths, tissue, args.gene_selection)
 
-                # Create both full and trimmed plots for this tissue
-                logging.info(f"Generating UpSet plots for {tissue}...")
-                plot_intersections(paths, tissue, log_dir=timestamped_log_dir)
+                # Create UpSet plots for this tissue based on user selection
+                logging.info(f"Generating UpSet plots ({args.upset_plot}) for {tissue}...")
+                plot_intersections(paths, tissue, log_dir=timestamped_log_dir, plot_types=args.upset_plot)
 
                 logging.info(f"✅ Completed analysis for {tissue}")
 
@@ -600,7 +614,7 @@ def main() -> None:
                 continue
 
         logging.info(
-            f"\n🎉 Done! Processed {len(tissues)} tissues with both full and trimmed intersection plots."
+            f"\n🎉 Done! Processed {len(tissues)} tissues with {args.upset_plot} intersection plots."
         )
 
     except Exception as e:
