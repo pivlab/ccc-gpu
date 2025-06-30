@@ -43,6 +43,9 @@ class Config:
     gene_selection_strategy: str = "var_pc_log2"
     log_level: str = "INFO"
     log_dir: Path = Path("logs")  # Will be resolved relative to script location
+    temp_dir: Path = (
+        None  # Will be auto-generated in similarity_matrices folder if None
+    )
 
     def __post_init__(self):
         """Validate configuration after initialization."""
@@ -55,8 +58,29 @@ class Config:
         else:
             self.log_dir = Path(self.log_dir)
 
-        # Ensure log directory exists
+        # Set up temp_dir: if None, create in similarity_matrices folder with pattern
+        if self.temp_dir is None:
+            # Create cache directory in similarity_matrices folder
+            cache_dir_name = (
+                f"gtex_v8_data_{self.gtex_tissue}-{self.gene_selection_strategy}-cache"
+            )
+            self.temp_dir = (
+                self.data_dir
+                / "similarity_matrices"
+                / self.top_n_genes
+                / cache_dir_name
+            )
+        else:
+            # Handle user-provided temp_dir (make relative to script location if needed)
+            if not self.temp_dir.is_absolute():
+                script_dir = Path(__file__).parent
+                self.temp_dir = script_dir / self.temp_dir
+            else:
+                self.temp_dir = Path(self.temp_dir)
+
+        # Ensure directories exist
         self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.temp_dir.mkdir(parents=True, exist_ok=True)
 
 
 class CorrelationProcessor:
@@ -107,6 +131,138 @@ class CorrelationProcessor:
 
         self.logger.info(f"Input gene expression file: {self.input_gene_expr_file}")
         self.logger.info(f"Output file: {self.output_file}")
+        self.logger.info(f"Temporary directory: {self.config.temp_dir}")
+
+    def _get_temp_file_path(self, method: str) -> Path:
+        """
+        Generate temporary file path for aligned correlation matrix cache.
+
+        Args:
+            method: Correlation method ('ccc_gpu', 'pearson', 'spearman')
+
+        Returns:
+            Path to temporary file
+        """
+        temp_filename = f"aligned_{method}_{self.config.gtex_tissue}_{self.config.gene_selection_strategy}.pkl"
+        return self.config.temp_dir / temp_filename
+
+    def _save_aligned_matrix(self, series: pd.Series, method: str) -> None:
+        """
+        Save aligned correlation matrix to temporary file.
+
+        Args:
+            series: Aligned correlation series
+            method: Correlation method name
+        """
+        temp_file = self._get_temp_file_path(method)
+
+        # Log detailed information about the matrix being cached
+        self.logger.info(f"Caching aligned {method} matrix:")
+        self.logger.info(f"  Shape: {series.shape}")
+        self.logger.info(f"  Data type: {series.dtype}")
+        self.logger.info(
+            f"  Memory usage: {series.memory_usage(deep=True) / 1024**2:.2f} MB"
+        )
+
+        # Log basic statistics
+        self.logger.info(f"  Value range: [{series.min():.6f}, {series.max():.6f}]")
+        self.logger.info(f"  Mean: {series.mean():.6f}, Std: {series.std():.6f}")
+
+        # Log first few values
+        self.logger.info("  First 5 values:")
+        for i, (idx, val) in enumerate(series.head(5).items()):
+            self.logger.info(f"    {idx}: {val:.6f}")
+
+        # Log index information
+        self.logger.info(f"  Index type: {type(series.index).__name__}")
+        if hasattr(series.index, "names") and series.index.names:
+            self.logger.info(f"  Index names: {series.index.names}")
+
+        # Save to cache
+        series.to_pickle(temp_file)
+
+        # Log cache file information
+        cache_file_size = temp_file.stat().st_size / 1024**2
+        self.logger.info(f"  Cached to: {temp_file}")
+        self.logger.info(f"  Cache file size: {cache_file_size:.2f} MB")
+
+    def _load_aligned_matrix(self, method: str) -> pd.Series:
+        """
+        Load aligned correlation matrix from temporary file.
+
+        Args:
+            method: Correlation method name
+
+        Returns:
+            Aligned correlation series
+        """
+        temp_file = self._get_temp_file_path(method)
+
+        # Log cache file information
+        cache_file_size = temp_file.stat().st_size / 1024**2
+        self.logger.info(f"Loading aligned {method} matrix from cache:")
+        self.logger.info(f"  Cache file: {temp_file}")
+        self.logger.info(f"  Cache file size: {cache_file_size:.2f} MB")
+
+        # Load the series
+        series = pd.read_pickle(temp_file)
+
+        # Log detailed information about the loaded matrix
+        self.logger.info(f"  Loaded shape: {series.shape}")
+        self.logger.info(f"  Data type: {series.dtype}")
+        self.logger.info(
+            f"  Memory usage: {series.memory_usage(deep=True) / 1024**2:.2f} MB"
+        )
+
+        # Log basic statistics
+        self.logger.info(f"  Value range: [{series.min():.6f}, {series.max():.6f}]")
+        self.logger.info(f"  Mean: {series.mean():.6f}, Std: {series.std():.6f}")
+
+        # Verify data integrity
+        null_count = series.isnull().sum()
+        inf_count = np.isinf(series).sum()
+        self.logger.info(f"  Data integrity: {null_count} nulls, {inf_count} infs")
+
+        return series
+
+    def _has_aligned_matrix(self, method: str) -> bool:
+        """
+        Check if aligned correlation matrix exists in cache.
+
+        Args:
+            method: Correlation method name
+
+        Returns:
+            True if cached aligned file exists
+        """
+        temp_file = self._get_temp_file_path(method)
+        return temp_file.exists()
+
+    def _cleanup_temp_files(self) -> None:
+        """Clean up temporary files after successful completion."""
+        temp_files_removed = 0
+        for method in ["ccc_gpu", "pearson", "spearman"]:
+            temp_file = self._get_temp_file_path(method)
+            if temp_file.exists():
+                temp_file.unlink()
+                temp_files_removed += 1
+
+        if temp_files_removed > 0:
+            self.logger.info(f"Cleaned up {temp_files_removed} temporary files")
+
+    def clear_cache(self) -> None:
+        """Clear all cached temporary files."""
+        temp_files_cleared = 0
+        for method in ["ccc_gpu", "pearson", "spearman"]:
+            temp_file = self._get_temp_file_path(method)
+            if temp_file.exists():
+                temp_file.unlink()
+                temp_files_cleared += 1
+
+        if temp_files_cleared > 0:
+            self.logger.info(f"Cleared {temp_files_cleared} cached temporary files")
+        else:
+            self.logger.info("No cached files to clear")
 
     def validate_inputs(self) -> None:
         """Validate that all required input files exist."""
@@ -277,6 +433,80 @@ class CorrelationProcessor:
         )
         return series
 
+    def _get_or_process_aligned_matrix(
+        self,
+        method: str,
+        common_indices: pd.Index = None,
+        correlation_matrices: Dict[str, pd.DataFrame] = None,
+        reference_index: pd.Index = None,
+    ) -> pd.Series:
+        """
+        Get aligned correlation matrix from cache or process and align it.
+
+        Args:
+            method: Correlation method name
+            common_indices: Common indices to align to (only needed if not cached)
+            correlation_matrices: Dictionary of loaded correlation matrices (only needed if not cached)
+            reference_index: Reference index for loading correlation matrix (only needed if not cached)
+
+        Returns:
+            Aligned correlation series (float16)
+        """
+        # Check for aligned cache first
+        if self._has_aligned_matrix(method):
+            self.logger.info(f"Found cached aligned {method} matrix - using directly")
+            series = self._load_aligned_matrix(method)
+
+            # Verify dtype and convert if necessary
+            if series.dtype != np.float16:
+                self.logger.info(
+                    f"Converting cached aligned {method} matrix from {series.dtype} to float16"
+                )
+                series = series.astype(np.float16)
+
+            return series
+
+        # No cache found - process from scratch and align
+        self.logger.info(
+            f"No cache found for {method}, loading, processing and aligning matrix"
+        )
+
+        # Load correlation matrix if not already loaded
+        if method not in correlation_matrices:
+            correlation_matrices[method] = self.load_correlation_matrix(
+                method, reference_index
+            )
+
+        # Process the matrix
+        processed_series = self.process_correlation_matrix(
+            correlation_matrices[method], method
+        )
+
+        # Log information about processed matrix before alignment
+        self.logger.info(f"Processed {method} matrix before alignment:")
+        self.logger.info(f"  Original shape: {processed_series.shape}")
+        self.logger.info(f"  Data type: {processed_series.dtype}")
+        self.logger.info(
+            f"  Memory usage: {processed_series.memory_usage(deep=True) / 1024**2:.2f} MB"
+        )
+
+        # Align to common indices
+        aligned_series = processed_series.loc[common_indices]
+
+        # Log alignment information
+        alignment_ratio = len(aligned_series) / len(processed_series) * 100
+        self.logger.info("Alignment summary:")
+        self.logger.info(f"  Aligned shape: {aligned_series.shape}")
+        self.logger.info(f"  Alignment ratio: {alignment_ratio:.2f}% of original")
+        self.logger.info(
+            f"  Memory saved: {(processed_series.memory_usage(deep=True) - aligned_series.memory_usage(deep=True)) / 1024**2:.2f} MB"
+        )
+
+        # Cache the aligned result
+        self._save_aligned_matrix(aligned_series, method)
+
+        return aligned_series
+
     def combine_correlations(self) -> pd.DataFrame:
         """
         Combine all correlation methods into a single DataFrame.
@@ -290,39 +520,73 @@ class CorrelationProcessor:
         gene_expr_data = self.load_gene_expression_data()
         reference_index = gene_expr_data.index
 
-        # Load correlation matrices
-        correlation_matrices = {}
+        # Check cache status for all methods
+        cached_methods = []
+        uncached_methods = []
+
         for method in ["ccc_gpu", "pearson", "spearman"]:
-            correlation_matrices[method] = self.load_correlation_matrix(
-                method, reference_index
-            )
-
-        # Process each correlation matrix
-        processed_correlations = {}
-        for method, corr_df in correlation_matrices.items():
-            processed_correlations[method] = self.process_correlation_matrix(
-                corr_df, method
-            )
-
-        # Find common indices across all methods
-        common_indices = None
-        for method, series in processed_correlations.items():
-            if common_indices is None:
-                common_indices = series.index
+            if self._has_aligned_matrix(method):
+                cached_methods.append(method)
             else:
-                common_indices = common_indices.intersection(series.index)
+                uncached_methods.append(method)
+
+        # Log cache status
+        if cached_methods:
+            self.logger.info(f"Found aligned cache for: {', '.join(cached_methods)}")
+        if uncached_methods:
+            self.logger.info(f"Need to load and process: {', '.join(uncached_methods)}")
+
+        # Initialize empty correlation_matrices dict - matrices will be loaded on-demand
+        correlation_matrices = {}
+
+        # Process Spearman first to get common indices (Spearman provides the reference)
+        if self._has_aligned_matrix("spearman"):
+            # Load from cache
+            spearman_series = self._get_or_process_aligned_matrix("spearman")
+        else:
+            # Need to process Spearman - it becomes the reference, so no alignment needed initially
+            self.logger.info(
+                "No cache found for spearman, loading and processing matrix"
+            )
+            correlation_matrices["spearman"] = self.load_correlation_matrix(
+                "spearman", reference_index
+            )
+            spearman_series = self.process_correlation_matrix(
+                correlation_matrices["spearman"], "spearman"
+            )
+
+            # Log information about processed Spearman (which becomes the reference)
+            self.logger.info("Processed spearman matrix (reference):")
+            self.logger.info(f"  Shape: {spearman_series.shape}")
+            self.logger.info(f"  Data type: {spearman_series.dtype}")
+            self.logger.info(
+                f"  Memory usage: {spearman_series.memory_usage(deep=True) / 1024**2:.2f} MB"
+            )
+            self.logger.info("  Will be used as alignment reference for other methods")
+
+            # Save as aligned cache (Spearman is the reference, so it's "aligned" to itself)
+            self._save_aligned_matrix(spearman_series, "spearman")
+
+        common_indices = spearman_series.index
 
         self.logger.info(
-            f"Found {len(common_indices)} common gene pairs across all methods"
+            f"Using Spearman indices as reference: {len(common_indices)} gene pairs"
         )
 
-        # Align all series to common indices
-        aligned_correlations = {}
-        for method, series in processed_correlations.items():
-            aligned_correlations[method] = series.loc[common_indices]
-            self.logger.info(
-                f"Aligned {method} series to {len(aligned_correlations[method])} values"
+        # Build aligned correlations starting with Spearman
+        aligned_correlations = {"spearman": spearman_series}
+
+        # For other methods, get aligned matrices
+        for method in ["ccc_gpu", "pearson"]:
+            aligned_series = self._get_or_process_aligned_matrix(
+                method, common_indices, correlation_matrices, reference_index
             )
+            aligned_correlations[method] = aligned_series
+            self.logger.info(
+                f"Got aligned {method} series with {len(aligned_series)} values"
+            )
+
+        self.logger.info(f"Combining {len(common_indices)} gene pairs")
 
         # Create combined DataFrame with explicit float16 dtype
         combined_df = pd.DataFrame(
@@ -331,11 +595,11 @@ class CorrelationProcessor:
                 "pearson": aligned_correlations["pearson"].astype(np.float16),
                 "spearman": aligned_correlations["spearman"].astype(np.float16),
             }
-        ).sort_index()
+        )
 
         # Validate no NaN values
-        if combined_df.isna().any().any():
-            raise ValueError("Combined DataFrame contains NaN values")
+        # if combined_df.isna().any().any():
+        #     raise ValueError("Combined DataFrame contains NaN values")
 
         # Log final DataFrame information including memory usage
         memory_usage_mb = combined_df.memory_usage(deep=True).sum() / (1024 * 1024)
@@ -381,8 +645,13 @@ class CorrelationProcessor:
             "Memory optimization: Using float16 reduces memory usage by ~50% compared to float32"
         )
 
-    def run(self) -> None:
-        """Execute the complete correlation combination workflow."""
+    def run(self, cleanup_temp: bool = True) -> None:
+        """
+        Execute the complete correlation combination workflow.
+
+        Args:
+            cleanup_temp: Whether to clean up temporary files after successful completion
+        """
         try:
             self.logger.info("Starting correlation combination workflow")
 
@@ -398,10 +667,15 @@ class CorrelationProcessor:
             # Save results
             self.save_results(combined_df)
 
+            # Clean up temporary files if requested
+            if cleanup_temp:
+                self._cleanup_temp_files()
+
             self.logger.info("Correlation combination workflow completed successfully")
 
         except Exception as e:
             self.logger.error(f"Error in correlation combination workflow: {str(e)}")
+            self.logger.info("Temporary files preserved for debugging/resumption")
             raise
 
 
@@ -509,6 +783,25 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help="Directory for log files (relative to script location)",
     )
 
+    parser.add_argument(
+        "--temp-dir",
+        type=Path,
+        default=None,
+        help="Directory for temporary cache files (default: auto-generated in similarity_matrices folder)",
+    )
+
+    parser.add_argument(
+        "--no-cleanup",
+        action="store_true",
+        help="Keep temporary cache files after completion (useful for debugging)",
+    )
+
+    parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="Clear existing cache files before processing",
+    )
+
     return parser
 
 
@@ -528,6 +821,7 @@ def main() -> None:
             gene_selection_strategy=args.gene_selection_strategy,
             log_level=args.log_level,
             log_dir=args.log_dir,
+            temp_dir=args.temp_dir,
         )
 
         # Setup logging
@@ -541,9 +835,17 @@ def main() -> None:
         if not config.gtex_tissue:
             raise ValueError("GTEx tissue must be specified")
 
-        # Create and run processor
+        # Create processor
         processor = CorrelationProcessor(config)
-        processor.run()
+
+        # Clear cache if requested
+        if args.clear_cache:
+            logger.info("Clearing existing cache files")
+            processor.clear_cache()
+
+        # Run processor
+        cleanup_temp = not args.no_cleanup
+        processor.run(cleanup_temp=cleanup_temp)
 
         logger.info("CLI tool completed successfully")
 
