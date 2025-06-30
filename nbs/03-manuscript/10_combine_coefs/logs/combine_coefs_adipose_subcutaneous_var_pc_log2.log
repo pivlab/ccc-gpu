@@ -1,0 +1,124 @@
+2025-06-29 19:57:58,569 - __main__ - INFO - Logging initialized. Log directory: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs
+2025-06-29 19:57:58,570 - __main__ - INFO - Log file: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs/combine_coefs_adipose_subcutaneous_var_pc_log2.log
+2025-06-29 19:57:58,570 - __main__ - INFO - Starting combine coefficients CLI tool
+2025-06-29 19:57:58,570 - __main__ - INFO - Configuration: Config(top_n_genes='all', data_dir=PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8'), gtex_tissue='adipose_subcutaneous', gene_selection_strategy='var_pc_log2', log_level='INFO', log_dir=PosixPath('/home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs'), temp_dir=PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-cache'))
+2025-06-29 19:57:58,570 - __main__ - INFO - Input gene expression file: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2.pkl
+2025-06-29 19:57:58,570 - __main__ - INFO - Output file: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-all.pkl
+2025-06-29 19:57:58,570 - __main__ - INFO - Temporary directory: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-cache
+2025-06-29 19:57:58,570 - __main__ - INFO - Starting correlation combination workflow
+2025-06-29 19:57:58,570 - __main__ - INFO - All input files validated successfully
+2025-06-29 19:57:58,571 - __main__ - INFO - Loading gene mapping...
+2025-06-29 19:57:58,684 - __main__ - INFO - Loaded 56200 gene mappings
+2025-06-29 19:57:58,684 - __main__ - INFO - Starting correlation combination process
+2025-06-29 19:57:58,684 - __main__ - INFO - Loading gene expression data from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2.pkl
+2025-06-29 19:57:59,253 - __main__ - INFO - Loaded gene expression data with shape: (56200, 663)
+2025-06-29 19:57:59,253 - __main__ - INFO - Need to load and process: ccc_gpu, pearson, spearman
+2025-06-29 19:57:59,253 - __main__ - INFO - No cache found for spearman, loading and processing matrix
+2025-06-29 19:57:59,253 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-spearman.pkl
+2025-06-29 19:58:29,971 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-06-29 19:58:38,073 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-06-29 19:58:38,075 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-06-29 19:58:38,076 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-06-29 20:00:19,216 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-06-29 20:00:19,216 - __main__ - INFO - Processed spearman correlation matrix to series with 1460025703 values (dtype: float16)
+2025-06-29 20:00:19,232 - __main__ - INFO - Processed spearman matrix (reference):
+2025-06-29 20:00:19,232 - __main__ - INFO -   Shape: (1460025703,)
+2025-06-29 20:00:19,232 - __main__ - INFO -   Data type: float16
+2025-06-29 20:00:28,336 - __main__ - INFO -   Memory usage: 13935.88 MB
+2025-06-29 20:00:28,336 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-06-29 20:00:28,336 - __main__ - INFO - Caching aligned spearman matrix:
+2025-06-29 20:00:28,336 - __main__ - INFO -   Shape: (1460025703,)
+2025-06-29 20:00:28,337 - __main__ - INFO -   Data type: float16
+2025-06-29 20:00:28,343 - __main__ - INFO -   Memory usage: 13935.88 MB
+2025-06-29 20:00:37,375 - __main__ - INFO -   Value range: [0.000000, 1.000000]
+2025-06-29 20:01:08,982 - __main__ - INFO -   Mean: nan, Std: 0.000000
+2025-06-29 20:01:08,982 - __main__ - INFO -   First 5 values:
+2025-06-29 20:01:08,983 - __main__ - INFO -     ('ENSG00000149968.11', 'ENSG00000129824.15'): 0.404541
+2025-06-29 20:01:08,983 - __main__ - INFO -     ('ENSG00000134184.12', 'ENSG00000129824.15'): 0.016876
+2025-06-29 20:01:08,983 - __main__ - INFO -     ('ENSG00000134184.12', 'ENSG00000149968.11'): 0.062561
+2025-06-29 20:01:08,983 - __main__ - INFO -     ('ENSG00000224114.1', 'ENSG00000129824.15'): 0.102783
+2025-06-29 20:01:08,983 - __main__ - INFO -     ('ENSG00000224114.1', 'ENSG00000149968.11'): 0.063599
+2025-06-29 20:01:08,983 - __main__ - INFO -   Index type: MultiIndex
+2025-06-29 20:01:08,983 - __main__ - INFO -   Index names: [None, None]
+2025-06-29 20:01:37,186 - __main__ - INFO -   Cached to: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-cache/aligned_spearman_adipose_subcutaneous_var_pc_log2.pkl
+2025-06-29 20:01:37,186 - __main__ - INFO -   Cache file size: 25064.36 MB
+2025-06-29 20:01:37,449 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-06-29 20:01:37,449 - __main__ - INFO - Using Spearman indices as reference: 1460025703 gene pairs
+2025-06-29 20:01:37,450 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-06-29 20:01:37,450 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-ccc_gpu.pkl
+2025-06-29 20:03:54,957 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-06-29 20:04:21,328 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-06-29 20:04:21,329 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-06-29 20:04:21,330 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-06-29 20:05:57,721 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578690996 values (dtype: float16)
+2025-06-29 20:05:57,737 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-06-29 20:05:57,737 - __main__ - INFO -   Original shape: (1578690996,)
+2025-06-29 20:05:57,737 - __main__ - INFO -   Data type: float16
+2025-06-29 20:06:07,554 - __main__ - INFO -   Memory usage: 15067.56 MB
+2025-06-29 20:13:26,083 - __main__ - INFO - Alignment summary:
+2025-06-29 20:13:26,083 - __main__ - INFO -   Aligned shape: (1460025703,)
+2025-06-29 20:13:26,083 - __main__ - INFO -   Alignment ratio: 92.48% of original
+2025-06-29 20:13:35,141 - __main__ - INFO -   Memory saved: 34155.68 MB
+2025-06-29 20:13:35,141 - __main__ - INFO - Caching aligned ccc_gpu matrix:
+2025-06-29 20:13:35,141 - __main__ - INFO -   Shape: (1460025703,)
+2025-06-29 20:13:35,141 - __main__ - INFO -   Data type: float16
+2025-06-29 20:13:35,148 - __main__ - INFO -   Memory usage: 13935.88 MB
+2025-06-29 20:13:44,213 - __main__ - INFO -   Value range: [0.000000, 1.000000]
+2025-06-29 20:15:00,585 - __main__ - INFO -   Mean: nan, Std: 0.000000
+2025-06-29 20:15:00,585 - __main__ - INFO -   First 5 values:
+2025-06-29 20:15:00,586 - __main__ - INFO -     ('ENSG00000149968.11', 'ENSG00000129824.15'): 0.092407
+2025-06-29 20:15:00,586 - __main__ - INFO -     ('ENSG00000134184.12', 'ENSG00000129824.15'): 0.007263
+2025-06-29 20:15:00,586 - __main__ - INFO -     ('ENSG00000134184.12', 'ENSG00000149968.11'): 0.004570
+2025-06-29 20:15:00,586 - __main__ - INFO -     ('ENSG00000224114.1', 'ENSG00000129824.15'): 0.011841
+2025-06-29 20:15:00,586 - __main__ - INFO -     ('ENSG00000224114.1', 'ENSG00000149968.11'): 0.009171
+2025-06-29 20:15:00,586 - __main__ - INFO -   Index type: MultiIndex
+2025-06-29 20:15:00,586 - __main__ - INFO -   Index names: [None, None]
+2025-06-29 20:15:28,846 - __main__ - INFO -   Cached to: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-cache/aligned_ccc_gpu_adipose_subcutaneous_var_pc_log2.pkl
+2025-06-29 20:15:28,846 - __main__ - INFO -   Cache file size: 25064.36 MB
+2025-06-29 20:15:29,112 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-06-29 20:15:32,110 - __main__ - INFO - Got aligned ccc_gpu series with 1460025703 values
+2025-06-29 20:15:32,110 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-06-29 20:15:32,110 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-pearson.pkl
+2025-06-29 20:17:46,119 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-06-29 20:17:54,137 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-06-29 20:17:54,139 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-06-29 20:17:54,139 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-06-29 20:21:00,203 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-06-29 20:21:00,205 - __main__ - INFO - Processed pearson correlation matrix to series with 1460025703 values (dtype: float16)
+2025-06-29 20:21:00,220 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-06-29 20:21:00,220 - __main__ - INFO -   Original shape: (1460025703,)
+2025-06-29 20:21:00,220 - __main__ - INFO -   Data type: float16
+2025-06-29 20:21:09,268 - __main__ - INFO -   Memory usage: 13935.88 MB
+2025-06-29 20:28:19,447 - __main__ - INFO - Alignment summary:
+2025-06-29 20:28:19,447 - __main__ - INFO -   Aligned shape: (1460025703,)
+2025-06-29 20:28:19,447 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-06-29 20:28:28,494 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-06-29 20:28:28,494 - __main__ - INFO - Caching aligned pearson matrix:
+2025-06-29 20:28:28,494 - __main__ - INFO -   Shape: (1460025703,)
+2025-06-29 20:28:28,494 - __main__ - INFO -   Data type: float16
+2025-06-29 20:28:28,501 - __main__ - INFO -   Memory usage: 13935.88 MB
+2025-06-29 20:28:37,537 - __main__ - INFO -   Value range: [0.000000, 1.000000]
+2025-06-29 20:29:11,192 - __main__ - INFO -   Mean: nan, Std: 0.000000
+2025-06-29 20:29:11,192 - __main__ - INFO -   First 5 values:
+2025-06-29 20:29:11,192 - __main__ - INFO -     ('ENSG00000149968.11', 'ENSG00000129824.15'): 0.142700
+2025-06-29 20:29:11,192 - __main__ - INFO -     ('ENSG00000134184.12', 'ENSG00000129824.15'): 0.044830
+2025-06-29 20:29:11,192 - __main__ - INFO -     ('ENSG00000134184.12', 'ENSG00000149968.11'): 0.007866
+2025-06-29 20:29:11,192 - __main__ - INFO -     ('ENSG00000224114.1', 'ENSG00000129824.15'): 0.086182
+2025-06-29 20:29:11,192 - __main__ - INFO -     ('ENSG00000224114.1', 'ENSG00000149968.11'): 0.010735
+2025-06-29 20:29:11,192 - __main__ - INFO -   Index type: MultiIndex
+2025-06-29 20:29:11,192 - __main__ - INFO -   Index names: [None, None]
+2025-06-29 20:29:40,648 - __main__ - INFO -   Cached to: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-cache/aligned_pearson_adipose_subcutaneous_var_pc_log2.pkl
+2025-06-29 20:29:40,648 - __main__ - INFO -   Cache file size: 25064.36 MB
+2025-06-29 20:29:40,915 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-06-29 20:29:44,064 - __main__ - INFO - Got aligned pearson series with 1460025703 values
+2025-06-29 20:29:44,064 - __main__ - INFO - Combining 1460025703 gene pairs
+2025-06-29 20:36:44,542 - __main__ - INFO - Successfully combined correlations into DataFrame with shape: (1460025703, 3)
+2025-06-29 20:36:44,542 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 19505.4MB
+2025-06-29 20:36:44,994 - __main__ - INFO - Saving combined correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-all.pkl
+2025-06-29 20:36:44,994 - __main__ - INFO - Saving DataFrame with shape: (1460025703, 3), memory: 19505.4MB
+2025-06-29 20:36:44,994 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-06-29 20:39:20,969 - __main__ - INFO - Results saved successfully. File size: 19494.8MB
+2025-06-29 20:39:20,969 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-06-29 20:39:27,430 - __main__ - INFO - Cleaned up 3 temporary files
+2025-06-29 20:39:27,430 - __main__ - INFO - Correlation combination workflow completed successfully
+2025-06-29 20:39:27,508 - __main__ - INFO - CLI tool completed successfully
