@@ -1,0 +1,59 @@
+2025-06-29 18:46:52,412 - __main__ - INFO - Logging initialized. Log directory: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs
+2025-06-29 18:46:52,412 - __main__ - INFO - Log file: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs/combine_coefs_whole_blood_var_pc_log2.log
+2025-06-29 18:46:52,412 - __main__ - INFO - Starting combine coefficients CLI tool
+2025-06-29 18:46:52,412 - __main__ - INFO - Configuration: Config(top_n_genes='all', data_dir=PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8'), gtex_tissue='whole_blood', gene_selection_strategy='var_pc_log2', log_level='INFO', log_dir=PosixPath('/home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs'), temp_dir=PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-cache'))
+2025-06-29 18:46:52,412 - __main__ - INFO - Input gene expression file: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_whole_blood-var_pc_log2.pkl
+2025-06-29 18:46:52,412 - __main__ - INFO - Output file: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all.pkl
+2025-06-29 18:46:52,412 - __main__ - INFO - Temporary directory: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-cache
+2025-06-29 18:46:52,412 - __main__ - INFO - Starting correlation combination workflow
+2025-06-29 18:46:52,412 - __main__ - INFO - All input files validated successfully
+2025-06-29 18:46:52,412 - __main__ - INFO - Loading gene mapping...
+2025-06-29 18:46:52,527 - __main__ - INFO - Loaded 56200 gene mappings
+2025-06-29 18:46:52,528 - __main__ - INFO - Starting correlation combination process
+2025-06-29 18:46:52,528 - __main__ - INFO - Loading gene expression data from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_whole_blood-var_pc_log2.pkl
+2025-06-29 18:46:53,172 - __main__ - INFO - Loaded gene expression data with shape: (56200, 755)
+2025-06-29 18:46:53,172 - __main__ - INFO - Found aligned cache for: ccc_gpu, pearson, spearman
+2025-06-29 18:46:53,172 - __main__ - INFO - Found cached aligned spearman matrix - using directly
+2025-06-29 18:46:53,172 - __main__ - INFO - Loading aligned spearman matrix from cache:
+2025-06-29 18:46:53,172 - __main__ - INFO -   Cache file: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-cache/aligned_spearman_whole_blood_var_pc_log2.pkl
+2025-06-29 18:46:53,172 - __main__ - INFO -   Cache file size: 24381.71 MB
+2025-06-29 18:47:10,121 - __main__ - INFO -   Loaded shape: (1420258456,)
+2025-06-29 18:47:10,121 - __main__ - INFO -   Data type: float16
+2025-06-29 18:47:19,049 - __main__ - INFO -   Memory usage: 13552.60 MB
+2025-06-29 18:47:27,904 - __main__ - INFO -   Value range: [0.000000, 1.000000]
+2025-06-29 18:47:57,889 - __main__ - INFO -   Mean: nan, Std: 0.000000
+2025-06-29 18:48:01,576 - __main__ - INFO -   Data integrity: 0 nulls, 0 infs
+2025-06-29 18:48:01,576 - __main__ - INFO - Using Spearman indices as reference: 1420258456 gene pairs
+2025-06-29 18:48:01,576 - __main__ - INFO - Found cached aligned ccc_gpu matrix - using directly
+2025-06-29 18:48:01,576 - __main__ - INFO - Loading aligned ccc_gpu matrix from cache:
+2025-06-29 18:48:01,576 - __main__ - INFO -   Cache file: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-cache/aligned_ccc_gpu_whole_blood_var_pc_log2.pkl
+2025-06-29 18:48:01,576 - __main__ - INFO -   Cache file size: 24381.71 MB
+2025-06-29 18:48:17,039 - __main__ - INFO -   Loaded shape: (1420258456,)
+2025-06-29 18:48:17,040 - __main__ - INFO -   Data type: float16
+2025-06-29 18:48:25,960 - __main__ - INFO -   Memory usage: 13552.60 MB
+2025-06-29 18:48:34,793 - __main__ - INFO -   Value range: [0.000000, 1.000000]
+2025-06-29 18:49:38,422 - __main__ - INFO -   Mean: nan, Std: 0.000000
+2025-06-29 18:49:42,093 - __main__ - INFO -   Data integrity: 0 nulls, 0 infs
+2025-06-29 18:49:42,093 - __main__ - INFO - Got aligned ccc_gpu series with 1420258456 values
+2025-06-29 18:49:42,093 - __main__ - INFO - Found cached aligned pearson matrix - using directly
+2025-06-29 18:49:42,093 - __main__ - INFO - Loading aligned pearson matrix from cache:
+2025-06-29 18:49:42,093 - __main__ - INFO -   Cache file: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-cache/aligned_pearson_whole_blood_var_pc_log2.pkl
+2025-06-29 18:49:42,094 - __main__ - INFO -   Cache file size: 24381.71 MB
+2025-06-29 18:49:50,785 - __main__ - INFO -   Loaded shape: (1420258456,)
+2025-06-29 18:49:50,785 - __main__ - INFO -   Data type: float16
+2025-06-29 18:49:59,800 - __main__ - INFO -   Memory usage: 13552.60 MB
+2025-06-29 18:50:08,628 - __main__ - INFO -   Value range: [0.000000, 1.000000]
+2025-06-29 18:50:42,126 - __main__ - INFO -   Mean: nan, Std: 0.000000
+2025-06-29 18:50:45,801 - __main__ - INFO -   Data integrity: 0 nulls, 0 infs
+2025-06-29 18:50:45,802 - __main__ - INFO - Got aligned pearson series with 1420258456 values
+2025-06-29 18:50:45,802 - __main__ - INFO - Combined 1420258456 gene pairs
+2025-06-29 18:57:21,526 - __main__ - INFO - Successfully combined correlations into DataFrame with shape: (1420258456, 3)
+2025-06-29 18:57:21,526 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 18970.5MB
+2025-06-29 18:57:23,308 - __main__ - INFO - Saving combined correlations to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all.pkl
+2025-06-29 18:57:23,308 - __main__ - INFO - Saving DataFrame with shape: (1420258456, 3), memory: 18970.5MB
+2025-06-29 18:57:23,308 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-06-29 18:57:51,124 - __main__ - INFO - Results saved successfully. File size: 18963.8MB
+2025-06-29 18:57:51,124 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-06-29 18:57:58,616 - __main__ - INFO - Cleaned up 3 temporary files
+2025-06-29 18:57:58,616 - __main__ - INFO - Correlation combination workflow completed successfully
+2025-06-29 18:57:59,229 - __main__ - INFO - CLI tool completed successfully
