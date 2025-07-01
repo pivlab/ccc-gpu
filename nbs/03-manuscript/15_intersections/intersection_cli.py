@@ -13,13 +13,15 @@ what's being captured or not by each coefficient.
 
 import pandas as pd
 import matplotlib.pyplot as plt
-from upsetplot import from_indicators
 from pathlib import Path
 import argparse
 import logging
 from datetime import datetime
 import sys
 import re
+import gc
+import psutil
+from collections import defaultdict
 from typing import Dict, Tuple, Optional, List
 
 from ccc.plots import MyUpSet
@@ -31,12 +33,12 @@ DEFAULT_MANUSCRIPT_DIR = Path("/mnt/data/proj_data/ccc-gpu/")
 DEFAULT_Q_DIFF = 0.30
 DEFAULT_TOP_N_GENES = "all"
 DEFAULT_GENE_SELECTION = "var_pc_log2"
+DEFAULT_CHUNK_SIZE = 100_000_000  # Process 100M rows at a time
 
 RESULTS_DIR = DEFAULT_MANUSCRIPT_DIR / "results"
 
-# Global state
-df: Optional[pd.DataFrame] = None
-df_plot: Optional[pd.DataFrame] = None
+# Global state - removed to reduce memory usage
+# Will use local variables and chunked processing instead
 
 
 def discover_tissues(
@@ -147,144 +149,191 @@ def setup_paths(
     return paths
 
 
-def load_data(paths: Dict[str, Path], tissue: str, gene_selection: str) -> None:
-    """Load correlation data from pickle files.
+def get_memory_usage():
+    """Get current memory usage in GB."""
+    process = psutil.Process()
+    return process.memory_info().rss / 1024**3
 
+
+def calculate_quantiles(input_file: Path, q_diff: float) -> Dict[str, Tuple[float, float]]:
+    """Calculate quantiles for correlation methods without loading full dataset.
+    
     Args:
-        paths: Dictionary of paths
-        tissue: GTEx tissue to analyze
-        gene_selection: Gene selection strategy
-    """
-    global df
-
-    input_corr_file = paths["similarity_matrices_dir"] / str(
-        paths["input_corr_file_template"]
-    ).format(
-        tissue=tissue,
-        gene_sel_strategy=gene_selection,
-        corr_method="all",
-    )
-
-    if not input_corr_file.exists():
-        raise FileNotFoundError(f"Input file not found: {input_corr_file}")
-
-    df = pd.read_pickle(input_corr_file)
-    logging.info(f"Loaded correlation data with shape: {df.shape}")
-
-
-def get_quantile_bounds(method_name: str, q_diff: float) -> Tuple[float, float]:
-    """Get lower and upper quantile bounds for a correlation method.
-
-    Args:
-        method_name: Name of the correlation method
+        input_file: Path to correlation data file
         q_diff: Quantile difference threshold
-
+        
     Returns:
-        Tuple of (lower_quantile, upper_quantile)
+        Dictionary with quantile bounds for each method
     """
-    return tuple(df[method_name].quantile([q_diff, 1 - q_diff]))
+    logging.info(f"Calculating quantiles from {input_file.name}...")
+    logging.info(f"Memory usage before quantile calculation: {get_memory_usage():.2f} GB")
+    
+    # Load data in chunks to calculate quantiles
+    chunk_size = DEFAULT_CHUNK_SIZE
+    quantiles = {}
+    
+    # First pass: collect samples for quantile estimation
+    sample_size = min(1_000_000, chunk_size)  # Sample up to 1M rows for quantile estimation
+    
+    df_iter = pd.read_pickle(input_file)
+    total_rows = len(df_iter)
+    
+    # Sample every nth row for quantile estimation
+    step = max(1, total_rows // sample_size)
+    sample_df = df_iter.iloc[::step].copy()
+    
+    logging.info(f"Using {len(sample_df)} samples (every {step}th row) for quantile estimation")
+    
+    for method in ['ccc', 'pearson', 'spearman']:
+        quantiles[method] = tuple(sample_df[method].quantile([q_diff, 1 - q_diff]))
+        logging.info(f"{method}: q={q_diff:.3f} -> {quantiles[method][0]:.6f}, q={1-q_diff:.3f} -> {quantiles[method][1]:.6f}")
+    
+    del df_iter, sample_df
+    gc.collect()
+    
+    logging.info(f"Memory usage after quantile calculation: {get_memory_usage():.2f} GB")
+    return quantiles
 
 
-def prepare_plot_data(q_diff: float) -> None:
-    """Prepare data for plotting intersections.
-
+def count_intersections_chunked(input_file: Path, quantiles: Dict[str, Tuple[float, float]], 
+                               chunk_size: int = DEFAULT_CHUNK_SIZE) -> Dict[tuple, int]:
+    """Count intersections using chunked processing to minimize memory usage.
+    
     Args:
-        q_diff: Quantile difference threshold
+        input_file: Path to correlation data file
+        quantiles: Pre-calculated quantile bounds for each method
+        chunk_size: Size of chunks to process
+        
+    Returns:
+        Dictionary mapping intersection patterns to counts
     """
-    global df_plot
+    logging.info(f"Starting chunked intersection counting with chunk size: {chunk_size:,}")
+    
+    intersection_counts = defaultdict(int)
+    
+    # Load data in chunks
+    df_full = pd.read_pickle(input_file)
+    total_rows = len(df_full)
+    num_chunks = (total_rows + chunk_size - 1) // chunk_size
+    
+    logging.info(f"Processing {total_rows:,} rows in {num_chunks} chunks")
+    
+    for chunk_idx in range(num_chunks):
+        start_idx = chunk_idx * chunk_size
+        end_idx = min(start_idx + chunk_size, total_rows)
+        
+        logging.info(f"Processing chunk {chunk_idx + 1}/{num_chunks}: rows {start_idx:,} to {end_idx:,}")
+        logging.info(f"Memory usage: {get_memory_usage():.2f} GB")
+        
+        # Get chunk data
+        chunk_df = df_full.iloc[start_idx:end_idx].copy()
+        
+        # Create boolean masks for this chunk
+        masks = {}
+        for method, (low_q, high_q) in quantiles.items():
+            masks[f"{method}_higher"] = chunk_df[method] >= high_q
+            masks[f"{method}_lower"] = chunk_df[method] <= low_q
+        
+        # Convert to DataFrame for easier processing
+        masks_df = pd.DataFrame(masks)
+        
+        # Count intersections for this chunk
+        # Create all possible intersection patterns
+        for _, row in masks_df.iterrows():
+            pattern = tuple(row.values)
+            intersection_counts[pattern] += 1
+        
+        # Clean up chunk data
+        del chunk_df, masks, masks_df
+        gc.collect()
+        
+        if (chunk_idx + 1) % 10 == 0:  # Log every 10 chunks
+            logging.info(f"Processed {chunk_idx + 1}/{num_chunks} chunks, found {len(intersection_counts)} intersection patterns")
+    
+    del df_full
+    gc.collect()
+    
+    logging.info(f"Completed intersection counting. Found {len(intersection_counts)} unique intersection patterns")
+    logging.info(f"Final memory usage: {get_memory_usage():.2f} GB")
+    
+    return dict(intersection_counts)
 
-    # Get quantile bounds for each method
-    clustermatch_lq, clustermatch_hq = get_quantile_bounds("ccc", q_diff)
-    pearson_lq, pearson_hq = get_quantile_bounds("pearson", q_diff)
-    spearman_lq, spearman_hq = get_quantile_bounds("spearman", q_diff)
 
-    # Create boolean masks for high and low values
-    masks = {
-        "pearson_higher": df["pearson"] >= pearson_hq,
-        "pearson_lower": df["pearson"] <= pearson_lq,
-        "spearman_higher": df["spearman"] >= spearman_hq,
-        "spearman_lower": df["spearman"] <= spearman_lq,
-        "clustermatch_higher": df["ccc"] >= clustermatch_hq,
-        "clustermatch_lower": df["ccc"] <= clustermatch_lq,
-    }
-
-    # Create plot DataFrame
-    df_plot = pd.DataFrame(masks)
-    df_plot = pd.concat([df_plot, df], axis=1)
-
-    # Rename columns for plotting
-    df_plot = df_plot.rename(
-        columns={
-            "pearson_higher": "Pearson (high)",
-            "pearson_lower": "Pearson (low)",
-            "spearman_higher": "Spearman (high)",
-            "spearman_lower": "Spearman (low)",
-            "clustermatch_higher": "CCC (high)",
-            "clustermatch_lower": "CCC (low)",
-        }
+def create_upset_data_from_counts(intersection_counts: Dict[tuple, int]) -> pd.Series:
+    """Create UpSet plot data from intersection counts.
+    
+    Args:
+        intersection_counts: Dictionary mapping intersection patterns to counts
+        
+    Returns:
+        pandas Series suitable for UpSet plotting
+    """
+    # Define the column order (must match the boolean mask order)
+    column_names = [
+        "Pearson (low)",
+        "Pearson (high)", 
+        "Spearman (low)",
+        "Spearman (high)",
+        "CCC (low)",
+        "CCC (high)"
+    ]
+    
+    # Create MultiIndex from intersection patterns
+    index_tuples = []
+    values = []
+    
+    for pattern, count in intersection_counts.items():
+        if len(pattern) == 6:  # Ensure we have the right number of boolean values
+            index_tuples.append(pattern)
+            values.append(count)
+        else:
+            logging.warning(f"Skipping pattern with wrong length: {pattern}")
+    
+    if not index_tuples:
+        raise ValueError("No valid intersection patterns found")
+    
+    # Create MultiIndex
+    multi_index = pd.MultiIndex.from_tuples(
+        index_tuples,
+        names=column_names
     )
-
-    logging.info(f"Prepared plot data with shape: {df_plot.shape}")
+    
+    # Create Series
+    upset_data = pd.Series(values, index=multi_index)
+    upset_data = upset_data.sort_index()
+    
+    logging.info(f"Created UpSet data with {len(upset_data)} intersection patterns")
+    return upset_data
 
 
 def plot_intersections(
+    upset_data: pd.Series,
     paths: Dict[str, Path],
     tissue: str,
     output_file: Optional[Path] = None,
     log_dir: Optional[Path] = None,
     plot_types: str = "both",
 ) -> None:
-    """Plot intersections between correlation methods.
+    """Plot intersections between correlation methods using pre-computed intersection data.
 
     Generates UpSet plots based on the specified plot_types parameter.
 
     Args:
+        upset_data: Pre-computed intersection counts as pandas Series
         paths: Dictionary of paths
         tissue: Tissue name
         output_file: Path to save the plot. If None, uses default location.
         log_dir: Directory to save a copy of the plot in logs. If None, no copy is saved.
         plot_types: Which plots to generate - "full", "trimmed", or "both" (default: "both")
     """
-    if df_plot is None:
-        raise ValueError("Plot data not prepared. Call prepare_plot_data() first.")
-
-    # Get categories for plotting
-    categories = sorted(
-        [x for x in df_plot.columns if " (" in x],
-        reverse=True,
-        key=lambda x: x.split(" (")[1] + " (" + x.split(" (")[0],
-    )
-
-    # Create intersection data
-    gene_pairs_by_cats = from_indicators(
-        categories, data=df_plot.copy()
-    )  # Use copy to avoid chained assignment
-
-    # Sort by index
-    gene_pairs_by_cats = gene_pairs_by_cats.sort_index()
-
-    # Rename columns and index names for both plots
-    gene_pairs_by_cats_renamed = gene_pairs_by_cats.rename(
-        columns={
-            "Clustermatch (high)": "CCC (high)",
-            "Clustermatch (low)": "CCC (low)",
-        }
-    )
-
-    gene_pairs_by_cats_renamed.index.set_names(
-        {
-            "Clustermatch (high)": "CCC (high)",
-            "Clustermatch (low)": "CCC (low)",
-        },
-        inplace=True,
-    )
-
+    logging.info(f"Memory usage before plotting: {get_memory_usage():.2f} GB")
+    
     # Generate plots based on plot_types parameter
     if plot_types in ["full", "both"]:
         logging.info(f"Generating full UpSet plot for {tissue}...")
         # Generate FULL plot (all intersections)
         _plot_upset_figure(
-            gene_pairs_by_cats_renamed,
+            upset_data,
             paths=paths,
             tissue=tissue,
             plot_type="full",
@@ -297,11 +346,11 @@ def plot_intersections(
         # Define the order of subsets for trimmed plot
         ordered_subsets = [
             # full agreements on high:
-            (False, False, False, True, True, True),
+            (False, False, False, False, False, True),
             # agreements on top
             (False, False, False, False, True, True),
-            (False, False, False, True, False, True),
-            (False, False, False, True, True, False),
+            (False, False, False, False, False, True),
+            (False, False, False, False, True, False),
             # agreements on bottom
             (False, True, True, False, False, False),
             (True, False, True, False, False, False),
@@ -310,7 +359,7 @@ def plot_intersections(
             (True, True, True, False, False, False),
             # disagreements
             #   ccc
-            (False, True, False, True, False, True),
+            (False, True, False, False, False, True),
             (False, True, False, False, False, True),
             (True, False, False, False, False, True),
             (True, True, False, False, False, True),
@@ -319,22 +368,22 @@ def plot_intersections(
             (True, False, False, False, True, False),
             (True, False, True, False, True, False),
             #   spearman
-            (False, True, False, True, False, False),
+            (False, True, False, False, True, False),
         ]
 
         # Filter for trimmed plot - only include subsets that exist in the data
-        available_subsets = set(gene_pairs_by_cats_renamed.index.tolist())
+        available_subsets = set(upset_data.index.tolist())
         trimmed_subsets = [
             subset for subset in ordered_subsets if subset in available_subsets
         ]
 
         if trimmed_subsets:
             # Create trimmed dataset
-            gene_pairs_by_cats_trimmed = gene_pairs_by_cats_renamed.loc[trimmed_subsets]
+            upset_data_trimmed = upset_data.loc[trimmed_subsets]
 
             # Generate TRIMMED plot (selected intersections only)
             _plot_upset_figure(
-                gene_pairs_by_cats_trimmed,
+                upset_data_trimmed,
                 paths=paths,
                 tissue=tissue,
                 plot_type="trimmed",
@@ -346,7 +395,7 @@ def plot_intersections(
 
 
 def _plot_upset_figure(
-    data: pd.DataFrame,
+    data: pd.Series,
     paths: Dict[str, Path],
     tissue: str,
     plot_type: str,
@@ -356,13 +405,15 @@ def _plot_upset_figure(
     """Helper function to create and save an UpSet plot.
 
     Args:
-        data: DataFrame with intersection data
+        data: Series with intersection data (MultiIndex with boolean values)
         paths: Dictionary of paths
         tissue: Tissue name for file naming
         plot_type: Either "full" or "trimmed" for naming files
         output_file: Base output file path
         log_dir: Directory to save logs
     """
+    logging.info(f"Creating {plot_type} UpSet plot with {len(data)} intersections")
+    
     # Create figure
     fig = plt.figure(figsize=(14, 5))
 
@@ -410,10 +461,11 @@ def _plot_upset_figure(
 
     # Close the figure to free memory
     plt.close(fig)
+    gc.collect()  # Force garbage collection after plotting
 
 
 def save_intersections(
-    paths: Dict[str, Path],
+    upset_data: pd.Series,
     tissue: str,
     gene_selection: str,
     output_file: Optional[Path] = None,
@@ -421,14 +473,11 @@ def save_intersections(
     """Save intersection data to pickle file.
 
     Args:
-        paths: Dictionary of paths
+        upset_data: Pre-computed intersection counts
         tissue: GTEx tissue to analyze
         gene_selection: Gene selection strategy
         output_file: Path to save the data. If None, uses default location.
     """
-    if df_plot is None:
-        raise ValueError("Plot data not prepared. Call prepare_plot_data() first.")
-
     if output_file is None:
         output_file = (
             RESULTS_DIR
@@ -436,7 +485,7 @@ def save_intersections(
         )
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    df_plot.to_pickle(output_file)
+    upset_data.to_pickle(output_file)
     logging.info(f"Saved intersection data to: {output_file}")
 
 
@@ -542,6 +591,12 @@ def parse_args() -> argparse.Namespace:
         default="both",
         help="Which UpSet plot(s) to generate: 'full' (all intersections), 'trimmed' (selected intersections), or 'both' (default: both)",
     )
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=DEFAULT_CHUNK_SIZE,
+        help=f"Number of rows to process at once (default: {DEFAULT_CHUNK_SIZE:,})",
+    )
     return parser.parse_args()
 
 
@@ -591,20 +646,44 @@ def main() -> None:
                     manuscript_dir=args.manuscript_dir,
                 )
 
-                # Run analysis for this tissue
-                load_data(paths, tissue, args.gene_selection)
-                prepare_plot_data(args.q_diff)
-
+                # Get input file path
+                input_corr_file = paths["similarity_matrices_dir"] / str(
+                    paths["input_corr_file_template"]
+                ).format(
+                    tissue=tissue,
+                    gene_sel_strategy=args.gene_selection,
+                    corr_method="all",
+                )
+                
+                if not input_corr_file.exists():
+                    raise FileNotFoundError(f"Input file not found: {input_corr_file}")
+                
+                logging.info(f"Processing file: {input_corr_file.name}")
+                logging.info(f"Initial memory usage: {get_memory_usage():.2f} GB")
+                
+                # Calculate quantiles efficiently
+                quantiles = calculate_quantiles(input_corr_file, args.q_diff)
+                
+                # Count intersections using chunked processing
+                intersection_counts = count_intersections_chunked(input_corr_file, quantiles)
+                
+                # Create UpSet data from counts
+                upset_data = create_upset_data_from_counts(intersection_counts)
+                
                 # Save results for this tissue
                 if args.output_dir:
                     output_file = args.output_dir / f"intersections_{tissue}.pkl"
-                    save_intersections(paths, tissue, args.gene_selection, output_file)
+                    save_intersections(upset_data, tissue, args.gene_selection, output_file)
                 else:
-                    save_intersections(paths, tissue, args.gene_selection)
+                    save_intersections(upset_data, tissue, args.gene_selection)
 
                 # Create UpSet plots for this tissue based on user selection
                 logging.info(f"Generating UpSet plots ({args.upset_plot}) for {tissue}...")
-                plot_intersections(paths, tissue, log_dir=timestamped_log_dir, plot_types=args.upset_plot)
+                plot_intersections(upset_data, paths, tissue, log_dir=timestamped_log_dir, plot_types=args.upset_plot)
+                
+                # Clean up
+                del intersection_counts, upset_data
+                gc.collect()
 
                 logging.info(f"✅ Completed analysis for {tissue}")
 

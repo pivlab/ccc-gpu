@@ -1,0 +1,12 @@
+2025-06-30 17:40:08 - INFO - Log file created at: logs/20250630_174008/intersections.log
+2025-06-30 17:40:08 - INFO - Found 2 available tissues: ['adipose_subcutaneous', 'whole_blood']
+2025-06-30 17:40:08 - INFO - After include filtering: 1 tissues: ['whole_blood']
+2025-06-30 17:40:08 - INFO - Starting intersection analysis for 1 tissues: ['whole_blood']
+2025-06-30 17:40:08 - INFO - 
+============================================================
+2025-06-30 17:40:08 - INFO - Processing tissue 1/1: whole_blood
+2025-06-30 17:40:08 - INFO - ============================================================
+2025-06-30 17:40:15 - INFO - Loaded correlation data with shape: (1420258456, 3)
+2025-06-30 17:41:15 - INFO - Prepared plot data with shape: (1420258456, 9)
+2025-06-30 17:41:30 - INFO - Saved intersection data to: /mnt/data/proj_data/ccc-gpu/results/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+2025-06-30 17:41:30 - INFO - Generating UpSet plots (full) for whole_blood...
