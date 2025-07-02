@@ -21,6 +21,10 @@ from pathlib import Path
 from ccc.plots import MyUpSet
 from ccc import conf
 
+import logging
+from datetime import datetime
+import shutil
+
 
 # # Settings
 
@@ -48,6 +52,32 @@ OUTPUT_DIR = Path("/mnt/data/proj_data/ccc-gpu/results/gene_pair_intersections")
 OUTPUT_FIGURE_NAME = "upsetplot_gtex_{GTEX_TISSUE}"
 OUTPUT_GENE_PAIR_INTERSECTIONS_NAME = f"gene_pair_intersections-gtex_v8-{GTEX_TISSUE}-{GENE_SEL_STRATEGY}.pkl"
 
+# Create timestamp-based log folder
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+LOG_DIR = Path("logs") / timestamp
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# Setup logging
+log_file = LOG_DIR / "compute_intersections.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+logger.info(f"Starting compute_intersections.py with timestamp: {timestamp}")
+logger.info(f"Log directory: {LOG_DIR}")
+logger.info(f"Configuration:")
+logger.info(f"  GTEX_TISSUE: {GTEX_TISSUE}")
+logger.info(f"  GENE_SEL_STRATEGY: {GENE_SEL_STRATEGY}")
+logger.info(f"  TOP_N_GENES: {TOP_N_GENES}")
+logger.info(f"  Q_DIFF: {Q_DIFF}")
+logger.info(f"  OUTPUT_DIR: {OUTPUT_DIR}")
+
 
 # In[4]:
 
@@ -61,7 +91,7 @@ assert SIMILARITY_MATRICES_DIR.exists()
 
 SIMILARITY_MATRIX_FILENAME_TEMPLATE = "gtex_v8_data_{tissue}-{gene_sel_strategy}-{corr_method}.pkl"
 INPUT_CORR_FILE_TEMPLATE = SIMILARITY_MATRICES_DIR / SIMILARITY_MATRIX_FILENAME_TEMPLATE
-display(INPUT_CORR_FILE_TEMPLATE)
+logger.info(f"Input correlation file template: {INPUT_CORR_FILE_TEMPLATE}")
 
 
 # In[6]:
@@ -74,7 +104,7 @@ INPUT_CORR_FILE = SIMILARITY_MATRICES_DIR / str(
     gene_sel_strategy=GENE_SEL_STRATEGY,
     corr_method="all",
 )
-display(INPUT_CORR_FILE)
+logger.info(f"Input correlation file: {INPUT_CORR_FILE}")
 
 assert INPUT_CORR_FILE.exists()
 
@@ -86,25 +116,28 @@ assert INPUT_CORR_FILE.exists()
 # In[7]:
 
 
+logger.info("Loading correlation data...")
 df = pd.read_pickle(INPUT_CORR_FILE)
 
 
 # In[8]:
 
 
-df.shape
+logger.info(f"Dataframe shape: {df.shape}")
 
 
 # In[9]:
 
 
-df.head(15)
+logger.info("Dataframe head (first 15 rows):")
+logger.info(f"\n{df.head(15)}")
 
 
 # In[17]:
 
 
-df.describe()
+logger.info("Dataframe statistics:")
+logger.info(f"\n{df.describe()}")
 
 
 # In[10]:
@@ -113,7 +146,9 @@ df.describe()
 # Calculate quantiles from 20% to 100% in 20 steps for each correlation method
 # This helps understand the distribution of correlation values and identify
 # appropriate thresholds for high/low correlation gene pairs
-df.apply(lambda x: x.quantile(np.linspace(0.20, 1.0, 20)))
+quantiles_result = df.apply(lambda x: x.quantile(np.linspace(0.20, 1.0, 20)))
+logger.info("Quantiles from 20% to 100% in 20 steps:")
+logger.info(f"\n{quantiles_result}")
 
 
 # # Prepare data for plotting
@@ -145,11 +180,12 @@ def get_lower_upper_quantile(method_name, q):
 # Test the get_lower_upper_quantile function with CCC method
 # Using 0.20 quantile difference (20% and 80% quantiles)
 ccc_quantiles = get_lower_upper_quantile("ccc", 0.20)
-display(ccc_quantiles)
+logger.info("CCC quantiles test (0.20):")
+logger.info(f"{ccc_quantiles}")
 
 # Extract the lower and upper quantile values
 ccc_lower_quantile, ccc_upper_quantile = ccc_quantiles
-display((ccc_lower_quantile, ccc_upper_quantile))
+logger.info(f"CCC lower quantile: {ccc_lower_quantile}, upper quantile: {ccc_upper_quantile}")
 
 # Verify that the unpacked values match the series indexing
 assert ccc_lower_quantile == ccc_quantiles.iloc[0]  # Lower quantile (20%)
@@ -163,43 +199,43 @@ del ccc_quantiles, ccc_lower_quantile, ccc_upper_quantile
 
 
 clustermatch_lq, clustermatch_hq = get_lower_upper_quantile("ccc", Q_DIFF)
-display((clustermatch_lq, clustermatch_hq))
+logger.info(f"Clustermatch quantiles: lower={clustermatch_lq}, upper={clustermatch_hq}")
 
 pearson_lq, pearson_hq = get_lower_upper_quantile("pearson", Q_DIFF)
-display((pearson_lq, pearson_hq))
+logger.info(f"Pearson quantiles: lower={pearson_lq}, upper={pearson_hq}")
 
 spearman_lq, spearman_hq = get_lower_upper_quantile("spearman", Q_DIFF)
-display((spearman_lq, spearman_hq))
+logger.info(f"Spearman quantiles: lower={spearman_lq}, upper={spearman_hq}")
 
 
 # In[14]:
 
 
 pearson_higher = df["pearson"] >= pearson_hq
-display(pearson_higher.sum())
+logger.info(f"Pearson higher count: {pearson_higher.sum()}")
 
 pearson_lower = df["pearson"] <= pearson_lq
-display(pearson_lower.sum())
+logger.info(f"Pearson lower count: {pearson_lower.sum()}")
 
 
 # In[15]:
 
 
 spearman_higher = df["spearman"] >= spearman_hq
-display(spearman_higher.sum())
+logger.info(f"Spearman higher count: {spearman_higher.sum()}")
 
 spearman_lower = df["spearman"] <= spearman_lq
-display(spearman_lower.sum())
+logger.info(f"Spearman lower count: {spearman_lower.sum()}")
 
 
 # In[16]:
 
 
 clustermatch_higher = df["ccc"] >= clustermatch_hq
-display(clustermatch_higher.sum())
+logger.info(f"Clustermatch higher count: {clustermatch_higher.sum()}")
 
 clustermatch_lower = df["ccc"] <= clustermatch_lq
-display(clustermatch_lower.sum())
+logger.info(f"Clustermatch lower count: {clustermatch_lower.sum()}")
 
 
 # # UpSet plot
@@ -239,7 +275,8 @@ del pearson_higher, pearson_lower, spearman_higher, spearman_lower, clustermatch
 # In[20]:
 
 
-df_plot
+logger.info(f"Plot dataframe shape: {df_plot.shape}")
+logger.info(f"Plot dataframe columns: {df_plot.columns.tolist()}")
 
 
 # In[21]:
@@ -283,7 +320,7 @@ categories = sorted(
 # In[25]:
 
 
-categories
+logger.info(f"Categories for upset plot: {categories}")
 
 
 # ## All subsets (original full plot)
@@ -297,7 +334,7 @@ df_r_data = df_plot
 # In[27]:
 
 
-df_r_data.shape
+logger.info(f"Data shape for upset plot: {df_r_data.shape}")
 
 
 # In[28]:
@@ -319,12 +356,15 @@ gene_pairs_by_cats = from_indicators(categories, data=df_r_data)
 # In[29]:
 
 
-gene_pairs_by_cats
+logger.info(f"Gene pairs by categories shape: {gene_pairs_by_cats.shape}")
+logger.info("First few entries:")
+logger.info(f"\n{gene_pairs_by_cats.head()}")
 
 
 # In[30]:
 
 
+logger.info("Creating full upset plot...")
 fig = plt.figure(figsize=(18, 5))
 
 g = plot(
@@ -339,11 +379,18 @@ g = plot(
 # In[ ]:
 
 
+full_svg_path = OUTPUT_DIR / f"{OUTPUT_FIGURE_NAME}_full.svg"
 plt.savefig(
-    OUTPUT_DIR / OUTPUT_FIGURE_NAME + "_full.svg",
+    full_svg_path,
     bbox_inches="tight",
     facecolor="white",
 )
+logger.info(f"Saved full upset plot to: {full_svg_path}")
+
+# Also save to log directory
+log_svg_path = LOG_DIR / f"{OUTPUT_FIGURE_NAME}_full.svg"
+shutil.copy2(full_svg_path, log_svg_path)
+logger.info(f"Copied full upset plot to log directory: {log_svg_path}")
 
 
 # ## Sort by categories of subsets
@@ -357,7 +404,7 @@ df_r_data = df_plot
 # In[32]:
 
 
-df_r_data.shape
+logger.info(f"Data shape for trimmed plot: {df_r_data.shape}")
 
 
 # In[33]:
@@ -369,7 +416,8 @@ gene_pairs_by_cats = from_indicators(categories, data=df_r_data)
 # In[34]:
 
 
-gene_pairs_by_cats
+logger.info("Gene pairs by categories for trimmed plot:")
+logger.info(f"Shape: {gene_pairs_by_cats.shape}")
 
 
 # In[35]:
@@ -382,58 +430,65 @@ gene_pairs_by_cats = gene_pairs_by_cats.sort_index()
 
 
 _tmp_index = gene_pairs_by_cats.index.unique().to_frame(False)
-display(_tmp_index)
+logger.info("Unique index combinations:")
+logger.info(f"\n{_tmp_index}")
 
 
 # In[37]:
 
 
-_tmp_index[_tmp_index.sum(axis=1) == 3]
+combinations_with_3 = _tmp_index[_tmp_index.sum(axis=1) == 3]
+logger.info(f"Combinations with exactly 3 True values:")
+logger.info(f"\n{combinations_with_3}")
 
 
 # In[38]:
 
 
-_tmp_index.apply(lambda x: x[0:3].sum() == 0, axis=1)
+first_3_zero = _tmp_index.apply(lambda x: x[0:3].sum() == 0, axis=1)
+logger.info(f"Number of combinations where first 3 are all False: {first_3_zero.sum()}")
 
 
 # In[39]:
 
 
 # agreements on top
-_tmp_index.loc[
+agreements_top = _tmp_index.loc[
     _tmp_index[
         _tmp_index.apply(lambda x: x.sum() > 1, axis=1)
         & _tmp_index.apply(lambda x: x[0:3].sum() == 0, axis=1)
         & _tmp_index.apply(lambda x: 3 > x[3:].sum() > 1, axis=1)
     ].index
 ].apply(tuple, axis=1).to_numpy()
+logger.info(f"Agreements on top: {agreements_top}")
 
 
 # In[40]:
 
 
 # agreements on bottom
-_tmp_index.loc[
+agreements_bottom = _tmp_index.loc[
     _tmp_index[
         _tmp_index.apply(lambda x: x.sum() > 1, axis=1)
         & _tmp_index.apply(lambda x: 3 > x[0:3].sum() > 1, axis=1)
         & _tmp_index.apply(lambda x: x[3:].sum() == 0, axis=1)
     ].index
 ].apply(tuple, axis=1).to_numpy()
+logger.info(f"Agreements on bottom: {agreements_bottom}")
 
 
 # In[41]:
 
 
 # diagreements
-_tmp_index.loc[
+disagreements = _tmp_index.loc[
     _tmp_index[
         _tmp_index.apply(lambda x: x.sum() > 1, axis=1)
         & _tmp_index.apply(lambda x: x[0:3].sum() > 0, axis=1)
         & _tmp_index.apply(lambda x: x[3:].sum() > 0, axis=1)
     ].index
 ].apply(tuple, axis=1).to_numpy()
+logger.info(f"Disagreements: {disagreements}")
 
 
 # In[42]:
@@ -475,7 +530,8 @@ gene_pairs_by_cats = gene_pairs_by_cats.loc[
 # In[43]:
 
 
-gene_pairs_by_cats.head()
+logger.info("Gene pairs by categories after reordering:")
+logger.info(f"\n{gene_pairs_by_cats.head()}")
 
 
 # In[44]:
@@ -500,6 +556,7 @@ gene_pairs_by_cats.index.set_names(
 # In[45]:
 
 
+logger.info("Creating trimmed upset plot...")
 fig = plt.figure(figsize=(14, 5))
 
 # g = plot(
@@ -519,11 +576,18 @@ g["totals"].remove()  # set_visible(False)
 # display(fig.get_size_inches())
 # fig.set_size_inches(12, 5)
 
+trimmed_svg_path = OUTPUT_DIR / f"{OUTPUT_FIGURE_NAME}_trimmed.svg"
 plt.savefig(
-    OUTPUT_DIR / OUTPUT_FIGURE_NAME + "_trimmed.svg",
+    trimmed_svg_path,
     bbox_inches="tight",
     facecolor="white",
 )
+logger.info(f"Saved trimmed upset plot to: {trimmed_svg_path}")
+
+# Also save to log directory
+log_svg_path = LOG_DIR / f"{OUTPUT_FIGURE_NAME}_trimmed.svg"
+shutil.copy2(trimmed_svg_path, log_svg_path)
+logger.info(f"Copied trimmed upset plot to log directory: {log_svg_path}")
 
 # plt.margins(x=-0.4)
 
@@ -546,8 +610,9 @@ plt.savefig(
 # In[46]:
 
 
-display(df_plot.shape)
-display(df_plot.head())
+logger.info(f"Final dataframe shape: {df_plot.shape}")
+logger.info("Final dataframe head:")
+logger.info(f"\n{df_plot.head()}")
 
 
 # In[4]:
@@ -557,17 +622,24 @@ output_file = (
     OUTPUT_DIR
     / OUTPUT_GENE_PAIR_INTERSECTIONS_NAME
 )
-display(output_file)
+logger.info(f"Output file for gene pair intersections: {output_file}")
 
 
 # In[49]:
 
 
+logger.info("Saving gene pair intersections data...")
 df_plot.to_pickle(output_file)
+logger.info(f"Saved gene pair intersections to: {output_file}")
+
+# Also save to log directory
+log_pkl_path = LOG_DIR / OUTPUT_GENE_PAIR_INTERSECTIONS_NAME
+shutil.copy2(output_file, log_pkl_path)
+logger.info(f"Copied gene pair intersections to log directory: {log_pkl_path}")
 
 
 # In[ ]:
 
 
-
-
+logger.info("Script completed successfully!")
+logger.info(f"All outputs saved to log directory: {LOG_DIR}")
