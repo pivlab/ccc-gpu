@@ -3,13 +3,14 @@
 Combine Coefficients CLI Tool
 
 This tool combines correlation coefficients from different methods (CCC-GPU, Pearson, Spearman)
-into a single dataframe for a specified tissue type and gene selection strategy.
+into a single dataframe for specified tissues and gene selection strategy.
 
 Features:
 - Memory optimization: Automatically converts correlation matrices from float32 to float16 for ~50% memory reduction
 - Comprehensive logging with detailed memory usage tracking
 - Robust error handling and input validation
 - Configurable parameters via command-line arguments
+- Pattern matching for tissue selection with --include and --exclude options
 
 Author: Generated from 10-combine_coefs.ipynb
 """
@@ -17,11 +18,71 @@ Author: Generated from 10-combine_coefs.ipynb
 import argparse
 import logging
 import sys
+import re
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
+from datetime import datetime
 import pandas as pd
 import numpy as np
 from dataclasses import dataclass
+
+# GTEx v8 tissue names (54 tissues)
+GTEX_TISSUES = [
+    "adipose_subcutaneous",
+    "adipose_visceral_omentum", 
+    "adrenal_gland",
+    "artery_aorta",
+    "artery_coronary",
+    "artery_tibial",
+    "bladder",
+    "brain_amygdala",
+    "brain_anterior_cingulate_cortex_ba24",
+    "brain_caudate_basal_ganglia",
+    "brain_cerebellar_hemisphere",
+    "brain_cerebellum",
+    "brain_cortex",
+    "brain_frontal_cortex_ba9",
+    "brain_hippocampus",
+    "brain_hypothalamus",
+    "brain_nucleus_accumbens_basal_ganglia",
+    "brain_putamen_basal_ganglia",
+    "brain_spinal_cord_cervical_c1",
+    "brain_substantia_nigra",
+    "breast_mammary_tissue",
+    "cells_cultured_fibroblasts",
+    "cells_ebvtransformed_lymphocytes",
+    "cervix_ectocervix",
+    "cervix_endocervix",
+    "colon_sigmoid",
+    "colon_transverse",
+    "esophagus_gastroesophageal_junction",
+    "esophagus_mucosa",
+    "esophagus_muscularis",
+    "fallopian_tube",
+    "heart_atrial_appendage",
+    "heart_left_ventricle",
+    "kidney_cortex",
+    "kidney_medulla",
+    "liver",
+    "lung",
+    "minor_salivary_gland",
+    "muscle_skeletal",
+    "nerve_tibial",
+    "ovary",
+    "pancreas",
+    "pituitary",
+    "prostate",
+    "skin_not_sun_exposed_suprapubic",
+    "skin_sun_exposed_lower_leg",
+    "small_intestine_terminal_ileum",
+    "spleen",
+    "stomach",
+    "testis",
+    "thyroid",
+    "uterus",
+    "vagina",
+    "whole_blood",
+]
 
 # Import CCC utilities
 try:
@@ -33,13 +94,62 @@ except ImportError as e:
     sys.exit(1)
 
 
+def select_tissues(include_patterns: List[str] = None, exclude_patterns: List[str] = None) -> List[str]:
+    """
+    Select tissues based on include/exclude patterns.
+    
+    Args:
+        include_patterns: List of regex patterns for tissues to include
+        exclude_patterns: List of regex patterns for tissues to exclude
+        
+    Returns:
+        List of selected tissue names
+    """
+    # Start with all available tissues
+    selected_tissues = GTEX_TISSUES.copy()
+    
+    # Apply include patterns (if specified, only keep matching tissues)
+    if include_patterns:
+        print(f"Applying include patterns: {include_patterns}")
+        included_tissues = []
+        for tissue in selected_tissues:
+            for pattern in include_patterns:
+                if re.search(pattern, tissue, re.IGNORECASE):
+                    included_tissues.append(tissue)
+                    break
+        selected_tissues = included_tissues
+        print(f"After include filtering: {len(selected_tissues)} tissues selected")
+    
+    # Apply exclude patterns
+    if exclude_patterns:
+        print(f"Applying exclude patterns: {exclude_patterns}")
+        excluded_tissues = []
+        for tissue in selected_tissues:
+            exclude_tissue = False
+            for pattern in exclude_patterns:
+                if re.search(pattern, tissue, re.IGNORECASE):
+                    exclude_tissue = True
+                    break
+            if not exclude_tissue:
+                excluded_tissues.append(tissue)
+        selected_tissues = excluded_tissues
+        print(f"After exclude filtering: {len(selected_tissues)} tissues selected")
+    
+    # Log final selection
+    if not include_patterns and not exclude_patterns:
+        print(f"No include/exclude patterns specified - processing all {len(selected_tissues)} tissues")
+    
+    return selected_tissues
+
+
 @dataclass
 class Config:
     """Configuration class for the combine coefficients tool."""
 
     top_n_genes: str = "all"
     data_dir: Path = Path("/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8")
-    gtex_tissue: str = "whole_blood"
+    include_patterns: List[str] = None
+    exclude_patterns: List[str] = None
     gene_selection_strategy: str = "var_pc_log2"
     log_level: str = "INFO"
     log_dir: Path = Path("logs")  # Will be resolved relative to script location
@@ -51,6 +161,12 @@ class Config:
         """Validate configuration after initialization."""
         self.data_dir = Path(self.data_dir)
 
+        # Select tissues based on patterns
+        self.selected_tissues = select_tissues(self.include_patterns, self.exclude_patterns)
+        
+        if not self.selected_tissues:
+            raise ValueError("No tissues selected based on include/exclude patterns")
+
         # Make log_dir relative to script location if it's a relative path
         if not self.log_dir.is_absolute():
             script_dir = Path(__file__).parent
@@ -61,9 +177,7 @@ class Config:
         # Set up temp_dir: if None, create in similarity_matrices folder with pattern
         if self.temp_dir is None:
             # Create cache directory in similarity_matrices folder
-            cache_dir_name = (
-                f"gtex_v8_data_{self.gtex_tissue}-{self.gene_selection_strategy}-cache"
-            )
+            cache_dir_name = f"gtex_v8_data-{self.gene_selection_strategy}-cache"
             self.temp_dir = (
                 self.data_dir
                 / "similarity_matrices"
@@ -108,56 +222,44 @@ class CorrelationProcessor:
             self.config.data_dir / "similarity_matrices" / self.config.top_n_genes
         )
 
-        # Input gene expression data file
-        self.input_gene_expr_file = (
-            self.gene_selection_dir
-            / f"gtex_v8_data_{self.config.gtex_tissue}-{self.config.gene_selection_strategy}.pkl"
-        )
-
         # Template for correlation matrix files
         self.similarity_matrix_template = (
             self.similarity_matrices_dir
             / "gtex_v8_data_{tissue}-{gene_sel_strategy}-{corr_method}.pkl"
         )
 
-        # Output file
-        self.output_file = Path(
-            str(self.similarity_matrix_template).format(
-                tissue=self.config.gtex_tissue,
-                gene_sel_strategy=self.config.gene_selection_strategy,
-                corr_method="all",
-            )
-        )
-
-        self.logger.info(f"Input gene expression file: {self.input_gene_expr_file}")
-        self.logger.info(f"Output file: {self.output_file}")
+        self.logger.info(f"Gene selection directory: {self.gene_selection_dir}")
+        self.logger.info(f"Similarity matrices directory: {self.similarity_matrices_dir}")
         self.logger.info(f"Temporary directory: {self.config.temp_dir}")
+        self.logger.info(f"Selected tissues: {self.config.selected_tissues}")
 
-    def _get_temp_file_path(self, method: str) -> Path:
+    def _get_temp_file_path(self, method: str, tissue: str) -> Path:
         """
         Generate temporary file path for aligned correlation matrix cache.
 
         Args:
             method: Correlation method ('ccc_gpu', 'pearson', 'spearman')
+            tissue: Tissue name
 
         Returns:
             Path to temporary file
         """
-        temp_filename = f"aligned_{method}_{self.config.gtex_tissue}_{self.config.gene_selection_strategy}.pkl"
+        temp_filename = f"aligned_{method}_{tissue}_{self.config.gene_selection_strategy}.pkl"
         return self.config.temp_dir / temp_filename
 
-    def _save_aligned_matrix(self, series: pd.Series, method: str) -> None:
+    def _save_aligned_matrix(self, series: pd.Series, method: str, tissue: str) -> None:
         """
         Save aligned correlation matrix to temporary file.
 
         Args:
             series: Aligned correlation series
             method: Correlation method name
+            tissue: Tissue name
         """
-        temp_file = self._get_temp_file_path(method)
+        temp_file = self._get_temp_file_path(method, tissue)
 
         # Log detailed information about the matrix being cached
-        self.logger.info(f"Caching aligned {method} matrix:")
+        self.logger.info(f"Caching aligned {method} matrix for {tissue}:")
         self.logger.info(f"  Shape: {series.shape}")
         self.logger.info(f"  Data type: {series.dtype}")
         self.logger.info(
@@ -186,21 +288,22 @@ class CorrelationProcessor:
         self.logger.info(f"  Cached to: {temp_file}")
         self.logger.info(f"  Cache file size: {cache_file_size:.2f} MB")
 
-    def _load_aligned_matrix(self, method: str) -> pd.Series:
+    def _load_aligned_matrix(self, method: str, tissue: str) -> pd.Series:
         """
         Load aligned correlation matrix from temporary file.
 
         Args:
             method: Correlation method name
+            tissue: Tissue name
 
         Returns:
             Aligned correlation series
         """
-        temp_file = self._get_temp_file_path(method)
+        temp_file = self._get_temp_file_path(method, tissue)
 
         # Log cache file information
         cache_file_size = temp_file.stat().st_size / 1024**2
-        self.logger.info(f"Loading aligned {method} matrix from cache:")
+        self.logger.info(f"Loading aligned {method} matrix for {tissue} from cache:")
         self.logger.info(f"  Cache file: {temp_file}")
         self.logger.info(f"  Cache file size: {cache_file_size:.2f} MB")
 
@@ -225,27 +328,29 @@ class CorrelationProcessor:
 
         return series
 
-    def _has_aligned_matrix(self, method: str) -> bool:
+    def _has_aligned_matrix(self, method: str, tissue: str) -> bool:
         """
         Check if aligned correlation matrix exists in cache.
 
         Args:
             method: Correlation method name
+            tissue: Tissue name
 
         Returns:
             True if cached aligned file exists
         """
-        temp_file = self._get_temp_file_path(method)
+        temp_file = self._get_temp_file_path(method, tissue)
         return temp_file.exists()
 
     def _cleanup_temp_files(self) -> None:
         """Clean up temporary files after successful completion."""
         temp_files_removed = 0
-        for method in ["ccc_gpu", "pearson", "spearman"]:
-            temp_file = self._get_temp_file_path(method)
-            if temp_file.exists():
-                temp_file.unlink()
-                temp_files_removed += 1
+        for tissue in self.config.selected_tissues:
+            for method in ["ccc_gpu", "pearson", "spearman"]:
+                temp_file = self._get_temp_file_path(method, tissue)
+                if temp_file.exists():
+                    temp_file.unlink()
+                    temp_files_removed += 1
 
         if temp_files_removed > 0:
             self.logger.info(f"Cleaned up {temp_files_removed} temporary files")
@@ -253,29 +358,41 @@ class CorrelationProcessor:
     def clear_cache(self) -> None:
         """Clear all cached temporary files."""
         temp_files_cleared = 0
-        for method in ["ccc_gpu", "pearson", "spearman"]:
-            temp_file = self._get_temp_file_path(method)
-            if temp_file.exists():
-                temp_file.unlink()
-                temp_files_cleared += 1
+        for tissue in self.config.selected_tissues:
+            for method in ["ccc_gpu", "pearson", "spearman"]:
+                temp_file = self._get_temp_file_path(method, tissue)
+                if temp_file.exists():
+                    temp_file.unlink()
+                    temp_files_cleared += 1
 
         if temp_files_cleared > 0:
             self.logger.info(f"Cleared {temp_files_cleared} cached temporary files")
         else:
             self.logger.info("No cached files to clear")
 
-    def validate_inputs(self) -> None:
-        """Validate that all required input files exist."""
-        if not self.input_gene_expr_file.exists():
+    def validate_inputs(self, tissue: str) -> None:
+        """
+        Validate that all required input files exist for a specific tissue.
+        
+        Args:
+            tissue: Tissue name to validate files for
+        """
+        # Input gene expression data file
+        input_gene_expr_file = (
+            self.gene_selection_dir
+            / f"gtex_v8_data_{tissue}-{self.config.gene_selection_strategy}.pkl"
+        )
+        
+        if not input_gene_expr_file.exists():
             raise FileNotFoundError(
-                f"Gene expression file not found: {self.input_gene_expr_file}"
+                f"Gene expression file not found: {input_gene_expr_file}"
             )
 
         # Check correlation matrix files
         for method in ["ccc_gpu", "pearson", "spearman"]:
             corr_file = Path(
                 str(self.similarity_matrix_template).format(
-                    tissue=self.config.gtex_tissue,
+                    tissue=tissue,
                     gene_sel_strategy=self.config.gene_selection_strategy,
                     corr_method=method,
                 )
@@ -285,7 +402,7 @@ class CorrelationProcessor:
                     f"Correlation matrix file not found: {corr_file}"
                 )
 
-        self.logger.info("All input files validated successfully")
+        self.logger.info(f"All input files validated successfully for {tissue}")
 
     def load_gene_mapping(self) -> Dict[str, str]:
         """
@@ -315,29 +432,39 @@ class CorrelationProcessor:
         self.logger.info(f"Loaded {len(gene_map)} gene mappings")
         return gene_map
 
-    def load_gene_expression_data(self) -> pd.DataFrame:
+    def load_gene_expression_data(self, tissue: str) -> pd.DataFrame:
         """
-        Load gene expression data.
+        Load gene expression data for a specific tissue.
+        
+        Args:
+            tissue: Tissue name to load data for
 
         Returns:
             DataFrame containing gene expression data
         """
-        self.logger.info(
-            f"Loading gene expression data from {self.input_gene_expr_file}"
+        # Input gene expression data file
+        input_gene_expr_file = (
+            self.gene_selection_dir
+            / f"gtex_v8_data_{tissue}-{self.config.gene_selection_strategy}.pkl"
         )
-        data = pd.read_pickle(self.input_gene_expr_file)
-        self.logger.info(f"Loaded gene expression data with shape: {data.shape}")
+        
+        self.logger.info(
+            f"Loading gene expression data for {tissue} from {input_gene_expr_file}"
+        )
+        data = pd.read_pickle(input_gene_expr_file)
+        self.logger.info(f"Loaded gene expression data for {tissue} with shape: {data.shape}")
         return data
 
     def load_correlation_matrix(
-        self, method: str, reference_index: pd.Index
+        self, method: str, tissue: str, reference_index: pd.Index
     ) -> pd.DataFrame:
         """
-        Load and validate a correlation matrix for a specific method.
+        Load and validate a correlation matrix for a specific method and tissue.
         Converts data from float32 to float16 for memory optimization.
 
         Args:
             method: Correlation method ('ccc_gpu', 'pearson', 'spearman')
+            tissue: Tissue name to load matrix for
             reference_index: Reference index to validate against
 
         Returns:
@@ -345,7 +472,7 @@ class CorrelationProcessor:
         """
         corr_file = Path(
             str(self.similarity_matrix_template).format(
-                tissue=self.config.gtex_tissue,
+                tissue=tissue,
                 gene_sel_strategy=self.config.gene_selection_strategy,
                 corr_method=method,
             )
@@ -436,6 +563,7 @@ class CorrelationProcessor:
     def _get_or_process_aligned_matrix(
         self,
         method: str,
+        tissue: str,
         common_indices: pd.Index = None,
         correlation_matrices: Dict[str, pd.DataFrame] = None,
         reference_index: pd.Index = None,
@@ -445,6 +573,7 @@ class CorrelationProcessor:
 
         Args:
             method: Correlation method name
+            tissue: Tissue name
             common_indices: Common indices to align to (only needed if not cached)
             correlation_matrices: Dictionary of loaded correlation matrices (only needed if not cached)
             reference_index: Reference index for loading correlation matrix (only needed if not cached)
@@ -453,9 +582,9 @@ class CorrelationProcessor:
             Aligned correlation series (float16)
         """
         # Check for aligned cache first
-        if self._has_aligned_matrix(method):
-            self.logger.info(f"Found cached aligned {method} matrix - using directly")
-            series = self._load_aligned_matrix(method)
+        if self._has_aligned_matrix(method, tissue):
+            self.logger.info(f"Found cached aligned {method} matrix for {tissue} - using directly")
+            series = self._load_aligned_matrix(method, tissue)
 
             # Verify dtype and convert if necessary
             if series.dtype != np.float16:
@@ -474,7 +603,7 @@ class CorrelationProcessor:
         # Load correlation matrix if not already loaded
         if method not in correlation_matrices:
             correlation_matrices[method] = self.load_correlation_matrix(
-                method, reference_index
+                method, tissue, reference_index
             )
 
         # Process the matrix
@@ -503,7 +632,7 @@ class CorrelationProcessor:
         )
 
                 # Cache the aligned result
-        self._save_aligned_matrix(aligned_series, method)
+        self._save_aligned_matrix(aligned_series, method, tissue)
         
         # Free up memory by deleting the original correlation matrix
         if method in correlation_matrices:
@@ -513,17 +642,20 @@ class CorrelationProcessor:
         
         return aligned_series
 
-    def combine_correlations(self) -> pd.DataFrame:
+    def combine_correlations(self, tissue: str) -> pd.DataFrame:
         """
-        Combine all correlation methods into a single DataFrame.
+        Combine all correlation methods into a single DataFrame for a specific tissue.
+
+        Args:
+            tissue: Tissue name to process
 
         Returns:
             DataFrame with columns for each correlation method
         """
-        self.logger.info("Starting correlation combination process")
+        self.logger.info(f"Starting correlation combination process for {tissue}")
 
         # Load gene expression data for index reference
-        gene_expr_data = self.load_gene_expression_data()
+        gene_expr_data = self.load_gene_expression_data(tissue)
         reference_index = gene_expr_data.index
 
         # Check cache status for all methods
@@ -531,38 +663,38 @@ class CorrelationProcessor:
         uncached_methods = []
 
         for method in ["ccc_gpu", "pearson", "spearman"]:
-            if self._has_aligned_matrix(method):
+            if self._has_aligned_matrix(method, tissue):
                 cached_methods.append(method)
             else:
                 uncached_methods.append(method)
 
         # Log cache status
         if cached_methods:
-            self.logger.info(f"Found aligned cache for: {', '.join(cached_methods)}")
+            self.logger.info(f"Found aligned cache for {tissue}: {', '.join(cached_methods)}")
         if uncached_methods:
-            self.logger.info(f"Need to load and process: {', '.join(uncached_methods)}")
+            self.logger.info(f"Need to load and process for {tissue}: {', '.join(uncached_methods)}")
 
         # Initialize empty correlation_matrices dict - matrices will be loaded on-demand
         correlation_matrices = {}
 
         # Process Spearman first to get common indices (Spearman provides the reference)
-        if self._has_aligned_matrix("spearman"):
+        if self._has_aligned_matrix("spearman", tissue):
             # Load from cache
-            spearman_series = self._get_or_process_aligned_matrix("spearman")
+            spearman_series = self._get_or_process_aligned_matrix("spearman", tissue)
         else:
             # Need to process Spearman - it becomes the reference, so no alignment needed initially
             self.logger.info(
-                "No cache found for spearman, loading and processing matrix"
+                f"No cache found for spearman in {tissue}, loading and processing matrix"
             )
             correlation_matrices["spearman"] = self.load_correlation_matrix(
-                "spearman", reference_index
+                "spearman", tissue, reference_index
             )
             spearman_series = self.process_correlation_matrix(
                 correlation_matrices["spearman"], "spearman"
             )
 
             # Log information about processed Spearman (which becomes the reference)
-            self.logger.info("Processed spearman matrix (reference):")
+            self.logger.info(f"Processed spearman matrix for {tissue} (reference):")
             self.logger.info(f"  Shape: {spearman_series.shape}")
             self.logger.info(f"  Data type: {spearman_series.dtype}")
             self.logger.info(
@@ -571,7 +703,7 @@ class CorrelationProcessor:
             self.logger.info("  Will be used as alignment reference for other methods")
 
             # Save as aligned cache (Spearman is the reference, so it's "aligned" to itself)
-            self._save_aligned_matrix(spearman_series, "spearman")
+            self._save_aligned_matrix(spearman_series, "spearman", tissue)
             
             # Free up memory by deleting the original Spearman correlation matrix
             if "spearman" in correlation_matrices:
@@ -582,7 +714,7 @@ class CorrelationProcessor:
         common_indices = spearman_series.index
 
         self.logger.info(
-            f"Using Spearman indices as reference: {len(common_indices)} gene pairs"
+            f"Using Spearman indices as reference for {tissue}: {len(common_indices)} gene pairs"
         )
 
         # Build aligned correlations starting with Spearman
@@ -591,14 +723,14 @@ class CorrelationProcessor:
         # For other methods, get aligned matrices
         for method in ["ccc_gpu", "pearson"]:
             aligned_series = self._get_or_process_aligned_matrix(
-                method, common_indices, correlation_matrices, reference_index
+                method, tissue, common_indices, correlation_matrices, reference_index
             )
             aligned_correlations[method] = aligned_series
             self.logger.info(
-                f"Got aligned {method} series with {len(aligned_series)} values"
+                f"Got aligned {method} series for {tissue} with {len(aligned_series)} values"
             )
 
-        self.logger.info(f"Combining {len(common_indices)} gene pairs")
+        self.logger.info(f"Combining {len(common_indices)} gene pairs for {tissue}")
 
         # Create combined DataFrame with explicit float16 dtype
         combined_df = pd.DataFrame(
@@ -616,7 +748,7 @@ class CorrelationProcessor:
         # Log final DataFrame information including memory usage
         memory_usage_mb = combined_df.memory_usage(deep=True).sum() / (1024 * 1024)
         self.logger.info(
-            f"Successfully combined correlations into DataFrame with shape: {combined_df.shape}"
+            f"Successfully combined correlations for {tissue} into DataFrame with shape: {combined_df.shape}"
         )
         self.logger.info(
             f"Final DataFrame dtype: {combined_df.dtypes.iloc[0]}, memory usage: {memory_usage_mb:.1f}MB"
@@ -624,16 +756,26 @@ class CorrelationProcessor:
 
         return combined_df
 
-    def save_results(self, combined_df: pd.DataFrame) -> None:
+    def save_results(self, combined_df: pd.DataFrame, tissue: str) -> None:
         """
         Save the combined correlation DataFrame to file.
         Logs detailed information about data types, memory usage, and file size.
 
         Args:
             combined_df: Combined correlation DataFrame to save (float16 optimized)
+            tissue: Tissue name for output file naming
         """
+        # Output file
+        output_file = Path(
+            str(self.similarity_matrix_template).format(
+                tissue=tissue,
+                gene_sel_strategy=self.config.gene_selection_strategy,
+                corr_method="all",
+            )
+        )
+        
         # Ensure output directory exists
-        self.output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Log DataFrame information before saving
         memory_usage_mb = combined_df.memory_usage(deep=True).sum() / (1024 * 1024)
@@ -641,71 +783,161 @@ class CorrelationProcessor:
             [f"{col}: {dtype}" for col, dtype in combined_df.dtypes.items()]
         )
 
-        self.logger.info(f"Saving combined correlations to {self.output_file}")
+        self.logger.info(f"Saving combined correlations for {tissue} to {output_file}")
         self.logger.info(
             f"Saving DataFrame with shape: {combined_df.shape}, memory: {memory_usage_mb:.1f}MB"
         )
         self.logger.info(f"Data types: {dtypes_info}")
 
         # Save the DataFrame
-        combined_df.to_pickle(self.output_file)
+        combined_df.to_pickle(output_file)
 
         # Log file size information
-        file_size_mb = self.output_file.stat().st_size / (1024 * 1024)
+        file_size_mb = output_file.stat().st_size / (1024 * 1024)
         self.logger.info(f"Results saved successfully. File size: {file_size_mb:.1f}MB")
         self.logger.info(
             "Memory optimization: Using float16 reduces memory usage by ~50% compared to float32"
         )
 
-    def run(self, cleanup_temp: bool = True) -> None:
+    def run(self, cleanup_temp: bool = True, force: bool = False) -> None:
         """
-        Execute the complete correlation combination workflow.
+        Execute the complete correlation combination workflow for all selected tissues.
 
         Args:
             cleanup_temp: Whether to clean up temporary files after successful completion
+            force: Force reprocessing even if output file already exists
         """
-        try:
-            self.logger.info("Starting correlation combination workflow")
+        import time
+        
+        self.logger.info("Starting correlation combination workflow")
+        self.logger.info(f"Processing {len(self.config.selected_tissues)} tissues: {self.config.selected_tissues}")
 
-            # Validate inputs
-            self.validate_inputs()
+        # Load gene mapping once (for completeness, though not directly used in processing)
+        gene_mapping = self.load_gene_mapping()
 
-            # Load gene mapping (for completeness, though not directly used in processing)
-            gene_mapping = self.load_gene_mapping()
+        # Track processing statistics
+        processed_tissues = []
+        skipped_tissues = []
+        failed_tissues = []
+        
+        # Track timing for progress estimation
+        start_time = time.time()
+        total_tissues = len(self.config.selected_tissues)
 
-            # Combine correlations
-            combined_df = self.combine_correlations()
+        # Process each tissue
+        for tissue_idx, tissue in enumerate(self.config.selected_tissues, 1):
+            try:
+                tissue_start_time = time.time()
+                
+                # Progress logging
+                self.logger.info(f"=== Processing tissue {tissue_idx}/{total_tissues}: {tissue} ===")
+                
+                # Calculate and log progress statistics
+                elapsed_time = time.time() - start_time
+                if tissue_idx > 1:
+                    avg_time_per_tissue = elapsed_time / (tissue_idx - 1)
+                    remaining_tissues = total_tissues - tissue_idx + 1
+                    estimated_remaining_time = avg_time_per_tissue * remaining_tissues
+                    
+                    self.logger.info(f"Progress: {tissue_idx-1}/{total_tissues} completed")
+                    self.logger.info(f"Elapsed time: {elapsed_time/60:.1f} minutes")
+                    self.logger.info(f"Estimated time remaining: {estimated_remaining_time/60:.1f} minutes")
+                    self.logger.info(f"Average time per tissue: {avg_time_per_tissue/60:.1f} minutes")
+                
+                # Check if output file already exists (unless forced)
+                output_file = Path(
+                    str(self.similarity_matrix_template).format(
+                        tissue=tissue,
+                        gene_sel_strategy=self.config.gene_selection_strategy,
+                        corr_method="all",
+                    )
+                )
+                
+                if not force and output_file.exists():
+                    file_size_mb = output_file.stat().st_size / (1024 * 1024)
+                    self.logger.info(f"Output file already exists for {tissue}: {output_file}")
+                    self.logger.info(f"File size: {file_size_mb:.1f}MB")
+                    self.logger.info(f"Skipping {tissue} - result already exists")
+                    skipped_tissues.append(tissue)
+                    continue
 
-            # Save results
-            self.save_results(combined_df)
+                # Validate inputs for this tissue
+                self.validate_inputs(tissue)
 
-            # Clean up temporary files if requested
-            if cleanup_temp:
-                self._cleanup_temp_files()
+                # Combine correlations for this tissue
+                combined_df = self.combine_correlations(tissue)
 
-            self.logger.info("Correlation combination workflow completed successfully")
+                # Save results for this tissue
+                self.save_results(combined_df, tissue)
 
-        except Exception as e:
-            self.logger.error(f"Error in correlation combination workflow: {str(e)}")
-            self.logger.info("Temporary files preserved for debugging/resumption")
-            raise
+                processed_tissues.append(tissue)
+                
+                # Log completion with timing
+                tissue_elapsed = time.time() - tissue_start_time
+                self.logger.info(f"Successfully processed tissue {tissue_idx}/{total_tissues}: {tissue}")
+                self.logger.info(f"Tissue processing time: {tissue_elapsed/60:.1f} minutes")
+
+            except Exception as e:
+                self.logger.error(f"Error processing tissue {tissue_idx}/{total_tissues} ({tissue}): {str(e)}")
+                failed_tissues.append(tissue)
+                # Continue processing other tissues instead of stopping
+
+        # Clean up temporary files if requested
+        if cleanup_temp:
+            self._cleanup_temp_files()
+
+        # Calculate final timing statistics
+        total_elapsed_time = time.time() - start_time
+        
+        # Log final summary
+        self.logger.info("=== CORRELATION COMBINATION WORKFLOW COMPLETED ===")
+        self.logger.info(f"Total processing time: {total_elapsed_time/60:.1f} minutes ({total_elapsed_time/3600:.1f} hours)")
+        self.logger.info(f"Total tissues selected: {total_tissues}")
+        self.logger.info(f"Processed tissues ({len(processed_tissues)}): {processed_tissues}")
+        
+        if skipped_tissues:
+            self.logger.info(f"Skipped tissues ({len(skipped_tissues)}): {skipped_tissues}")
+            self.logger.info("Use --force to override existing files")
+        
+        if failed_tissues:
+            self.logger.error(f"Failed tissues ({len(failed_tissues)}): {failed_tissues}")
+            
+        # Calculate average processing time if we processed any tissues
+        if processed_tissues:
+            avg_processing_time = total_elapsed_time / len(processed_tissues)
+            self.logger.info(f"Average processing time per tissue: {avg_processing_time/60:.1f} minutes")
+            
+        # Log success/failure rate
+        success_rate = len(processed_tissues) / total_tissues * 100
+        self.logger.info(f"Success rate: {success_rate:.1f}% ({len(processed_tissues)}/{total_tissues} tissues)")
+        
+        if failed_tissues:
+            raise ValueError(f"Failed to process {len(failed_tissues)} tissues: {failed_tissues}")
 
 
-def setup_logging(config: Config) -> None:
+def setup_logging(config: Config) -> Path:
     """
-    Set up logging configuration.
+    Set up logging configuration with timestamp-named log directory.
 
     Args:
         config: Configuration object containing logging parameters
+        
+    Returns:
+        Path to the timestamped log directory
     """
-    # Create log file path
+    # Create timestamp for this run
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    # Create timestamped log directory
+    timestamped_log_dir = config.log_dir / f"run_{timestamp}"
+    timestamped_log_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create log file path in timestamped directory
+    tissue_count = len(config.selected_tissues)
     log_file = (
-        config.log_dir
-        / f"combine_coefs_{config.gtex_tissue}_{config.gene_selection_strategy}.log"
+        timestamped_log_dir
+        / f"combine_coefs_{tissue_count}tissues_{config.gene_selection_strategy}.log"
     )
-
-    # Ensure log directory exists (double check)
-    config.log_dir.mkdir(parents=True, exist_ok=True)
 
     # Clear any existing handlers to avoid conflicts
     for handler in logging.root.handlers[:]:
@@ -735,12 +967,15 @@ def setup_logging(config: Config) -> None:
 
     # Test logging immediately
     logger = logging.getLogger(__name__)
-    logger.info(f"Logging initialized. Log directory: {config.log_dir.absolute()}")
+    logger.info(f"Logging initialized. Base log directory: {config.log_dir.absolute()}")
+    logger.info(f"Timestamped log directory: {timestamped_log_dir.absolute()}")
     logger.info(f"Log file: {log_file.absolute()}")
 
     # Force flush to ensure writes
     file_handler.flush()
     console_handler.flush()
+    
+    return timestamped_log_dir
 
 
 def create_argument_parser() -> argparse.ArgumentParser:
@@ -751,8 +986,29 @@ def create_argument_parser() -> argparse.ArgumentParser:
         Configured ArgumentParser instance
     """
     parser = argparse.ArgumentParser(
-        description="Combine correlation coefficients from different methods into a single dataframe",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="""
+Combine correlation coefficients from different methods into a single dataframe.
+
+TISSUE SELECTION:
+- If neither --include nor --exclude is specified: Process all 54 GTEx tissues
+- Use --include to process only tissues matching regex patterns  
+- Use --exclude to skip tissues matching regex patterns
+- Both can be used multiple times for complex filtering
+
+EXAMPLES:
+  # Process all 54 tissues
+  python combine_coefs.py
+  
+  # Process only brain tissues (13 tissues)
+  python combine_coefs.py --include brain
+  
+  # Process all except brain and cell tissues
+  python combine_coefs.py --exclude brain --exclude cells
+  
+  # Process heart tissues but not atrial
+  python combine_coefs.py --include heart --exclude atrial
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
@@ -767,10 +1023,17 @@ def create_argument_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--gtex-tissue",
+        "--include",
         type=str,
-        default="whole_blood",
-        help="GTEx tissue type to process",
+        action="append",
+        help="Include tissues matching this regex pattern (can be used multiple times). If neither --include nor --exclude is specified, all 54 tissues will be processed.",
+    )
+    
+    parser.add_argument(
+        "--exclude",
+        type=str,
+        action="append", 
+        help="Exclude tissues matching this regex pattern (can be used multiple times). If neither --include nor --exclude is specified, all 54 tissues will be processed.",
     )
 
     parser.add_argument(
@@ -814,12 +1077,19 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help="Clear existing cache files before processing",
     )
 
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force reprocessing even if output file already exists",
+    )
+
     return parser
 
 
 def main() -> None:
     """Main entry point for the CLI application."""
     logger = None
+    timestamped_log_dir = None
     try:
         # Parse command line arguments
         parser = create_argument_parser()
@@ -829,7 +1099,8 @@ def main() -> None:
         config = Config(
             top_n_genes=args.top_n_genes,
             data_dir=args.data_dir,
-            gtex_tissue=args.gtex_tissue,
+            include_patterns=args.include,
+            exclude_patterns=args.exclude,
             gene_selection_strategy=args.gene_selection_strategy,
             log_level=args.log_level,
             log_dir=args.log_dir,
@@ -837,15 +1108,16 @@ def main() -> None:
         )
 
         # Setup logging
-        setup_logging(config)
+        timestamped_log_dir = setup_logging(config)
 
         logger = logging.getLogger(__name__)
         logger.info("Starting combine coefficients CLI tool")
         logger.info(f"Configuration: {config}")
+        logger.info(f"This run's logs will be stored in: {timestamped_log_dir}")
 
-        # Validate tissue parameter
-        if not config.gtex_tissue:
-            raise ValueError("GTEx tissue must be specified")
+        # Validate tissue selection
+        if not config.selected_tissues:
+            raise ValueError("No tissues selected based on include/exclude patterns")
 
         # Create processor
         processor = CorrelationProcessor(config)
@@ -855,20 +1127,30 @@ def main() -> None:
             logger.info("Clearing existing cache files")
             processor.clear_cache()
 
+        # Log force processing if requested
+        if args.force:
+            logger.info("Force flag enabled - will overwrite existing results")
+
         # Run processor
         cleanup_temp = not args.no_cleanup
-        processor.run(cleanup_temp=cleanup_temp)
+        processor.run(cleanup_temp=cleanup_temp, force=args.force)
 
         logger.info("CLI tool completed successfully")
+        if timestamped_log_dir:
+            logger.info(f"Logs for this run saved in: {timestamped_log_dir}")
 
     except KeyboardInterrupt:
         if logger:
             logger.info("Operation cancelled by user")
+            if timestamped_log_dir:
+                logger.info(f"Logs for this run saved in: {timestamped_log_dir}")
         print("\nOperation cancelled by user")
         sys.exit(1)
     except Exception as e:
         if logger:
             logger.error(f"CLI tool failed with error: {str(e)}")
+            if timestamped_log_dir:
+                logger.info(f"Logs for this run saved in: {timestamped_log_dir}")
         print(f"Error: {str(e)}")
         sys.exit(1)
     finally:
