@@ -1,0 +1,1363 @@
+2025-07-04 12:42:42,714 - __main__ - INFO - Logging initialized. Base log directory: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs
+2025-07-04 12:42:42,714 - __main__ - INFO - Timestamped log directory: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs/run_2025-07-04_12-42-42
+2025-07-04 12:42:42,714 - __main__ - INFO - Log file: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs/run_2025-07-04_12-42-42/combine_coefs_54tissues_var_pc_log2.log
+2025-07-04 12:42:42,714 - __main__ - INFO - Starting combine coefficients CLI tool
+2025-07-04 12:42:42,714 - __main__ - INFO - Configuration: Config(top_n_genes='all', data_dir=PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8'), include_patterns=None, exclude_patterns=None, gene_selection_strategy='var_pc_log2', log_level='INFO', log_dir=PosixPath('/home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs'), temp_dir=PosixPath('/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data-var_pc_log2-cache'), save_cache=False)
+2025-07-04 12:42:42,714 - __main__ - INFO - This run's logs will be stored in: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs/run_2025-07-04_12-42-42
+2025-07-04 12:42:42,714 - __main__ - INFO - Gene selection directory: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all
+2025-07-04 12:42:42,714 - __main__ - INFO - Similarity matrices directory: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all
+2025-07-04 12:42:42,714 - __main__ - INFO - Temporary directory: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data-var_pc_log2-cache
+2025-07-04 12:42:42,714 - __main__ - INFO - Selected tissues: ['adipose_subcutaneous', 'adipose_visceral_omentum', 'adrenal_gland', 'artery_aorta', 'artery_coronary', 'artery_tibial', 'bladder', 'brain_amygdala', 'brain_anterior_cingulate_cortex_ba24', 'brain_caudate_basal_ganglia', 'brain_cerebellar_hemisphere', 'brain_cerebellum', 'brain_cortex', 'brain_frontal_cortex_ba9', 'brain_hippocampus', 'brain_hypothalamus', 'brain_nucleus_accumbens_basal_ganglia', 'brain_putamen_basal_ganglia', 'brain_spinal_cord_cervical_c1', 'brain_substantia_nigra', 'breast_mammary_tissue', 'cells_cultured_fibroblasts', 'cells_ebvtransformed_lymphocytes', 'cervix_ectocervix', 'cervix_endocervix', 'colon_sigmoid', 'colon_transverse', 'esophagus_gastroesophageal_junction', 'esophagus_mucosa', 'esophagus_muscularis', 'fallopian_tube', 'heart_atrial_appendage', 'heart_left_ventricle', 'kidney_cortex', 'kidney_medulla', 'liver', 'lung', 'minor_salivary_gland', 'muscle_skeletal', 'nerve_tibial', 'ovary', 'pancreas', 'pituitary', 'prostate', 'skin_not_sun_exposed_suprapubic', 'skin_sun_exposed_lower_leg', 'small_intestine_terminal_ileum', 'spleen', 'stomach', 'testis', 'thyroid', 'uterus', 'vagina', 'whole_blood']
+2025-07-04 12:42:42,714 - __main__ - INFO - Cache saving disabled - will not save intermediate cache files (default behavior)
+2025-07-04 12:42:42,714 - __main__ - INFO - Starting correlation combination workflow
+2025-07-04 12:42:42,714 - __main__ - INFO - Processing 54 tissues: ['adipose_subcutaneous', 'adipose_visceral_omentum', 'adrenal_gland', 'artery_aorta', 'artery_coronary', 'artery_tibial', 'bladder', 'brain_amygdala', 'brain_anterior_cingulate_cortex_ba24', 'brain_caudate_basal_ganglia', 'brain_cerebellar_hemisphere', 'brain_cerebellum', 'brain_cortex', 'brain_frontal_cortex_ba9', 'brain_hippocampus', 'brain_hypothalamus', 'brain_nucleus_accumbens_basal_ganglia', 'brain_putamen_basal_ganglia', 'brain_spinal_cord_cervical_c1', 'brain_substantia_nigra', 'breast_mammary_tissue', 'cells_cultured_fibroblasts', 'cells_ebvtransformed_lymphocytes', 'cervix_ectocervix', 'cervix_endocervix', 'colon_sigmoid', 'colon_transverse', 'esophagus_gastroesophageal_junction', 'esophagus_mucosa', 'esophagus_muscularis', 'fallopian_tube', 'heart_atrial_appendage', 'heart_left_ventricle', 'kidney_cortex', 'kidney_medulla', 'liver', 'lung', 'minor_salivary_gland', 'muscle_skeletal', 'nerve_tibial', 'ovary', 'pancreas', 'pituitary', 'prostate', 'skin_not_sun_exposed_suprapubic', 'skin_sun_exposed_lower_leg', 'small_intestine_terminal_ileum', 'spleen', 'stomach', 'testis', 'thyroid', 'uterus', 'vagina', 'whole_blood']
+2025-07-04 12:42:42,714 - __main__ - INFO - Loading gene mapping...
+2025-07-04 12:42:42,845 - __main__ - INFO - Loaded 56200 gene mappings
+2025-07-04 12:42:42,845 - __main__ - INFO - === Processing tissue 1/54: adipose_subcutaneous ===
+2025-07-04 12:42:42,845 - __main__ - INFO - Output file already exists for adipose_subcutaneous: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_subcutaneous-var_pc_log2-all.pkl
+2025-07-04 12:42:42,845 - __main__ - INFO - File size: 19494.8MB
+2025-07-04 12:42:42,845 - __main__ - INFO - Skipping adipose_subcutaneous - result already exists
+2025-07-04 12:42:42,845 - __main__ - INFO - === Processing tissue 2/54: adipose_visceral_omentum ===
+2025-07-04 12:42:42,845 - __main__ - INFO - Progress: 1/54 completed
+2025-07-04 12:42:42,845 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,845 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,845 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,845 - __main__ - INFO - Output file already exists for adipose_visceral_omentum: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adipose_visceral_omentum-var_pc_log2-all.pkl
+2025-07-04 12:42:42,845 - __main__ - INFO - File size: 19228.0MB
+2025-07-04 12:42:42,845 - __main__ - INFO - Skipping adipose_visceral_omentum - result already exists
+2025-07-04 12:42:42,845 - __main__ - INFO - === Processing tissue 3/54: adrenal_gland ===
+2025-07-04 12:42:42,845 - __main__ - INFO - Progress: 2/54 completed
+2025-07-04 12:42:42,845 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,845 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,845 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,845 - __main__ - INFO - Output file already exists for adrenal_gland: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_adrenal_gland-var_pc_log2-all.pkl
+2025-07-04 12:42:42,846 - __main__ - INFO - File size: 18132.8MB
+2025-07-04 12:42:42,846 - __main__ - INFO - Skipping adrenal_gland - result already exists
+2025-07-04 12:42:42,846 - __main__ - INFO - === Processing tissue 4/54: artery_aorta ===
+2025-07-04 12:42:42,846 - __main__ - INFO - Progress: 3/54 completed
+2025-07-04 12:42:42,846 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Output file already exists for artery_aorta: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_artery_aorta-var_pc_log2-all.pkl
+2025-07-04 12:42:42,846 - __main__ - INFO - File size: 18958.2MB
+2025-07-04 12:42:42,846 - __main__ - INFO - Skipping artery_aorta - result already exists
+2025-07-04 12:42:42,846 - __main__ - INFO - === Processing tissue 5/54: artery_coronary ===
+2025-07-04 12:42:42,846 - __main__ - INFO - Progress: 4/54 completed
+2025-07-04 12:42:42,846 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Output file already exists for artery_coronary: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_artery_coronary-var_pc_log2-all.pkl
+2025-07-04 12:42:42,846 - __main__ - INFO - File size: 18338.6MB
+2025-07-04 12:42:42,846 - __main__ - INFO - Skipping artery_coronary - result already exists
+2025-07-04 12:42:42,846 - __main__ - INFO - === Processing tissue 6/54: artery_tibial ===
+2025-07-04 12:42:42,846 - __main__ - INFO - Progress: 5/54 completed
+2025-07-04 12:42:42,846 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Output file already exists for artery_tibial: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_artery_tibial-var_pc_log2-all.pkl
+2025-07-04 12:42:42,846 - __main__ - INFO - File size: 19414.8MB
+2025-07-04 12:42:42,846 - __main__ - INFO - Skipping artery_tibial - result already exists
+2025-07-04 12:42:42,846 - __main__ - INFO - === Processing tissue 7/54: bladder ===
+2025-07-04 12:42:42,846 - __main__ - INFO - Progress: 6/54 completed
+2025-07-04 12:42:42,846 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Output file already exists for bladder: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_bladder-var_pc_log2-all.pkl
+2025-07-04 12:42:42,846 - __main__ - INFO - File size: 13289.7MB
+2025-07-04 12:42:42,846 - __main__ - INFO - Skipping bladder - result already exists
+2025-07-04 12:42:42,846 - __main__ - INFO - === Processing tissue 8/54: brain_amygdala ===
+2025-07-04 12:42:42,846 - __main__ - INFO - Progress: 7/54 completed
+2025-07-04 12:42:42,846 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,846 - __main__ - INFO - Output file already exists for brain_amygdala: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_amygdala-var_pc_log2-all.pkl
+2025-07-04 12:42:42,846 - __main__ - INFO - File size: 17533.8MB
+2025-07-04 12:42:42,846 - __main__ - INFO - Skipping brain_amygdala - result already exists
+2025-07-04 12:42:42,846 - __main__ - INFO - === Processing tissue 9/54: brain_anterior_cingulate_cortex_ba24 ===
+2025-07-04 12:42:42,846 - __main__ - INFO - Progress: 8/54 completed
+2025-07-04 12:42:42,846 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Output file already exists for brain_anterior_cingulate_cortex_ba24: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_anterior_cingulate_cortex_ba24-var_pc_log2-all.pkl
+2025-07-04 12:42:42,847 - __main__ - INFO - File size: 17967.6MB
+2025-07-04 12:42:42,847 - __main__ - INFO - Skipping brain_anterior_cingulate_cortex_ba24 - result already exists
+2025-07-04 12:42:42,847 - __main__ - INFO - === Processing tissue 10/54: brain_caudate_basal_ganglia ===
+2025-07-04 12:42:42,847 - __main__ - INFO - Progress: 9/54 completed
+2025-07-04 12:42:42,847 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Output file already exists for brain_caudate_basal_ganglia: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_caudate_basal_ganglia-var_pc_log2-all.pkl
+2025-07-04 12:42:42,847 - __main__ - INFO - File size: 18397.5MB
+2025-07-04 12:42:42,847 - __main__ - INFO - Skipping brain_caudate_basal_ganglia - result already exists
+2025-07-04 12:42:42,847 - __main__ - INFO - === Processing tissue 11/54: brain_cerebellar_hemisphere ===
+2025-07-04 12:42:42,847 - __main__ - INFO - Progress: 10/54 completed
+2025-07-04 12:42:42,847 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Output file already exists for brain_cerebellar_hemisphere: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_cerebellar_hemisphere-var_pc_log2-all.pkl
+2025-07-04 12:42:42,847 - __main__ - INFO - File size: 18123.0MB
+2025-07-04 12:42:42,847 - __main__ - INFO - Skipping brain_cerebellar_hemisphere - result already exists
+2025-07-04 12:42:42,847 - __main__ - INFO - === Processing tissue 12/54: brain_cerebellum ===
+2025-07-04 12:42:42,847 - __main__ - INFO - Progress: 11/54 completed
+2025-07-04 12:42:42,847 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Output file already exists for brain_cerebellum: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_cerebellum-var_pc_log2-all.pkl
+2025-07-04 12:42:42,847 - __main__ - INFO - File size: 18342.1MB
+2025-07-04 12:42:42,847 - __main__ - INFO - Skipping brain_cerebellum - result already exists
+2025-07-04 12:42:42,847 - __main__ - INFO - === Processing tissue 13/54: brain_cortex ===
+2025-07-04 12:42:42,847 - __main__ - INFO - Progress: 12/54 completed
+2025-07-04 12:42:42,847 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Output file already exists for brain_cortex: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_cortex-var_pc_log2-all.pkl
+2025-07-04 12:42:42,847 - __main__ - INFO - File size: 19072.2MB
+2025-07-04 12:42:42,847 - __main__ - INFO - Skipping brain_cortex - result already exists
+2025-07-04 12:42:42,847 - __main__ - INFO - === Processing tissue 14/54: brain_frontal_cortex_ba9 ===
+2025-07-04 12:42:42,847 - __main__ - INFO - Progress: 13/54 completed
+2025-07-04 12:42:42,847 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,847 - __main__ - INFO - Output file already exists for brain_frontal_cortex_ba9: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_frontal_cortex_ba9-var_pc_log2-all.pkl
+2025-07-04 12:42:42,847 - __main__ - INFO - File size: 18153.7MB
+2025-07-04 12:42:42,847 - __main__ - INFO - Skipping brain_frontal_cortex_ba9 - result already exists
+2025-07-04 12:42:42,848 - __main__ - INFO - === Processing tissue 15/54: brain_hippocampus ===
+2025-07-04 12:42:42,848 - __main__ - INFO - Progress: 14/54 completed
+2025-07-04 12:42:42,848 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Output file already exists for brain_hippocampus: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_hippocampus-var_pc_log2-all.pkl
+2025-07-04 12:42:42,848 - __main__ - INFO - File size: 18447.2MB
+2025-07-04 12:42:42,848 - __main__ - INFO - Skipping brain_hippocampus - result already exists
+2025-07-04 12:42:42,848 - __main__ - INFO - === Processing tissue 16/54: brain_hypothalamus ===
+2025-07-04 12:42:42,848 - __main__ - INFO - Progress: 15/54 completed
+2025-07-04 12:42:42,848 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Output file already exists for brain_hypothalamus: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_hypothalamus-var_pc_log2-all.pkl
+2025-07-04 12:42:42,848 - __main__ - INFO - File size: 18306.5MB
+2025-07-04 12:42:42,848 - __main__ - INFO - Skipping brain_hypothalamus - result already exists
+2025-07-04 12:42:42,848 - __main__ - INFO - === Processing tissue 17/54: brain_nucleus_accumbens_basal_ganglia ===
+2025-07-04 12:42:42,848 - __main__ - INFO - Progress: 16/54 completed
+2025-07-04 12:42:42,848 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Output file already exists for brain_nucleus_accumbens_basal_ganglia: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_nucleus_accumbens_basal_ganglia-var_pc_log2-all.pkl
+2025-07-04 12:42:42,848 - __main__ - INFO - File size: 18549.2MB
+2025-07-04 12:42:42,848 - __main__ - INFO - Skipping brain_nucleus_accumbens_basal_ganglia - result already exists
+2025-07-04 12:42:42,848 - __main__ - INFO - === Processing tissue 18/54: brain_putamen_basal_ganglia ===
+2025-07-04 12:42:42,848 - __main__ - INFO - Progress: 17/54 completed
+2025-07-04 12:42:42,848 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Output file already exists for brain_putamen_basal_ganglia: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_putamen_basal_ganglia-var_pc_log2-all.pkl
+2025-07-04 12:42:42,848 - __main__ - INFO - File size: 17851.4MB
+2025-07-04 12:42:42,848 - __main__ - INFO - Skipping brain_putamen_basal_ganglia - result already exists
+2025-07-04 12:42:42,848 - __main__ - INFO - === Processing tissue 19/54: brain_spinal_cord_cervical_c1 ===
+2025-07-04 12:42:42,848 - __main__ - INFO - Progress: 18/54 completed
+2025-07-04 12:42:42,848 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Output file already exists for brain_spinal_cord_cervical_c1: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_spinal_cord_cervical_c1-var_pc_log2-all.pkl
+2025-07-04 12:42:42,848 - __main__ - INFO - File size: 17436.8MB
+2025-07-04 12:42:42,848 - __main__ - INFO - Skipping brain_spinal_cord_cervical_c1 - result already exists
+2025-07-04 12:42:42,848 - __main__ - INFO - === Processing tissue 20/54: brain_substantia_nigra ===
+2025-07-04 12:42:42,848 - __main__ - INFO - Progress: 19/54 completed
+2025-07-04 12:42:42,848 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,848 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Output file already exists for brain_substantia_nigra: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_brain_substantia_nigra-var_pc_log2-all.pkl
+2025-07-04 12:42:42,849 - __main__ - INFO - File size: 17077.1MB
+2025-07-04 12:42:42,849 - __main__ - INFO - Skipping brain_substantia_nigra - result already exists
+2025-07-04 12:42:42,849 - __main__ - INFO - === Processing tissue 21/54: breast_mammary_tissue ===
+2025-07-04 12:42:42,849 - __main__ - INFO - Progress: 20/54 completed
+2025-07-04 12:42:42,849 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Output file already exists for breast_mammary_tissue: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_breast_mammary_tissue-var_pc_log2-all.pkl
+2025-07-04 12:42:42,849 - __main__ - INFO - File size: 19399.0MB
+2025-07-04 12:42:42,849 - __main__ - INFO - Skipping breast_mammary_tissue - result already exists
+2025-07-04 12:42:42,849 - __main__ - INFO - === Processing tissue 22/54: cells_cultured_fibroblasts ===
+2025-07-04 12:42:42,849 - __main__ - INFO - Progress: 21/54 completed
+2025-07-04 12:42:42,849 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Output file already exists for cells_cultured_fibroblasts: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_cells_cultured_fibroblasts-var_pc_log2-all.pkl
+2025-07-04 12:42:42,849 - __main__ - INFO - File size: 18718.4MB
+2025-07-04 12:42:42,849 - __main__ - INFO - Skipping cells_cultured_fibroblasts - result already exists
+2025-07-04 12:42:42,849 - __main__ - INFO - === Processing tissue 23/54: cells_ebvtransformed_lymphocytes ===
+2025-07-04 12:42:42,849 - __main__ - INFO - Progress: 22/54 completed
+2025-07-04 12:42:42,849 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Output file already exists for cells_ebvtransformed_lymphocytes: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_cells_ebvtransformed_lymphocytes-var_pc_log2-all.pkl
+2025-07-04 12:42:42,849 - __main__ - INFO - File size: 17872.8MB
+2025-07-04 12:42:42,849 - __main__ - INFO - Skipping cells_ebvtransformed_lymphocytes - result already exists
+2025-07-04 12:42:42,849 - __main__ - INFO - === Processing tissue 24/54: cervix_ectocervix ===
+2025-07-04 12:42:42,849 - __main__ - INFO - Progress: 23/54 completed
+2025-07-04 12:42:42,849 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Output file already exists for cervix_ectocervix: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_cervix_ectocervix-var_pc_log2-all.pkl
+2025-07-04 12:42:42,849 - __main__ - INFO - File size: 11636.7MB
+2025-07-04 12:42:42,849 - __main__ - INFO - Skipping cervix_ectocervix - result already exists
+2025-07-04 12:42:42,849 - __main__ - INFO - === Processing tissue 25/54: cervix_endocervix ===
+2025-07-04 12:42:42,849 - __main__ - INFO - Progress: 24/54 completed
+2025-07-04 12:42:42,849 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Output file already exists for cervix_endocervix: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_cervix_endocervix-var_pc_log2-all.pkl
+2025-07-04 12:42:42,849 - __main__ - INFO - File size: 11797.8MB
+2025-07-04 12:42:42,849 - __main__ - INFO - Skipping cervix_endocervix - result already exists
+2025-07-04 12:42:42,849 - __main__ - INFO - === Processing tissue 26/54: colon_sigmoid ===
+2025-07-04 12:42:42,849 - __main__ - INFO - Progress: 25/54 completed
+2025-07-04 12:42:42,849 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,849 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Output file already exists for colon_sigmoid: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_colon_sigmoid-var_pc_log2-all.pkl
+2025-07-04 12:42:42,850 - __main__ - INFO - File size: 18882.8MB
+2025-07-04 12:42:42,850 - __main__ - INFO - Skipping colon_sigmoid - result already exists
+2025-07-04 12:42:42,850 - __main__ - INFO - === Processing tissue 27/54: colon_transverse ===
+2025-07-04 12:42:42,850 - __main__ - INFO - Progress: 26/54 completed
+2025-07-04 12:42:42,850 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Output file already exists for colon_transverse: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_colon_transverse-var_pc_log2-all.pkl
+2025-07-04 12:42:42,850 - __main__ - INFO - File size: 19035.8MB
+2025-07-04 12:42:42,850 - __main__ - INFO - Skipping colon_transverse - result already exists
+2025-07-04 12:42:42,850 - __main__ - INFO - === Processing tissue 28/54: esophagus_gastroesophageal_junction ===
+2025-07-04 12:42:42,850 - __main__ - INFO - Progress: 27/54 completed
+2025-07-04 12:42:42,850 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Output file already exists for esophagus_gastroesophageal_junction: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_esophagus_gastroesophageal_junction-var_pc_log2-all.pkl
+2025-07-04 12:42:42,850 - __main__ - INFO - File size: 18796.3MB
+2025-07-04 12:42:42,850 - __main__ - INFO - Skipping esophagus_gastroesophageal_junction - result already exists
+2025-07-04 12:42:42,850 - __main__ - INFO - === Processing tissue 29/54: esophagus_mucosa ===
+2025-07-04 12:42:42,850 - __main__ - INFO - Progress: 28/54 completed
+2025-07-04 12:42:42,850 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,850 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Output file already exists for esophagus_mucosa: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_esophagus_mucosa-var_pc_log2-all.pkl
+2025-07-04 12:42:42,851 - __main__ - INFO - File size: 19083.6MB
+2025-07-04 12:42:42,851 - __main__ - INFO - Skipping esophagus_mucosa - result already exists
+2025-07-04 12:42:42,851 - __main__ - INFO - === Processing tissue 30/54: esophagus_muscularis ===
+2025-07-04 12:42:42,851 - __main__ - INFO - Progress: 29/54 completed
+2025-07-04 12:42:42,851 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Output file already exists for esophagus_muscularis: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_esophagus_muscularis-var_pc_log2-all.pkl
+2025-07-04 12:42:42,851 - __main__ - INFO - File size: 19210.1MB
+2025-07-04 12:42:42,851 - __main__ - INFO - Skipping esophagus_muscularis - result already exists
+2025-07-04 12:42:42,851 - __main__ - INFO - === Processing tissue 31/54: fallopian_tube ===
+2025-07-04 12:42:42,851 - __main__ - INFO - Progress: 30/54 completed
+2025-07-04 12:42:42,851 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Output file already exists for fallopian_tube: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_fallopian_tube-var_pc_log2-all.pkl
+2025-07-04 12:42:42,851 - __main__ - INFO - File size: 11614.4MB
+2025-07-04 12:42:42,851 - __main__ - INFO - Skipping fallopian_tube - result already exists
+2025-07-04 12:42:42,851 - __main__ - INFO - === Processing tissue 32/54: heart_atrial_appendage ===
+2025-07-04 12:42:42,851 - __main__ - INFO - Progress: 31/54 completed
+2025-07-04 12:42:42,851 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Output file already exists for heart_atrial_appendage: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_heart_atrial_appendage-var_pc_log2-all.pkl
+2025-07-04 12:42:42,851 - __main__ - INFO - File size: 18907.7MB
+2025-07-04 12:42:42,851 - __main__ - INFO - Skipping heart_atrial_appendage - result already exists
+2025-07-04 12:42:42,851 - __main__ - INFO - === Processing tissue 33/54: heart_left_ventricle ===
+2025-07-04 12:42:42,851 - __main__ - INFO - Progress: 32/54 completed
+2025-07-04 12:42:42,851 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Output file already exists for heart_left_ventricle: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_heart_left_ventricle-var_pc_log2-all.pkl
+2025-07-04 12:42:42,851 - __main__ - INFO - File size: 18550.6MB
+2025-07-04 12:42:42,851 - __main__ - INFO - Skipping heart_left_ventricle - result already exists
+2025-07-04 12:42:42,851 - __main__ - INFO - === Processing tissue 34/54: kidney_cortex ===
+2025-07-04 12:42:42,851 - __main__ - INFO - Progress: 33/54 completed
+2025-07-04 12:42:42,851 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Output file already exists for kidney_cortex: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_kidney_cortex-var_pc_log2-all.pkl
+2025-07-04 12:42:42,851 - __main__ - INFO - File size: 16446.2MB
+2025-07-04 12:42:42,851 - __main__ - INFO - Skipping kidney_cortex - result already exists
+2025-07-04 12:42:42,851 - __main__ - INFO - === Processing tissue 35/54: kidney_medulla ===
+2025-07-04 12:42:42,851 - __main__ - INFO - Progress: 34/54 completed
+2025-07-04 12:42:42,851 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Output file already exists for kidney_medulla: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_kidney_medulla-var_pc_log2-all.pkl
+2025-07-04 12:42:42,851 - __main__ - INFO - File size: 9246.7MB
+2025-07-04 12:42:42,851 - __main__ - INFO - Skipping kidney_medulla - result already exists
+2025-07-04 12:42:42,851 - __main__ - INFO - === Processing tissue 36/54: liver ===
+2025-07-04 12:42:42,851 - __main__ - INFO - Progress: 35/54 completed
+2025-07-04 12:42:42,851 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,851 - __main__ - INFO - Output file already exists for liver: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_liver-var_pc_log2-all.pkl
+2025-07-04 12:42:42,851 - __main__ - INFO - File size: 17533.8MB
+2025-07-04 12:42:42,851 - __main__ - INFO - Skipping liver - result already exists
+2025-07-04 12:42:42,852 - __main__ - INFO - === Processing tissue 37/54: lung ===
+2025-07-04 12:42:42,852 - __main__ - INFO - Progress: 36/54 completed
+2025-07-04 12:42:42,852 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Output file already exists for lung: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_lung-var_pc_log2-all.pkl
+2025-07-04 12:42:42,852 - __main__ - INFO - File size: 19520.1MB
+2025-07-04 12:42:42,852 - __main__ - INFO - Skipping lung - result already exists
+2025-07-04 12:42:42,852 - __main__ - INFO - === Processing tissue 38/54: minor_salivary_gland ===
+2025-07-04 12:42:42,852 - __main__ - INFO - Progress: 37/54 completed
+2025-07-04 12:42:42,852 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Output file already exists for minor_salivary_gland: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_minor_salivary_gland-var_pc_log2-all.pkl
+2025-07-04 12:42:42,852 - __main__ - INFO - File size: 17777.6MB
+2025-07-04 12:42:42,852 - __main__ - INFO - Skipping minor_salivary_gland - result already exists
+2025-07-04 12:42:42,852 - __main__ - INFO - === Processing tissue 39/54: muscle_skeletal ===
+2025-07-04 12:42:42,852 - __main__ - INFO - Progress: 38/54 completed
+2025-07-04 12:42:42,852 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Output file already exists for muscle_skeletal: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_muscle_skeletal-var_pc_log2-all.pkl
+2025-07-04 12:42:42,852 - __main__ - INFO - File size: 19494.8MB
+2025-07-04 12:42:42,852 - __main__ - INFO - Skipping muscle_skeletal - result already exists
+2025-07-04 12:42:42,852 - __main__ - INFO - === Processing tissue 40/54: nerve_tibial ===
+2025-07-04 12:42:42,852 - __main__ - INFO - Progress: 39/54 completed
+2025-07-04 12:42:42,852 - __main__ - INFO - Elapsed time: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Estimated time remaining: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - Average time per tissue: 0.0 minutes
+2025-07-04 12:42:42,852 - __main__ - INFO - All input files validated successfully for nerve_tibial
+2025-07-04 12:42:42,852 - __main__ - INFO - Starting correlation combination process for nerve_tibial
+2025-07-04 12:42:42,852 - __main__ - INFO - Loading gene expression data for nerve_tibial from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_nerve_tibial-var_pc_log2.pkl
+2025-07-04 12:42:43,488 - __main__ - INFO - Loaded gene expression data for nerve_tibial with shape: (56200, 619)
+2025-07-04 12:42:43,488 - __main__ - INFO - Need to load and process for nerve_tibial: ccc_gpu, pearson, spearman
+2025-07-04 12:42:43,488 - __main__ - INFO - No cache found for spearman in nerve_tibial, loading and processing matrix
+2025-07-04 12:42:43,488 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_nerve_tibial-var_pc_log2-spearman.pkl
+2025-07-04 12:43:08,180 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 12:43:16,147 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 12:43:16,149 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 12:43:16,149 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 12:44:54,738 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 12:44:54,738 - __main__ - INFO - Processed spearman correlation matrix to series with 1472643585 values (dtype: float16)
+2025-07-04 12:44:54,752 - __main__ - INFO - Processed spearman matrix for nerve_tibial (reference):
+2025-07-04 12:44:54,752 - __main__ - INFO -   Shape: (1472643585,)
+2025-07-04 12:44:54,752 - __main__ - INFO -   Data type: float16
+2025-07-04 12:45:03,890 - __main__ - INFO -   Memory usage: 14056.21 MB
+2025-07-04 12:45:03,890 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 12:45:03,890 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for nerve_tibial
+2025-07-04 12:45:04,147 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 12:45:04,148 - __main__ - INFO - Using Spearman indices as reference for nerve_tibial: 1472643585 gene pairs
+2025-07-04 12:45:04,148 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 12:45:04,148 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_nerve_tibial-var_pc_log2-ccc_gpu.pkl
+2025-07-04 12:45:30,068 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 12:45:55,385 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 12:45:55,386 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 12:45:55,386 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 12:47:30,899 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578747003 values (dtype: float16)
+2025-07-04 12:47:30,913 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 12:47:30,913 - __main__ - INFO -   Original shape: (1578747003,)
+2025-07-04 12:47:30,913 - __main__ - INFO -   Data type: float16
+2025-07-04 12:47:40,636 - __main__ - INFO -   Memory usage: 15068.09 MB
+2025-07-04 12:55:03,383 - __main__ - INFO - Alignment summary:
+2025-07-04 12:55:03,383 - __main__ - INFO -   Aligned shape: (1472643585,)
+2025-07-04 12:55:03,383 - __main__ - INFO -   Alignment ratio: 93.28% of original
+2025-07-04 12:55:12,687 - __main__ - INFO -   Memory saved: 34035.88 MB
+2025-07-04 12:55:12,687 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for nerve_tibial
+2025-07-04 12:55:12,945 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 12:55:15,902 - __main__ - INFO - Got aligned ccc_gpu series for nerve_tibial with 1472643585 values
+2025-07-04 12:55:15,903 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 12:55:15,903 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_nerve_tibial-var_pc_log2-pearson.pkl
+2025-07-04 12:56:31,542 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 12:56:39,455 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 12:56:39,457 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 12:56:39,457 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 12:58:52,223 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 12:58:52,223 - __main__ - INFO - Processed pearson correlation matrix to series with 1472643585 values (dtype: float16)
+2025-07-04 12:58:52,237 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 12:58:52,237 - __main__ - INFO -   Original shape: (1472643585,)
+2025-07-04 12:58:52,237 - __main__ - INFO -   Data type: float16
+2025-07-04 12:59:01,406 - __main__ - INFO -   Memory usage: 14056.21 MB
+2025-07-04 13:06:11,355 - __main__ - INFO - Alignment summary:
+2025-07-04 13:06:11,355 - __main__ - INFO -   Aligned shape: (1472643585,)
+2025-07-04 13:06:11,355 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 13:06:20,529 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 13:06:20,529 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for nerve_tibial
+2025-07-04 13:06:20,782 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 13:06:23,819 - __main__ - INFO - Got aligned pearson series for nerve_tibial with 1472643585 values
+2025-07-04 13:06:23,819 - __main__ - INFO - Combining 1472643585 gene pairs for nerve_tibial
+2025-07-04 13:13:15,632 - __main__ - INFO - Successfully combined correlations for nerve_tibial into DataFrame with shape: (1472643585, 3)
+2025-07-04 13:13:15,632 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 19673.9MB
+2025-07-04 13:13:16,075 - __main__ - INFO - Saving combined correlations for nerve_tibial to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_nerve_tibial-var_pc_log2-all.pkl
+2025-07-04 13:13:16,075 - __main__ - INFO - Saving DataFrame with shape: (1472643585, 3), memory: 19673.9MB
+2025-07-04 13:13:16,075 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 13:16:23,013 - __main__ - INFO - Results saved successfully. File size: 19663.3MB
+2025-07-04 13:16:23,013 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 13:16:23,013 - __main__ - INFO - Successfully processed tissue 40/54: nerve_tibial
+2025-07-04 13:16:23,013 - __main__ - INFO - Tissue processing time: 33.7 minutes
+2025-07-04 13:16:23,013 - __main__ - INFO - === Processing tissue 41/54: ovary ===
+2025-07-04 13:16:23,013 - __main__ - INFO - Progress: 40/54 completed
+2025-07-04 13:16:23,013 - __main__ - INFO - Elapsed time: 33.7 minutes
+2025-07-04 13:16:23,013 - __main__ - INFO - Estimated time remaining: 11.8 minutes
+2025-07-04 13:16:23,013 - __main__ - INFO - Average time per tissue: 0.8 minutes
+2025-07-04 13:16:23,013 - __main__ - INFO - All input files validated successfully for ovary
+2025-07-04 13:16:23,013 - __main__ - INFO - Starting correlation combination process for ovary
+2025-07-04 13:16:23,014 - __main__ - INFO - Loading gene expression data for ovary from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_ovary-var_pc_log2.pkl
+2025-07-04 13:16:23,879 - __main__ - INFO - Loaded gene expression data for ovary with shape: (56200, 180)
+2025-07-04 13:16:23,880 - __main__ - INFO - Need to load and process for ovary: ccc_gpu, pearson, spearman
+2025-07-04 13:16:23,881 - __main__ - INFO - No cache found for spearman in ovary, loading and processing matrix
+2025-07-04 13:16:23,881 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_ovary-var_pc_log2-spearman.pkl
+2025-07-04 13:16:52,177 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 13:16:59,929 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 13:16:59,930 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 13:16:59,931 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 13:19:00,703 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 13:19:00,703 - __main__ - INFO - Processed spearman correlation matrix to series with 1353222276 values (dtype: float16)
+2025-07-04 13:19:00,718 - __main__ - INFO - Processed spearman matrix for ovary (reference):
+2025-07-04 13:19:00,718 - __main__ - INFO -   Shape: (1353222276,)
+2025-07-04 13:19:00,718 - __main__ - INFO -   Data type: float16
+2025-07-04 13:19:09,072 - __main__ - INFO -   Memory usage: 12917.32 MB
+2025-07-04 13:19:09,072 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 13:19:09,072 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for ovary
+2025-07-04 13:19:09,332 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 13:19:09,332 - __main__ - INFO - Using Spearman indices as reference for ovary: 1353222276 gene pairs
+2025-07-04 13:19:09,332 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 13:19:09,332 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_ovary-var_pc_log2-ccc_gpu.pkl
+2025-07-04 13:21:00,316 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 13:21:14,627 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 13:21:14,629 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 13:21:14,630 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 13:24:19,066 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578180270 values (dtype: float16)
+2025-07-04 13:24:19,083 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 13:24:19,083 - __main__ - INFO -   Original shape: (1578180270,)
+2025-07-04 13:24:19,083 - __main__ - INFO -   Data type: float16
+2025-07-04 13:24:28,880 - __main__ - INFO -   Memory usage: 15062.69 MB
+2025-07-04 13:31:22,192 - __main__ - INFO - Alignment summary:
+2025-07-04 13:31:22,192 - __main__ - INFO -   Aligned shape: (1353222276,)
+2025-07-04 13:31:22,192 - __main__ - INFO -   Alignment ratio: 85.75% of original
+2025-07-04 13:31:30,633 - __main__ - INFO -   Memory saved: 35169.37 MB
+2025-07-04 13:31:30,633 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for ovary
+2025-07-04 13:31:30,890 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 13:31:34,091 - __main__ - INFO - Got aligned ccc_gpu series for ovary with 1353222276 values
+2025-07-04 13:31:34,092 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 13:31:34,092 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_ovary-var_pc_log2-pearson.pkl
+2025-07-04 13:32:43,584 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 13:32:51,488 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 13:32:51,490 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 13:32:51,490 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 13:36:42,556 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 13:36:42,557 - __main__ - INFO - Processed pearson correlation matrix to series with 1353222276 values (dtype: float16)
+2025-07-04 13:36:42,571 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 13:36:42,571 - __main__ - INFO -   Original shape: (1353222276,)
+2025-07-04 13:36:42,571 - __main__ - INFO -   Data type: float16
+2025-07-04 13:36:50,985 - __main__ - INFO -   Memory usage: 12917.32 MB
+2025-07-04 13:43:30,050 - __main__ - INFO - Alignment summary:
+2025-07-04 13:43:30,050 - __main__ - INFO -   Aligned shape: (1353222276,)
+2025-07-04 13:43:30,050 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 13:43:38,426 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 13:43:38,426 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for ovary
+2025-07-04 13:43:38,680 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 13:43:41,700 - __main__ - INFO - Got aligned pearson series for ovary with 1353222276 values
+2025-07-04 13:43:41,700 - __main__ - INFO - Combining 1353222276 gene pairs for ovary
+2025-07-04 13:50:02,438 - __main__ - INFO - Successfully combined correlations for ovary into DataFrame with shape: (1353222276, 3)
+2025-07-04 13:50:02,439 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 18079.5MB
+2025-07-04 13:50:02,920 - __main__ - INFO - Saving combined correlations for ovary to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_ovary-var_pc_log2-all.pkl
+2025-07-04 13:50:02,920 - __main__ - INFO - Saving DataFrame with shape: (1353222276, 3), memory: 18079.5MB
+2025-07-04 13:50:02,920 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 13:52:48,371 - __main__ - INFO - Results saved successfully. File size: 18068.8MB
+2025-07-04 13:52:48,371 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 13:52:48,371 - __main__ - INFO - Successfully processed tissue 41/54: ovary
+2025-07-04 13:52:48,371 - __main__ - INFO - Tissue processing time: 36.4 minutes
+2025-07-04 13:52:48,371 - __main__ - INFO - === Processing tissue 42/54: pancreas ===
+2025-07-04 13:52:48,371 - __main__ - INFO - Progress: 41/54 completed
+2025-07-04 13:52:48,371 - __main__ - INFO - Elapsed time: 70.1 minutes
+2025-07-04 13:52:48,371 - __main__ - INFO - Estimated time remaining: 22.2 minutes
+2025-07-04 13:52:48,371 - __main__ - INFO - Average time per tissue: 1.7 minutes
+2025-07-04 13:52:48,388 - __main__ - INFO - All input files validated successfully for pancreas
+2025-07-04 13:52:48,388 - __main__ - INFO - Starting correlation combination process for pancreas
+2025-07-04 13:52:48,388 - __main__ - INFO - Loading gene expression data for pancreas from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_pancreas-var_pc_log2.pkl
+2025-07-04 13:52:49,881 - __main__ - INFO - Loaded gene expression data for pancreas with shape: (56200, 328)
+2025-07-04 13:52:49,909 - __main__ - INFO - Need to load and process for pancreas: ccc_gpu, pearson, spearman
+2025-07-04 13:52:49,909 - __main__ - INFO - No cache found for spearman in pancreas, loading and processing matrix
+2025-07-04 13:52:49,910 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pancreas-var_pc_log2-spearman.pkl
+2025-07-04 13:53:18,541 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 13:53:26,395 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 13:53:26,397 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 13:53:26,397 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 13:55:03,114 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 13:55:03,115 - __main__ - INFO - Processed spearman correlation matrix to series with 1369711630 values (dtype: float16)
+2025-07-04 13:55:03,128 - __main__ - INFO - Processed spearman matrix for pancreas (reference):
+2025-07-04 13:55:03,128 - __main__ - INFO -   Shape: (1369711630,)
+2025-07-04 13:55:03,129 - __main__ - INFO -   Data type: float16
+2025-07-04 13:55:11,595 - __main__ - INFO -   Memory usage: 13074.58 MB
+2025-07-04 13:55:11,595 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 13:55:11,595 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for pancreas
+2025-07-04 13:55:11,847 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 13:55:11,847 - __main__ - INFO - Using Spearman indices as reference for pancreas: 1369711630 gene pairs
+2025-07-04 13:55:11,848 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 13:55:11,848 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pancreas-var_pc_log2-ccc_gpu.pkl
+2025-07-04 13:56:25,549 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 13:56:46,309 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 13:56:46,310 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 13:56:46,311 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 13:59:06,952 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578264745 values (dtype: float16)
+2025-07-04 13:59:06,967 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 13:59:06,967 - __main__ - INFO -   Original shape: (1578264745,)
+2025-07-04 13:59:06,967 - __main__ - INFO -   Data type: float16
+2025-07-04 13:59:16,860 - __main__ - INFO -   Memory usage: 15063.49 MB
+2025-07-04 14:06:08,633 - __main__ - INFO - Alignment summary:
+2025-07-04 14:06:08,633 - __main__ - INFO -   Aligned shape: (1369711630,)
+2025-07-04 14:06:08,633 - __main__ - INFO -   Alignment ratio: 86.79% of original
+2025-07-04 14:06:17,238 - __main__ - INFO -   Memory saved: 35012.92 MB
+2025-07-04 14:06:17,238 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for pancreas
+2025-07-04 14:06:17,492 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 14:06:20,570 - __main__ - INFO - Got aligned ccc_gpu series for pancreas with 1369711630 values
+2025-07-04 14:06:20,570 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 14:06:20,570 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pancreas-var_pc_log2-pearson.pkl
+2025-07-04 14:06:43,974 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 14:06:51,895 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 14:06:51,896 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 14:06:51,896 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 14:10:20,292 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 14:10:20,295 - __main__ - INFO - Processed pearson correlation matrix to series with 1369711630 values (dtype: float16)
+2025-07-04 14:10:20,310 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 14:10:20,310 - __main__ - INFO -   Original shape: (1369711630,)
+2025-07-04 14:10:20,310 - __main__ - INFO -   Data type: float16
+2025-07-04 14:10:28,948 - __main__ - INFO -   Memory usage: 13074.58 MB
+2025-07-04 14:17:11,273 - __main__ - INFO - Alignment summary:
+2025-07-04 14:17:11,274 - __main__ - INFO -   Aligned shape: (1369711630,)
+2025-07-04 14:17:11,274 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 14:17:19,942 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 14:17:19,942 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for pancreas
+2025-07-04 14:17:20,204 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 14:17:23,287 - __main__ - INFO - Got aligned pearson series for pancreas with 1369711630 values
+2025-07-04 14:17:23,287 - __main__ - INFO - Combining 1369711630 gene pairs for pancreas
+2025-07-04 14:23:50,213 - __main__ - INFO - Successfully combined correlations for pancreas into DataFrame with shape: (1369711630, 3)
+2025-07-04 14:23:50,214 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 18299.6MB
+2025-07-04 14:23:50,695 - __main__ - INFO - Saving combined correlations for pancreas to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pancreas-var_pc_log2-all.pkl
+2025-07-04 14:23:50,695 - __main__ - INFO - Saving DataFrame with shape: (1369711630, 3), memory: 18299.6MB
+2025-07-04 14:23:50,695 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 14:25:38,413 - __main__ - INFO - Results saved successfully. File size: 18289.0MB
+2025-07-04 14:25:38,413 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 14:25:38,413 - __main__ - INFO - Successfully processed tissue 42/54: pancreas
+2025-07-04 14:25:38,413 - __main__ - INFO - Tissue processing time: 32.8 minutes
+2025-07-04 14:25:38,413 - __main__ - INFO - === Processing tissue 43/54: pituitary ===
+2025-07-04 14:25:38,413 - __main__ - INFO - Progress: 42/54 completed
+2025-07-04 14:25:38,413 - __main__ - INFO - Elapsed time: 102.9 minutes
+2025-07-04 14:25:38,413 - __main__ - INFO - Estimated time remaining: 29.4 minutes
+2025-07-04 14:25:38,413 - __main__ - INFO - Average time per tissue: 2.5 minutes
+2025-07-04 14:25:38,420 - __main__ - INFO - All input files validated successfully for pituitary
+2025-07-04 14:25:38,420 - __main__ - INFO - Starting correlation combination process for pituitary
+2025-07-04 14:25:38,420 - __main__ - INFO - Loading gene expression data for pituitary from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_pituitary-var_pc_log2.pkl
+2025-07-04 14:25:38,952 - __main__ - INFO - Loaded gene expression data for pituitary with shape: (56200, 283)
+2025-07-04 14:25:38,960 - __main__ - INFO - Need to load and process for pituitary: ccc_gpu, pearson, spearman
+2025-07-04 14:25:38,960 - __main__ - INFO - No cache found for spearman in pituitary, loading and processing matrix
+2025-07-04 14:25:38,960 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pituitary-var_pc_log2-spearman.pkl
+2025-07-04 14:26:07,891 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 14:26:15,693 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 14:26:15,695 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 14:26:15,695 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 14:27:53,120 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 14:27:53,120 - __main__ - INFO - Processed spearman correlation matrix to series with 1418660011 values (dtype: float16)
+2025-07-04 14:27:53,134 - __main__ - INFO - Processed spearman matrix for pituitary (reference):
+2025-07-04 14:27:53,134 - __main__ - INFO -   Shape: (1418660011,)
+2025-07-04 14:27:53,134 - __main__ - INFO -   Data type: float16
+2025-07-04 14:28:02,087 - __main__ - INFO -   Memory usage: 13541.38 MB
+2025-07-04 14:28:02,088 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 14:28:02,088 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for pituitary
+2025-07-04 14:28:02,347 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 14:28:02,348 - __main__ - INFO - Using Spearman indices as reference for pituitary: 1418660011 gene pairs
+2025-07-04 14:28:02,348 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 14:28:02,348 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pituitary-var_pc_log2-ccc_gpu.pkl
+2025-07-04 14:28:25,333 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 14:28:44,194 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 14:28:44,196 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 14:28:44,196 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 14:31:11,677 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578502203 values (dtype: float16)
+2025-07-04 14:31:11,690 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 14:31:11,691 - __main__ - INFO -   Original shape: (1578502203,)
+2025-07-04 14:31:11,691 - __main__ - INFO -   Data type: float16
+2025-07-04 14:31:21,689 - __main__ - INFO -   Memory usage: 15065.76 MB
+2025-07-04 14:38:15,605 - __main__ - INFO - Alignment summary:
+2025-07-04 14:38:15,605 - __main__ - INFO -   Aligned shape: (1418660011,)
+2025-07-04 14:38:15,605 - __main__ - INFO -   Alignment ratio: 89.87% of original
+2025-07-04 14:38:24,646 - __main__ - INFO -   Memory saved: 34548.37 MB
+2025-07-04 14:38:24,646 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for pituitary
+2025-07-04 14:38:24,905 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 14:38:28,035 - __main__ - INFO - Got aligned ccc_gpu series for pituitary with 1418660011 values
+2025-07-04 14:38:28,036 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 14:38:28,036 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pituitary-var_pc_log2-pearson.pkl
+2025-07-04 14:40:24,160 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 14:40:32,157 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 14:40:32,159 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 14:40:32,159 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 14:44:27,154 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 14:44:27,156 - __main__ - INFO - Processed pearson correlation matrix to series with 1418660011 values (dtype: float16)
+2025-07-04 14:44:27,171 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 14:44:27,171 - __main__ - INFO -   Original shape: (1418660011,)
+2025-07-04 14:44:27,171 - __main__ - INFO -   Data type: float16
+2025-07-04 14:44:36,081 - __main__ - INFO -   Memory usage: 13541.38 MB
+2025-07-04 14:51:25,002 - __main__ - INFO - Alignment summary:
+2025-07-04 14:51:25,002 - __main__ - INFO -   Aligned shape: (1418660011,)
+2025-07-04 14:51:25,002 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 14:51:33,915 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 14:51:33,915 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for pituitary
+2025-07-04 14:51:34,176 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 14:51:37,273 - __main__ - INFO - Got aligned pearson series for pituitary with 1418660011 values
+2025-07-04 14:51:37,273 - __main__ - INFO - Combining 1418660011 gene pairs for pituitary
+2025-07-04 14:58:16,746 - __main__ - INFO - Successfully combined correlations for pituitary into DataFrame with shape: (1418660011, 3)
+2025-07-04 14:58:16,746 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 18953.1MB
+2025-07-04 14:58:17,265 - __main__ - INFO - Saving combined correlations for pituitary to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_pituitary-var_pc_log2-all.pkl
+2025-07-04 14:58:17,265 - __main__ - INFO - Saving DataFrame with shape: (1418660011, 3), memory: 18953.1MB
+2025-07-04 14:58:17,265 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 15:04:04,413 - __main__ - INFO - Results saved successfully. File size: 18942.5MB
+2025-07-04 15:04:04,413 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 15:04:04,413 - __main__ - INFO - Successfully processed tissue 43/54: pituitary
+2025-07-04 15:04:04,413 - __main__ - INFO - Tissue processing time: 38.4 minutes
+2025-07-04 15:04:04,413 - __main__ - INFO - === Processing tissue 44/54: prostate ===
+2025-07-04 15:04:04,413 - __main__ - INFO - Progress: 43/54 completed
+2025-07-04 15:04:04,414 - __main__ - INFO - Elapsed time: 141.4 minutes
+2025-07-04 15:04:04,414 - __main__ - INFO - Estimated time remaining: 36.2 minutes
+2025-07-04 15:04:04,414 - __main__ - INFO - Average time per tissue: 3.3 minutes
+2025-07-04 15:04:04,417 - __main__ - INFO - All input files validated successfully for prostate
+2025-07-04 15:04:04,417 - __main__ - INFO - Starting correlation combination process for prostate
+2025-07-04 15:04:04,417 - __main__ - INFO - Loading gene expression data for prostate from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_prostate-var_pc_log2.pkl
+2025-07-04 15:04:04,832 - __main__ - INFO - Loaded gene expression data for prostate with shape: (56200, 245)
+2025-07-04 15:04:04,841 - __main__ - INFO - Need to load and process for prostate: ccc_gpu, pearson, spearman
+2025-07-04 15:04:04,841 - __main__ - INFO - No cache found for spearman in prostate, loading and processing matrix
+2025-07-04 15:04:04,841 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_prostate-var_pc_log2-spearman.pkl
+2025-07-04 15:04:29,472 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 15:04:37,225 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 15:04:37,226 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 15:04:37,227 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 15:06:14,149 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 15:06:14,149 - __main__ - INFO - Processed spearman correlation matrix to series with 1395161076 values (dtype: float16)
+2025-07-04 15:06:14,164 - __main__ - INFO - Processed spearman matrix for prostate (reference):
+2025-07-04 15:06:14,165 - __main__ - INFO -   Shape: (1395161076,)
+2025-07-04 15:06:14,165 - __main__ - INFO -   Data type: float16
+2025-07-04 15:06:22,772 - __main__ - INFO -   Memory usage: 13317.28 MB
+2025-07-04 15:06:22,772 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 15:06:22,772 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for prostate
+2025-07-04 15:06:23,033 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 15:06:23,033 - __main__ - INFO - Using Spearman indices as reference for prostate: 1395161076 gene pairs
+2025-07-04 15:06:23,033 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 15:06:23,033 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_prostate-var_pc_log2-ccc_gpu.pkl
+2025-07-04 15:07:19,720 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 15:07:34,708 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 15:07:34,709 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 15:07:34,710 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 15:10:01,535 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578390640 values (dtype: float16)
+2025-07-04 15:10:01,550 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 15:10:01,550 - __main__ - INFO -   Original shape: (1578390640,)
+2025-07-04 15:10:01,550 - __main__ - INFO -   Data type: float16
+2025-07-04 15:10:11,400 - __main__ - INFO -   Memory usage: 15064.69 MB
+2025-07-04 15:16:58,159 - __main__ - INFO - Alignment summary:
+2025-07-04 15:16:58,159 - __main__ - INFO -   Aligned shape: (1395161076,)
+2025-07-04 15:16:58,159 - __main__ - INFO -   Alignment ratio: 88.39% of original
+2025-07-04 15:17:06,853 - __main__ - INFO -   Memory saved: 34771.41 MB
+2025-07-04 15:17:06,853 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for prostate
+2025-07-04 15:17:07,108 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 15:17:10,229 - __main__ - INFO - Got aligned ccc_gpu series for prostate with 1395161076 values
+2025-07-04 15:17:10,229 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 15:17:10,229 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_prostate-var_pc_log2-pearson.pkl
+2025-07-04 15:18:16,559 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 15:18:24,457 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 15:18:24,459 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 15:18:24,459 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 15:22:02,632 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 15:22:02,633 - __main__ - INFO - Processed pearson correlation matrix to series with 1395161076 values (dtype: float16)
+2025-07-04 15:22:02,647 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 15:22:02,648 - __main__ - INFO -   Original shape: (1395161076,)
+2025-07-04 15:22:02,648 - __main__ - INFO -   Data type: float16
+2025-07-04 15:22:11,382 - __main__ - INFO -   Memory usage: 13317.28 MB
+2025-07-04 15:28:52,888 - __main__ - INFO - Alignment summary:
+2025-07-04 15:28:52,888 - __main__ - INFO -   Aligned shape: (1395161076,)
+2025-07-04 15:28:52,888 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 15:29:01,668 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 15:29:01,668 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for prostate
+2025-07-04 15:29:01,931 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 15:29:05,117 - __main__ - INFO - Got aligned pearson series for prostate with 1395161076 values
+2025-07-04 15:29:05,117 - __main__ - INFO - Combining 1395161076 gene pairs for prostate
+2025-07-04 15:35:42,070 - __main__ - INFO - Successfully combined correlations for prostate into DataFrame with shape: (1395161076, 3)
+2025-07-04 15:35:42,070 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 18639.4MB
+2025-07-04 15:35:42,569 - __main__ - INFO - Saving combined correlations for prostate to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_prostate-var_pc_log2-all.pkl
+2025-07-04 15:35:42,569 - __main__ - INFO - Saving DataFrame with shape: (1395161076, 3), memory: 18639.4MB
+2025-07-04 15:35:42,569 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 15:43:22,796 - __main__ - INFO - Results saved successfully. File size: 18628.8MB
+2025-07-04 15:43:22,796 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 15:43:22,796 - __main__ - INFO - Successfully processed tissue 44/54: prostate
+2025-07-04 15:43:22,796 - __main__ - INFO - Tissue processing time: 39.3 minutes
+2025-07-04 15:43:22,796 - __main__ - INFO - === Processing tissue 45/54: skin_not_sun_exposed_suprapubic ===
+2025-07-04 15:43:22,796 - __main__ - INFO - Progress: 44/54 completed
+2025-07-04 15:43:22,796 - __main__ - INFO - Elapsed time: 180.7 minutes
+2025-07-04 15:43:22,796 - __main__ - INFO - Estimated time remaining: 41.1 minutes
+2025-07-04 15:43:22,797 - __main__ - INFO - Average time per tissue: 4.1 minutes
+2025-07-04 15:43:22,800 - __main__ - INFO - All input files validated successfully for skin_not_sun_exposed_suprapubic
+2025-07-04 15:43:22,800 - __main__ - INFO - Starting correlation combination process for skin_not_sun_exposed_suprapubic
+2025-07-04 15:43:22,800 - __main__ - INFO - Loading gene expression data for skin_not_sun_exposed_suprapubic from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_skin_not_sun_exposed_suprapubic-var_pc_log2.pkl
+2025-07-04 15:43:23,362 - __main__ - INFO - Loaded gene expression data for skin_not_sun_exposed_suprapubic with shape: (56200, 604)
+2025-07-04 15:43:23,371 - __main__ - INFO - Need to load and process for skin_not_sun_exposed_suprapubic: ccc_gpu, pearson, spearman
+2025-07-04 15:43:23,371 - __main__ - INFO - No cache found for spearman in skin_not_sun_exposed_suprapubic, loading and processing matrix
+2025-07-04 15:43:23,371 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_not_sun_exposed_suprapubic-var_pc_log2-spearman.pkl
+2025-07-04 15:44:39,974 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 15:44:47,837 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 15:44:47,839 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 15:44:47,839 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 15:46:25,117 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 15:46:25,117 - __main__ - INFO - Processed spearman correlation matrix to series with 1458621066 values (dtype: float16)
+2025-07-04 15:46:25,132 - __main__ - INFO - Processed spearman matrix for skin_not_sun_exposed_suprapubic (reference):
+2025-07-04 15:46:25,133 - __main__ - INFO -   Shape: (1458621066,)
+2025-07-04 15:46:25,133 - __main__ - INFO -   Data type: float16
+2025-07-04 15:46:34,300 - __main__ - INFO -   Memory usage: 13922.48 MB
+2025-07-04 15:46:34,300 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 15:46:34,300 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for skin_not_sun_exposed_suprapubic
+2025-07-04 15:46:34,562 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 15:46:34,562 - __main__ - INFO - Using Spearman indices as reference for skin_not_sun_exposed_suprapubic: 1458621066 gene pairs
+2025-07-04 15:46:34,562 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 15:46:34,562 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_not_sun_exposed_suprapubic-var_pc_log2-ccc_gpu.pkl
+2025-07-04 15:46:57,817 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 15:47:23,078 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 15:47:23,079 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 15:47:23,079 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 15:49:54,480 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578684704 values (dtype: float16)
+2025-07-04 15:49:54,494 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 15:49:54,494 - __main__ - INFO -   Original shape: (1578684704,)
+2025-07-04 15:49:54,494 - __main__ - INFO -   Data type: float16
+2025-07-04 15:50:04,423 - __main__ - INFO -   Memory usage: 15067.50 MB
+2025-07-04 15:57:07,050 - __main__ - INFO - Alignment summary:
+2025-07-04 15:57:07,050 - __main__ - INFO -   Aligned shape: (1458621066,)
+2025-07-04 15:57:07,050 - __main__ - INFO -   Alignment ratio: 92.39% of original
+2025-07-04 15:57:16,238 - __main__ - INFO -   Memory saved: 34169.02 MB
+2025-07-04 15:57:16,238 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for skin_not_sun_exposed_suprapubic
+2025-07-04 15:57:16,499 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 15:57:19,565 - __main__ - INFO - Got aligned ccc_gpu series for skin_not_sun_exposed_suprapubic with 1458621066 values
+2025-07-04 15:57:19,566 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 15:57:19,566 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_not_sun_exposed_suprapubic-var_pc_log2-pearson.pkl
+2025-07-04 15:58:35,161 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 15:58:43,138 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 15:58:43,140 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 15:58:43,141 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 16:02:29,653 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 16:02:29,655 - __main__ - INFO - Processed pearson correlation matrix to series with 1458621066 values (dtype: float16)
+2025-07-04 16:02:29,670 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 16:02:29,670 - __main__ - INFO -   Original shape: (1458621066,)
+2025-07-04 16:02:29,670 - __main__ - INFO -   Data type: float16
+2025-07-04 16:02:38,877 - __main__ - INFO -   Memory usage: 13922.48 MB
+2025-07-04 16:09:38,242 - __main__ - INFO - Alignment summary:
+2025-07-04 16:09:38,242 - __main__ - INFO -   Aligned shape: (1458621066,)
+2025-07-04 16:09:38,242 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 16:09:47,374 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 16:09:47,374 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for skin_not_sun_exposed_suprapubic
+2025-07-04 16:09:47,637 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 16:09:50,707 - __main__ - INFO - Got aligned pearson series for skin_not_sun_exposed_suprapubic with 1458621066 values
+2025-07-04 16:09:50,707 - __main__ - INFO - Combining 1458621066 gene pairs for skin_not_sun_exposed_suprapubic
+2025-07-04 16:16:44,605 - __main__ - INFO - Successfully combined correlations for skin_not_sun_exposed_suprapubic into DataFrame with shape: (1458621066, 3)
+2025-07-04 16:16:44,605 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 19486.7MB
+2025-07-04 16:16:45,111 - __main__ - INFO - Saving combined correlations for skin_not_sun_exposed_suprapubic to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_not_sun_exposed_suprapubic-var_pc_log2-all.pkl
+2025-07-04 16:16:45,111 - __main__ - INFO - Saving DataFrame with shape: (1458621066, 3), memory: 19486.7MB
+2025-07-04 16:16:45,111 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 16:19:04,764 - __main__ - INFO - Results saved successfully. File size: 19476.0MB
+2025-07-04 16:19:04,764 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 16:19:04,764 - __main__ - INFO - Successfully processed tissue 45/54: skin_not_sun_exposed_suprapubic
+2025-07-04 16:19:04,764 - __main__ - INFO - Tissue processing time: 35.7 minutes
+2025-07-04 16:19:04,764 - __main__ - INFO - === Processing tissue 46/54: skin_sun_exposed_lower_leg ===
+2025-07-04 16:19:04,764 - __main__ - INFO - Progress: 45/54 completed
+2025-07-04 16:19:04,764 - __main__ - INFO - Elapsed time: 216.4 minutes
+2025-07-04 16:19:04,764 - __main__ - INFO - Estimated time remaining: 43.3 minutes
+2025-07-04 16:19:04,764 - __main__ - INFO - Average time per tissue: 4.8 minutes
+2025-07-04 16:19:04,768 - __main__ - INFO - All input files validated successfully for skin_sun_exposed_lower_leg
+2025-07-04 16:19:04,768 - __main__ - INFO - Starting correlation combination process for skin_sun_exposed_lower_leg
+2025-07-04 16:19:04,768 - __main__ - INFO - Loading gene expression data for skin_sun_exposed_lower_leg from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_skin_sun_exposed_lower_leg-var_pc_log2.pkl
+2025-07-04 16:19:05,355 - __main__ - INFO - Loaded gene expression data for skin_sun_exposed_lower_leg with shape: (56200, 701)
+2025-07-04 16:19:05,359 - __main__ - INFO - Need to load and process for skin_sun_exposed_lower_leg: ccc_gpu, pearson, spearman
+2025-07-04 16:19:05,359 - __main__ - INFO - No cache found for spearman in skin_sun_exposed_lower_leg, loading and processing matrix
+2025-07-04 16:19:05,360 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_sun_exposed_lower_leg-var_pc_log2-spearman.pkl
+2025-07-04 16:20:22,955 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 16:20:30,881 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 16:20:30,882 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 16:20:30,883 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 16:22:08,631 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 16:22:08,631 - __main__ - INFO - Processed spearman correlation matrix to series with 1473566328 values (dtype: float16)
+2025-07-04 16:22:08,645 - __main__ - INFO - Processed spearman matrix for skin_sun_exposed_lower_leg (reference):
+2025-07-04 16:22:08,645 - __main__ - INFO -   Shape: (1473566328,)
+2025-07-04 16:22:08,645 - __main__ - INFO -   Data type: float16
+2025-07-04 16:22:17,930 - __main__ - INFO -   Memory usage: 14065.01 MB
+2025-07-04 16:22:17,930 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 16:22:17,931 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for skin_sun_exposed_lower_leg
+2025-07-04 16:22:18,202 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 16:22:18,202 - __main__ - INFO - Using Spearman indices as reference for skin_sun_exposed_lower_leg: 1473566328 gene pairs
+2025-07-04 16:22:18,202 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 16:22:18,202 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_sun_exposed_lower_leg-var_pc_log2-ccc_gpu.pkl
+2025-07-04 16:22:41,537 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 16:23:08,340 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 16:23:08,341 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 16:23:08,341 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 16:25:46,931 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578751077 values (dtype: float16)
+2025-07-04 16:25:46,946 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 16:25:46,946 - __main__ - INFO -   Original shape: (1578751077,)
+2025-07-04 16:25:46,946 - __main__ - INFO -   Data type: float16
+2025-07-04 16:25:56,911 - __main__ - INFO -   Memory usage: 15068.13 MB
+2025-07-04 16:33:01,416 - __main__ - INFO - Alignment summary:
+2025-07-04 16:33:01,416 - __main__ - INFO -   Aligned shape: (1473566328,)
+2025-07-04 16:33:01,416 - __main__ - INFO -   Alignment ratio: 93.34% of original
+2025-07-04 16:33:10,458 - __main__ - INFO -   Memory saved: 34027.12 MB
+2025-07-04 16:33:10,458 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for skin_sun_exposed_lower_leg
+2025-07-04 16:33:10,711 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 16:33:13,735 - __main__ - INFO - Got aligned ccc_gpu series for skin_sun_exposed_lower_leg with 1473566328 values
+2025-07-04 16:33:13,736 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 16:33:13,736 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_sun_exposed_lower_leg-var_pc_log2-pearson.pkl
+2025-07-04 16:33:37,172 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 16:33:44,968 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 16:33:44,969 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 16:33:44,970 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 16:37:29,550 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 16:37:29,550 - __main__ - INFO - Processed pearson correlation matrix to series with 1473566328 values (dtype: float16)
+2025-07-04 16:37:29,565 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 16:37:29,565 - __main__ - INFO -   Original shape: (1473566328,)
+2025-07-04 16:37:29,565 - __main__ - INFO -   Data type: float16
+2025-07-04 16:37:38,725 - __main__ - INFO -   Memory usage: 14065.01 MB
+2025-07-04 16:44:27,574 - __main__ - INFO - Alignment summary:
+2025-07-04 16:44:27,574 - __main__ - INFO -   Aligned shape: (1473566328,)
+2025-07-04 16:44:27,574 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 16:44:36,630 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 16:44:36,630 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for skin_sun_exposed_lower_leg
+2025-07-04 16:44:36,884 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 16:44:39,967 - __main__ - INFO - Got aligned pearson series for skin_sun_exposed_lower_leg with 1473566328 values
+2025-07-04 16:44:39,967 - __main__ - INFO - Combining 1473566328 gene pairs for skin_sun_exposed_lower_leg
+2025-07-04 16:51:23,893 - __main__ - INFO - Successfully combined correlations for skin_sun_exposed_lower_leg into DataFrame with shape: (1473566328, 3)
+2025-07-04 16:51:23,893 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 19686.2MB
+2025-07-04 16:51:24,380 - __main__ - INFO - Saving combined correlations for skin_sun_exposed_lower_leg to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_skin_sun_exposed_lower_leg-var_pc_log2-all.pkl
+2025-07-04 16:51:24,380 - __main__ - INFO - Saving DataFrame with shape: (1473566328, 3), memory: 19686.2MB
+2025-07-04 16:51:24,380 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 16:55:27,152 - __main__ - INFO - Results saved successfully. File size: 19675.6MB
+2025-07-04 16:55:27,154 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 16:55:27,154 - __main__ - INFO - Successfully processed tissue 46/54: skin_sun_exposed_lower_leg
+2025-07-04 16:55:27,154 - __main__ - INFO - Tissue processing time: 36.4 minutes
+2025-07-04 16:55:27,154 - __main__ - INFO - === Processing tissue 47/54: small_intestine_terminal_ileum ===
+2025-07-04 16:55:27,154 - __main__ - INFO - Progress: 46/54 completed
+2025-07-04 16:55:27,154 - __main__ - INFO - Elapsed time: 252.7 minutes
+2025-07-04 16:55:27,154 - __main__ - INFO - Estimated time remaining: 44.0 minutes
+2025-07-04 16:55:27,154 - __main__ - INFO - Average time per tissue: 5.5 minutes
+2025-07-04 16:55:27,190 - __main__ - INFO - All input files validated successfully for small_intestine_terminal_ileum
+2025-07-04 16:55:27,190 - __main__ - INFO - Starting correlation combination process for small_intestine_terminal_ileum
+2025-07-04 16:55:27,190 - __main__ - INFO - Loading gene expression data for small_intestine_terminal_ileum from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_small_intestine_terminal_ileum-var_pc_log2.pkl
+2025-07-04 16:55:27,930 - __main__ - INFO - Loaded gene expression data for small_intestine_terminal_ileum with shape: (56200, 187)
+2025-07-04 16:55:27,951 - __main__ - INFO - Need to load and process for small_intestine_terminal_ileum: ccc_gpu, pearson, spearman
+2025-07-04 16:55:27,951 - __main__ - INFO - No cache found for spearman in small_intestine_terminal_ileum, loading and processing matrix
+2025-07-04 16:55:27,951 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_small_intestine_terminal_ileum-var_pc_log2-spearman.pkl
+2025-07-04 16:55:58,003 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 16:56:05,481 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 16:56:05,482 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 16:56:05,483 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 16:57:39,375 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 16:57:39,375 - __main__ - INFO - Processed spearman correlation matrix to series with 1353014190 values (dtype: float16)
+2025-07-04 16:57:39,389 - __main__ - INFO - Processed spearman matrix for small_intestine_terminal_ileum (reference):
+2025-07-04 16:57:39,389 - __main__ - INFO -   Shape: (1353014190,)
+2025-07-04 16:57:39,389 - __main__ - INFO -   Data type: float16
+2025-07-04 16:57:47,752 - __main__ - INFO -   Memory usage: 12915.34 MB
+2025-07-04 16:57:47,752 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 16:57:47,752 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for small_intestine_terminal_ileum
+2025-07-04 16:57:48,014 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 16:57:48,015 - __main__ - INFO - Using Spearman indices as reference for small_intestine_terminal_ileum: 1353014190 gene pairs
+2025-07-04 16:57:48,015 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 16:57:48,015 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_small_intestine_terminal_ileum-var_pc_log2-ccc_gpu.pkl
+2025-07-04 17:00:02,718 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 17:00:15,769 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 17:00:15,771 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 17:00:15,771 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 17:02:41,031 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578179186 values (dtype: float16)
+2025-07-04 17:02:41,046 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 17:02:41,046 - __main__ - INFO -   Original shape: (1578179186,)
+2025-07-04 17:02:41,046 - __main__ - INFO -   Data type: float16
+2025-07-04 17:02:50,725 - __main__ - INFO -   Memory usage: 15062.68 MB
+2025-07-04 17:09:20,906 - __main__ - INFO - Alignment summary:
+2025-07-04 17:09:20,906 - __main__ - INFO -   Aligned shape: (1353014190,)
+2025-07-04 17:09:20,906 - __main__ - INFO -   Alignment ratio: 85.73% of original
+2025-07-04 17:09:29,243 - __main__ - INFO -   Memory saved: 35171.34 MB
+2025-07-04 17:09:29,244 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for small_intestine_terminal_ileum
+2025-07-04 17:09:29,498 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 17:09:32,506 - __main__ - INFO - Got aligned ccc_gpu series for small_intestine_terminal_ileum with 1353014190 values
+2025-07-04 17:09:32,506 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 17:09:32,506 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_small_intestine_terminal_ileum-var_pc_log2-pearson.pkl
+2025-07-04 17:11:37,934 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 17:11:45,352 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 17:11:45,353 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 17:11:45,354 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 17:15:28,959 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 17:15:28,961 - __main__ - INFO - Processed pearson correlation matrix to series with 1353014190 values (dtype: float16)
+2025-07-04 17:15:28,976 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 17:15:28,976 - __main__ - INFO -   Original shape: (1353014190,)
+2025-07-04 17:15:28,976 - __main__ - INFO -   Data type: float16
+2025-07-04 17:15:37,387 - __main__ - INFO -   Memory usage: 12915.34 MB
+2025-07-04 17:22:03,583 - __main__ - INFO - Alignment summary:
+2025-07-04 17:22:03,583 - __main__ - INFO -   Aligned shape: (1353014190,)
+2025-07-04 17:22:03,583 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 17:22:11,913 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 17:22:11,913 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for small_intestine_terminal_ileum
+2025-07-04 17:22:12,167 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 17:22:15,188 - __main__ - INFO - Got aligned pearson series for small_intestine_terminal_ileum with 1353014190 values
+2025-07-04 17:22:15,188 - __main__ - INFO - Combining 1353014190 gene pairs for small_intestine_terminal_ileum
+2025-07-04 17:28:25,695 - __main__ - INFO - Successfully combined correlations for small_intestine_terminal_ileum into DataFrame with shape: (1353014190, 3)
+2025-07-04 17:28:25,696 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 18076.7MB
+2025-07-04 17:28:26,145 - __main__ - INFO - Saving combined correlations for small_intestine_terminal_ileum to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_small_intestine_terminal_ileum-var_pc_log2-all.pkl
+2025-07-04 17:28:26,145 - __main__ - INFO - Saving DataFrame with shape: (1353014190, 3), memory: 18076.7MB
+2025-07-04 17:28:26,145 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 17:32:16,063 - __main__ - INFO - Results saved successfully. File size: 18066.0MB
+2025-07-04 17:32:16,063 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 17:32:16,063 - __main__ - INFO - Successfully processed tissue 47/54: small_intestine_terminal_ileum
+2025-07-04 17:32:16,063 - __main__ - INFO - Tissue processing time: 36.8 minutes
+2025-07-04 17:32:16,063 - __main__ - INFO - === Processing tissue 48/54: spleen ===
+2025-07-04 17:32:16,063 - __main__ - INFO - Progress: 47/54 completed
+2025-07-04 17:32:16,063 - __main__ - INFO - Elapsed time: 289.6 minutes
+2025-07-04 17:32:16,063 - __main__ - INFO - Estimated time remaining: 43.1 minutes
+2025-07-04 17:32:16,063 - __main__ - INFO - Average time per tissue: 6.2 minutes
+2025-07-04 17:32:16,070 - __main__ - INFO - All input files validated successfully for spleen
+2025-07-04 17:32:16,070 - __main__ - INFO - Starting correlation combination process for spleen
+2025-07-04 17:32:16,070 - __main__ - INFO - Loading gene expression data for spleen from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_spleen-var_pc_log2.pkl
+2025-07-04 17:32:16,612 - __main__ - INFO - Loaded gene expression data for spleen with shape: (56200, 241)
+2025-07-04 17:32:16,618 - __main__ - INFO - Need to load and process for spleen: ccc_gpu, pearson, spearman
+2025-07-04 17:32:16,619 - __main__ - INFO - No cache found for spearman in spleen, loading and processing matrix
+2025-07-04 17:32:16,619 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_spleen-var_pc_log2-spearman.pkl
+2025-07-04 17:32:45,532 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 17:32:53,106 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 17:32:53,107 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 17:32:53,108 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 17:34:28,320 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 17:34:28,320 - __main__ - INFO - Processed spearman correlation matrix to series with 1367095905 values (dtype: float16)
+2025-07-04 17:34:28,334 - __main__ - INFO - Processed spearman matrix for spleen (reference):
+2025-07-04 17:34:28,334 - __main__ - INFO -   Shape: (1367095905,)
+2025-07-04 17:34:28,334 - __main__ - INFO -   Data type: float16
+2025-07-04 17:34:36,774 - __main__ - INFO -   Memory usage: 13049.63 MB
+2025-07-04 17:34:36,774 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 17:34:36,774 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for spleen
+2025-07-04 17:34:37,028 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 17:34:37,028 - __main__ - INFO - Using Spearman indices as reference for spleen: 1367095905 gene pairs
+2025-07-04 17:34:37,028 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 17:34:37,028 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_spleen-var_pc_log2-ccc_gpu.pkl
+2025-07-04 17:35:00,881 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 17:35:16,827 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 17:35:16,829 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 17:35:16,829 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 17:37:33,438 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578251515 values (dtype: float16)
+2025-07-04 17:37:33,453 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 17:37:33,453 - __main__ - INFO -   Original shape: (1578251515,)
+2025-07-04 17:37:33,453 - __main__ - INFO -   Data type: float16
+2025-07-04 17:37:43,176 - __main__ - INFO -   Memory usage: 15063.37 MB
+2025-07-04 17:44:23,492 - __main__ - INFO - Alignment summary:
+2025-07-04 17:44:23,493 - __main__ - INFO -   Aligned shape: (1367095905,)
+2025-07-04 17:44:23,493 - __main__ - INFO -   Alignment ratio: 86.62% of original
+2025-07-04 17:44:31,933 - __main__ - INFO -   Memory saved: 35037.74 MB
+2025-07-04 17:44:31,933 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for spleen
+2025-07-04 17:44:32,181 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 17:44:35,199 - __main__ - INFO - Got aligned ccc_gpu series for spleen with 1367095905 values
+2025-07-04 17:44:35,199 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 17:44:35,199 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_spleen-var_pc_log2-pearson.pkl
+2025-07-04 17:44:59,206 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 17:45:06,932 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 17:45:06,934 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 17:45:06,934 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 17:48:36,982 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 17:48:36,983 - __main__ - INFO - Processed pearson correlation matrix to series with 1367095905 values (dtype: float16)
+2025-07-04 17:48:36,998 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 17:48:36,998 - __main__ - INFO -   Original shape: (1367095905,)
+2025-07-04 17:48:36,998 - __main__ - INFO -   Data type: float16
+2025-07-04 17:48:45,430 - __main__ - INFO -   Memory usage: 13049.63 MB
+2025-07-04 17:55:12,358 - __main__ - INFO - Alignment summary:
+2025-07-04 17:55:12,358 - __main__ - INFO -   Aligned shape: (1367095905,)
+2025-07-04 17:55:12,358 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 17:55:20,728 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 17:55:20,729 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for spleen
+2025-07-04 17:55:20,969 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 17:55:23,948 - __main__ - INFO - Got aligned pearson series for spleen with 1367095905 values
+2025-07-04 17:55:23,948 - __main__ - INFO - Combining 1367095905 gene pairs for spleen
+2025-07-04 18:01:37,540 - __main__ - INFO - Successfully combined correlations for spleen into DataFrame with shape: (1367095905, 3)
+2025-07-04 18:01:37,540 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 18264.7MB
+2025-07-04 18:01:37,991 - __main__ - INFO - Saving combined correlations for spleen to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_spleen-var_pc_log2-all.pkl
+2025-07-04 18:01:37,991 - __main__ - INFO - Saving DataFrame with shape: (1367095905, 3), memory: 18264.7MB
+2025-07-04 18:01:37,991 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 18:05:04,362 - __main__ - INFO - Results saved successfully. File size: 18254.1MB
+2025-07-04 18:05:04,362 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 18:05:04,362 - __main__ - INFO - Successfully processed tissue 48/54: spleen
+2025-07-04 18:05:04,362 - __main__ - INFO - Tissue processing time: 32.8 minutes
+2025-07-04 18:05:04,362 - __main__ - INFO - === Processing tissue 49/54: stomach ===
+2025-07-04 18:05:04,362 - __main__ - INFO - Progress: 48/54 completed
+2025-07-04 18:05:04,362 - __main__ - INFO - Elapsed time: 322.4 minutes
+2025-07-04 18:05:04,362 - __main__ - INFO - Estimated time remaining: 40.3 minutes
+2025-07-04 18:05:04,362 - __main__ - INFO - Average time per tissue: 6.7 minutes
+2025-07-04 18:05:04,376 - __main__ - INFO - All input files validated successfully for stomach
+2025-07-04 18:05:04,376 - __main__ - INFO - Starting correlation combination process for stomach
+2025-07-04 18:05:04,376 - __main__ - INFO - Loading gene expression data for stomach from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_stomach-var_pc_log2.pkl
+2025-07-04 18:05:05,950 - __main__ - INFO - Loaded gene expression data for stomach with shape: (56200, 359)
+2025-07-04 18:05:05,955 - __main__ - INFO - Need to load and process for stomach: ccc_gpu, pearson, spearman
+2025-07-04 18:05:05,955 - __main__ - INFO - No cache found for spearman in stomach, loading and processing matrix
+2025-07-04 18:05:05,955 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_stomach-var_pc_log2-spearman.pkl
+2025-07-04 18:05:34,279 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 18:05:41,592 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 18:05:41,593 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 18:05:41,593 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 18:07:14,458 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 18:07:14,458 - __main__ - INFO - Processed spearman correlation matrix to series with 1402248403 values (dtype: float16)
+2025-07-04 18:07:14,471 - __main__ - INFO - Processed spearman matrix for stomach (reference):
+2025-07-04 18:07:14,471 - __main__ - INFO -   Shape: (1402248403,)
+2025-07-04 18:07:14,471 - __main__ - INFO -   Data type: float16
+2025-07-04 18:07:23,140 - __main__ - INFO -   Memory usage: 13384.87 MB
+2025-07-04 18:07:23,141 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 18:07:23,141 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for stomach
+2025-07-04 18:07:23,392 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 18:07:23,392 - __main__ - INFO - Using Spearman indices as reference for stomach: 1402248403 gene pairs
+2025-07-04 18:07:23,392 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 18:07:23,392 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_stomach-var_pc_log2-ccc_gpu.pkl
+2025-07-04 18:08:06,897 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 18:08:27,004 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 18:08:27,005 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 18:08:27,005 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 18:10:46,688 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578424782 values (dtype: float16)
+2025-07-04 18:10:46,704 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 18:10:46,704 - __main__ - INFO -   Original shape: (1578424782,)
+2025-07-04 18:10:46,704 - __main__ - INFO -   Data type: float16
+2025-07-04 18:10:56,420 - __main__ - INFO -   Memory usage: 15065.02 MB
+2025-07-04 18:17:37,521 - __main__ - INFO - Alignment summary:
+2025-07-04 18:17:37,521 - __main__ - INFO -   Aligned shape: (1402248403,)
+2025-07-04 18:17:37,521 - __main__ - INFO -   Alignment ratio: 88.84% of original
+2025-07-04 18:17:46,226 - __main__ - INFO -   Memory saved: 34704.15 MB
+2025-07-04 18:17:46,226 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for stomach
+2025-07-04 18:17:46,479 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 18:17:49,515 - __main__ - INFO - Got aligned ccc_gpu series for stomach with 1402248403 values
+2025-07-04 18:17:49,515 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 18:17:49,515 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_stomach-var_pc_log2-pearson.pkl
+2025-07-04 18:18:12,847 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 18:18:20,538 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 18:18:20,540 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 18:18:20,540 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 18:21:53,712 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 18:21:53,714 - __main__ - INFO - Processed pearson correlation matrix to series with 1402248403 values (dtype: float16)
+2025-07-04 18:21:53,729 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 18:21:53,729 - __main__ - INFO -   Original shape: (1402248403,)
+2025-07-04 18:21:53,729 - __main__ - INFO -   Data type: float16
+2025-07-04 18:22:02,444 - __main__ - INFO -   Memory usage: 13384.87 MB
+2025-07-04 18:28:35,524 - __main__ - INFO - Alignment summary:
+2025-07-04 18:28:35,524 - __main__ - INFO -   Aligned shape: (1402248403,)
+2025-07-04 18:28:35,524 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 18:28:44,197 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 18:28:44,197 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for stomach
+2025-07-04 18:28:44,450 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 18:28:47,488 - __main__ - INFO - Got aligned pearson series for stomach with 1402248403 values
+2025-07-04 18:28:47,488 - __main__ - INFO - Combining 1402248403 gene pairs for stomach
+2025-07-04 18:35:13,375 - __main__ - INFO - Successfully combined correlations for stomach into DataFrame with shape: (1402248403, 3)
+2025-07-04 18:35:13,376 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 18734.0MB
+2025-07-04 18:35:13,980 - __main__ - INFO - Saving combined correlations for stomach to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_stomach-var_pc_log2-all.pkl
+2025-07-04 18:35:13,981 - __main__ - INFO - Saving DataFrame with shape: (1402248403, 3), memory: 18734.0MB
+2025-07-04 18:35:13,981 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 18:37:57,802 - __main__ - INFO - Results saved successfully. File size: 18723.4MB
+2025-07-04 18:37:57,802 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 18:37:57,802 - __main__ - INFO - Successfully processed tissue 49/54: stomach
+2025-07-04 18:37:57,802 - __main__ - INFO - Tissue processing time: 32.9 minutes
+2025-07-04 18:37:57,802 - __main__ - INFO - === Processing tissue 50/54: testis ===
+2025-07-04 18:37:57,802 - __main__ - INFO - Progress: 49/54 completed
+2025-07-04 18:37:57,802 - __main__ - INFO - Elapsed time: 355.2 minutes
+2025-07-04 18:37:57,802 - __main__ - INFO - Estimated time remaining: 36.2 minutes
+2025-07-04 18:37:57,802 - __main__ - INFO - Average time per tissue: 7.2 minutes
+2025-07-04 18:37:57,820 - __main__ - INFO - All input files validated successfully for testis
+2025-07-04 18:37:57,820 - __main__ - INFO - Starting correlation combination process for testis
+2025-07-04 18:37:57,820 - __main__ - INFO - Loading gene expression data for testis from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_testis-var_pc_log2.pkl
+2025-07-04 18:37:59,286 - __main__ - INFO - Loaded gene expression data for testis with shape: (56200, 361)
+2025-07-04 18:37:59,294 - __main__ - INFO - Need to load and process for testis: ccc_gpu, pearson, spearman
+2025-07-04 18:37:59,294 - __main__ - INFO - No cache found for spearman in testis, loading and processing matrix
+2025-07-04 18:37:59,294 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_testis-var_pc_log2-spearman.pkl
+2025-07-04 18:38:26,463 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 18:38:34,142 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 18:38:34,143 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 18:38:34,144 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 18:40:07,316 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 18:40:07,316 - __main__ - INFO - Processed spearman correlation matrix to series with 1502917725 values (dtype: float16)
+2025-07-04 18:40:07,329 - __main__ - INFO - Processed spearman matrix for testis (reference):
+2025-07-04 18:40:07,329 - __main__ - INFO -   Shape: (1502917725,)
+2025-07-04 18:40:07,329 - __main__ - INFO -   Data type: float16
+2025-07-04 18:40:16,599 - __main__ - INFO -   Memory usage: 14344.93 MB
+2025-07-04 18:40:16,599 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 18:40:16,599 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for testis
+2025-07-04 18:40:16,850 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 18:40:16,851 - __main__ - INFO - Using Spearman indices as reference for testis: 1502917725 gene pairs
+2025-07-04 18:40:16,851 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 18:40:16,851 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_testis-var_pc_log2-ccc_gpu.pkl
+2025-07-04 18:40:39,907 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 18:40:54,516 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 18:40:54,517 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 18:40:54,517 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 18:43:17,539 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578878412 values (dtype: float16)
+2025-07-04 18:43:17,554 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 18:43:17,554 - __main__ - INFO -   Original shape: (1578878412,)
+2025-07-04 18:43:17,554 - __main__ - INFO -   Data type: float16
+2025-07-04 18:43:27,247 - __main__ - INFO -   Memory usage: 15069.35 MB
+2025-07-04 18:50:33,952 - __main__ - INFO - Alignment summary:
+2025-07-04 18:50:33,952 - __main__ - INFO -   Aligned shape: (1502917725,)
+2025-07-04 18:50:33,952 - __main__ - INFO -   Alignment ratio: 95.19% of original
+2025-07-04 18:50:43,248 - __main__ - INFO -   Memory saved: 33748.42 MB
+2025-07-04 18:50:43,248 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for testis
+2025-07-04 18:50:43,499 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 18:50:46,517 - __main__ - INFO - Got aligned ccc_gpu series for testis with 1502917725 values
+2025-07-04 18:50:46,517 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 18:50:46,517 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_testis-var_pc_log2-pearson.pkl
+2025-07-04 18:51:09,961 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 18:51:17,614 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 18:51:17,616 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 18:51:17,616 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 18:55:05,877 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 18:55:05,879 - __main__ - INFO - Processed pearson correlation matrix to series with 1502917725 values (dtype: float16)
+2025-07-04 18:55:05,894 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 18:55:05,894 - __main__ - INFO -   Original shape: (1502917725,)
+2025-07-04 18:55:05,894 - __main__ - INFO -   Data type: float16
+2025-07-04 18:55:15,213 - __main__ - INFO -   Memory usage: 14344.93 MB
+2025-07-04 19:02:10,271 - __main__ - INFO - Alignment summary:
+2025-07-04 19:02:10,271 - __main__ - INFO -   Aligned shape: (1502917725,)
+2025-07-04 19:02:10,271 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 19:02:19,573 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 19:02:19,573 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for testis
+2025-07-04 19:02:19,820 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 19:02:22,761 - __main__ - INFO - Got aligned pearson series for testis with 1502917725 values
+2025-07-04 19:02:22,762 - __main__ - INFO - Combining 1502917725 gene pairs for testis
+2025-07-04 19:09:15,094 - __main__ - INFO - Successfully combined correlations for testis into DataFrame with shape: (1502917725, 3)
+2025-07-04 19:09:15,094 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 20078.1MB
+2025-07-04 19:09:15,574 - __main__ - INFO - Saving combined correlations for testis to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_testis-var_pc_log2-all.pkl
+2025-07-04 19:09:15,574 - __main__ - INFO - Saving DataFrame with shape: (1502917725, 3), memory: 20078.1MB
+2025-07-04 19:09:15,574 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 19:11:03,464 - __main__ - INFO - Results saved successfully. File size: 20067.5MB
+2025-07-04 19:11:03,464 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 19:11:03,464 - __main__ - INFO - Successfully processed tissue 50/54: testis
+2025-07-04 19:11:03,464 - __main__ - INFO - Tissue processing time: 33.1 minutes
+2025-07-04 19:11:03,464 - __main__ - INFO - === Processing tissue 51/54: thyroid ===
+2025-07-04 19:11:03,464 - __main__ - INFO - Progress: 50/54 completed
+2025-07-04 19:11:03,464 - __main__ - INFO - Elapsed time: 388.3 minutes
+2025-07-04 19:11:03,464 - __main__ - INFO - Estimated time remaining: 31.1 minutes
+2025-07-04 19:11:03,464 - __main__ - INFO - Average time per tissue: 7.8 minutes
+2025-07-04 19:11:03,466 - __main__ - INFO - All input files validated successfully for thyroid
+2025-07-04 19:11:03,466 - __main__ - INFO - Starting correlation combination process for thyroid
+2025-07-04 19:11:03,466 - __main__ - INFO - Loading gene expression data for thyroid from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_thyroid-var_pc_log2.pkl
+2025-07-04 19:11:03,956 - __main__ - INFO - Loaded gene expression data for thyroid with shape: (56200, 653)
+2025-07-04 19:11:03,960 - __main__ - INFO - Need to load and process for thyroid: ccc_gpu, pearson, spearman
+2025-07-04 19:11:03,960 - __main__ - INFO - No cache found for spearman in thyroid, loading and processing matrix
+2025-07-04 19:11:03,960 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_thyroid-var_pc_log2-spearman.pkl
+2025-07-04 19:11:27,433 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 19:11:35,022 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 19:11:35,023 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 19:11:35,024 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 19:13:09,420 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 19:13:09,420 - __main__ - INFO - Processed spearman correlation matrix to series with 1472317980 values (dtype: float16)
+2025-07-04 19:13:09,433 - __main__ - INFO - Processed spearman matrix for thyroid (reference):
+2025-07-04 19:13:09,433 - __main__ - INFO -   Shape: (1472317980,)
+2025-07-04 19:13:09,434 - __main__ - INFO -   Data type: float16
+2025-07-04 19:13:18,493 - __main__ - INFO -   Memory usage: 14053.11 MB
+2025-07-04 19:13:18,493 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 19:13:18,493 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for thyroid
+2025-07-04 19:13:18,745 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 19:13:18,746 - __main__ - INFO - Using Spearman indices as reference for thyroid: 1472317980 gene pairs
+2025-07-04 19:13:18,746 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 19:13:18,746 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_thyroid-var_pc_log2-ccc_gpu.pkl
+2025-07-04 19:14:17,406 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 19:14:42,383 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 19:14:42,384 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 19:14:42,384 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 19:17:15,213 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578745563 values (dtype: float16)
+2025-07-04 19:17:15,226 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 19:17:15,226 - __main__ - INFO -   Original shape: (1578745563,)
+2025-07-04 19:17:15,226 - __main__ - INFO -   Data type: float16
+2025-07-04 19:17:24,825 - __main__ - INFO -   Memory usage: 15068.08 MB
+2025-07-04 19:24:24,638 - __main__ - INFO - Alignment summary:
+2025-07-04 19:24:24,639 - __main__ - INFO -   Aligned shape: (1472317980,)
+2025-07-04 19:24:24,639 - __main__ - INFO -   Alignment ratio: 93.26% of original
+2025-07-04 19:24:33,708 - __main__ - INFO -   Memory saved: 34038.97 MB
+2025-07-04 19:24:33,708 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for thyroid
+2025-07-04 19:24:33,952 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 19:24:36,976 - __main__ - INFO - Got aligned ccc_gpu series for thyroid with 1472317980 values
+2025-07-04 19:24:36,976 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 19:24:36,976 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_thyroid-var_pc_log2-pearson.pkl
+2025-07-04 19:25:00,529 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 19:25:08,351 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 19:25:08,353 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 19:25:08,353 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 19:29:05,002 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 19:29:05,004 - __main__ - INFO - Processed pearson correlation matrix to series with 1472317980 values (dtype: float16)
+2025-07-04 19:29:05,017 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 19:29:05,017 - __main__ - INFO -   Original shape: (1472317980,)
+2025-07-04 19:29:05,017 - __main__ - INFO -   Data type: float16
+2025-07-04 19:29:14,075 - __main__ - INFO -   Memory usage: 14053.11 MB
+2025-07-04 19:36:02,931 - __main__ - INFO - Alignment summary:
+2025-07-04 19:36:02,931 - __main__ - INFO -   Aligned shape: (1472317980,)
+2025-07-04 19:36:02,931 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 19:36:12,087 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 19:36:12,087 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for thyroid
+2025-07-04 19:36:12,338 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 19:36:15,343 - __main__ - INFO - Got aligned pearson series for thyroid with 1472317980 values
+2025-07-04 19:36:15,344 - __main__ - INFO - Combining 1472317980 gene pairs for thyroid
+2025-07-04 19:42:59,980 - __main__ - INFO - Successfully combined correlations for thyroid into DataFrame with shape: (1472317980, 3)
+2025-07-04 19:42:59,980 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 19669.6MB
+2025-07-04 19:43:00,480 - __main__ - INFO - Saving combined correlations for thyroid to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_thyroid-var_pc_log2-all.pkl
+2025-07-04 19:43:00,480 - __main__ - INFO - Saving DataFrame with shape: (1472317980, 3), memory: 19669.6MB
+2025-07-04 19:43:00,480 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 19:45:40,020 - __main__ - INFO - Results saved successfully. File size: 19658.9MB
+2025-07-04 19:45:40,020 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 19:45:40,020 - __main__ - INFO - Successfully processed tissue 51/54: thyroid
+2025-07-04 19:45:40,020 - __main__ - INFO - Tissue processing time: 34.6 minutes
+2025-07-04 19:45:40,020 - __main__ - INFO - === Processing tissue 52/54: uterus ===
+2025-07-04 19:45:40,020 - __main__ - INFO - Progress: 51/54 completed
+2025-07-04 19:45:40,020 - __main__ - INFO - Elapsed time: 423.0 minutes
+2025-07-04 19:45:40,020 - __main__ - INFO - Estimated time remaining: 24.9 minutes
+2025-07-04 19:45:40,020 - __main__ - INFO - Average time per tissue: 8.3 minutes
+2025-07-04 19:45:40,023 - __main__ - INFO - All input files validated successfully for uterus
+2025-07-04 19:45:40,023 - __main__ - INFO - Starting correlation combination process for uterus
+2025-07-04 19:45:40,023 - __main__ - INFO - Loading gene expression data for uterus from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_uterus-var_pc_log2.pkl
+2025-07-04 19:45:40,141 - __main__ - INFO - Loaded gene expression data for uterus with shape: (56200, 142)
+2025-07-04 19:45:40,146 - __main__ - INFO - Need to load and process for uterus: ccc_gpu, pearson, spearman
+2025-07-04 19:45:40,146 - __main__ - INFO - No cache found for spearman in uterus, loading and processing matrix
+2025-07-04 19:45:40,146 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_uterus-var_pc_log2-spearman.pkl
+2025-07-04 19:46:36,496 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 19:46:43,970 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 19:46:43,972 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 19:46:43,972 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 19:48:18,047 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 19:48:18,047 - __main__ - INFO - Processed spearman correlation matrix to series with 1308289128 values (dtype: float16)
+2025-07-04 19:48:18,060 - __main__ - INFO - Processed spearman matrix for uterus (reference):
+2025-07-04 19:48:18,060 - __main__ - INFO -   Shape: (1308289128,)
+2025-07-04 19:48:18,060 - __main__ - INFO -   Data type: float16
+2025-07-04 19:48:26,097 - __main__ - INFO -   Memory usage: 12488.81 MB
+2025-07-04 19:48:26,097 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 19:48:26,097 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for uterus
+2025-07-04 19:48:26,351 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 19:48:26,351 - __main__ - INFO - Using Spearman indices as reference for uterus: 1308289128 gene pairs
+2025-07-04 19:48:26,351 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 19:48:26,351 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_uterus-var_pc_log2-ccc_gpu.pkl
+2025-07-04 19:49:25,215 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 19:49:36,330 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 19:49:36,331 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 19:49:36,331 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 19:51:54,136 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1577938211 values (dtype: float16)
+2025-07-04 19:51:54,150 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 19:51:54,150 - __main__ - INFO -   Original shape: (1577938211,)
+2025-07-04 19:51:54,150 - __main__ - INFO -   Data type: float16
+2025-07-04 19:52:03,938 - __main__ - INFO -   Memory usage: 15060.38 MB
+2025-07-04 19:58:22,872 - __main__ - INFO - Alignment summary:
+2025-07-04 19:58:22,872 - __main__ - INFO -   Aligned shape: (1308289128,)
+2025-07-04 19:58:22,872 - __main__ - INFO -   Alignment ratio: 82.91% of original
+2025-07-04 19:58:30,982 - __main__ - INFO -   Memory saved: 35595.57 MB
+2025-07-04 19:58:30,982 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for uterus
+2025-07-04 19:58:31,231 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 19:58:34,279 - __main__ - INFO - Got aligned ccc_gpu series for uterus with 1308289128 values
+2025-07-04 19:58:34,279 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 19:58:34,279 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_uterus-var_pc_log2-pearson.pkl
+2025-07-04 19:59:48,471 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 19:59:56,168 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 19:59:56,170 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 19:59:56,170 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 20:03:16,168 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 20:03:16,171 - __main__ - INFO - Processed pearson correlation matrix to series with 1308289128 values (dtype: float16)
+2025-07-04 20:03:16,187 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 20:03:16,187 - __main__ - INFO -   Original shape: (1308289128,)
+2025-07-04 20:03:16,187 - __main__ - INFO -   Data type: float16
+2025-07-04 20:03:24,228 - __main__ - INFO -   Memory usage: 12488.81 MB
+2025-07-04 20:09:38,198 - __main__ - INFO - Alignment summary:
+2025-07-04 20:09:38,198 - __main__ - INFO -   Aligned shape: (1308289128,)
+2025-07-04 20:09:38,199 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 20:09:46,301 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 20:09:46,301 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for uterus
+2025-07-04 20:09:46,550 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 20:09:49,572 - __main__ - INFO - Got aligned pearson series for uterus with 1308289128 values
+2025-07-04 20:09:49,572 - __main__ - INFO - Combining 1308289128 gene pairs for uterus
+2025-07-04 20:15:48,656 - __main__ - INFO - Successfully combined correlations for uterus into DataFrame with shape: (1308289128, 3)
+2025-07-04 20:15:48,656 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 17479.5MB
+2025-07-04 20:15:49,094 - __main__ - INFO - Saving combined correlations for uterus to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_uterus-var_pc_log2-all.pkl
+2025-07-04 20:15:49,094 - __main__ - INFO - Saving DataFrame with shape: (1308289128, 3), memory: 17479.5MB
+2025-07-04 20:15:49,094 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 20:18:02,081 - __main__ - INFO - Results saved successfully. File size: 17468.9MB
+2025-07-04 20:18:02,081 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 20:18:02,081 - __main__ - INFO - Successfully processed tissue 52/54: uterus
+2025-07-04 20:18:02,081 - __main__ - INFO - Tissue processing time: 32.4 minutes
+2025-07-04 20:18:02,081 - __main__ - INFO - === Processing tissue 53/54: vagina ===
+2025-07-04 20:18:02,081 - __main__ - INFO - Progress: 52/54 completed
+2025-07-04 20:18:02,081 - __main__ - INFO - Elapsed time: 455.3 minutes
+2025-07-04 20:18:02,081 - __main__ - INFO - Estimated time remaining: 17.5 minutes
+2025-07-04 20:18:02,081 - __main__ - INFO - Average time per tissue: 8.8 minutes
+2025-07-04 20:18:02,083 - __main__ - INFO - All input files validated successfully for vagina
+2025-07-04 20:18:02,083 - __main__ - INFO - Starting correlation combination process for vagina
+2025-07-04 20:18:02,083 - __main__ - INFO - Loading gene expression data for vagina from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all/gtex_v8_data_vagina-var_pc_log2.pkl
+2025-07-04 20:18:02,226 - __main__ - INFO - Loaded gene expression data for vagina with shape: (56200, 156)
+2025-07-04 20:18:02,230 - __main__ - INFO - Need to load and process for vagina: ccc_gpu, pearson, spearman
+2025-07-04 20:18:02,230 - __main__ - INFO - No cache found for spearman in vagina, loading and processing matrix
+2025-07-04 20:18:02,230 - __main__ - INFO - Loading spearman correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_vagina-var_pc_log2-spearman.pkl
+2025-07-04 20:18:25,929 - __main__ - INFO - Converting spearman matrix from float32 to float16 for memory optimization
+2025-07-04 20:18:33,437 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 20:18:33,438 - __main__ - INFO - Loaded spearman correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 20:18:33,439 - __main__ - INFO - Processing spearman correlation matrix (dtype: float16)
+2025-07-04 20:20:07,119 - __main__ - INFO - Applied absolute value to spearman correlations (maintaining float16)
+2025-07-04 20:20:07,119 - __main__ - INFO - Processed spearman correlation matrix to series with 1328623926 values (dtype: float16)
+2025-07-04 20:20:07,142 - __main__ - INFO - Processed spearman matrix for vagina (reference):
+2025-07-04 20:20:07,142 - __main__ - INFO -   Shape: (1328623926,)
+2025-07-04 20:20:07,142 - __main__ - INFO -   Data type: float16
+2025-07-04 20:20:15,344 - __main__ - INFO -   Memory usage: 12682.73 MB
+2025-07-04 20:20:15,344 - __main__ - INFO -   Will be used as alignment reference for other methods
+2025-07-04 20:20:15,344 - __main__ - INFO - Cache saving disabled - not saving aligned spearman matrix for vagina
+2025-07-04 20:20:15,598 - __main__ - INFO -   Freed 6030.24 MB by deleting original spearman correlation matrix from memory
+2025-07-04 20:20:15,599 - __main__ - INFO - Using Spearman indices as reference for vagina: 1328623926 gene pairs
+2025-07-04 20:20:15,599 - __main__ - INFO - No cache found for ccc_gpu, loading, processing and aligning matrix
+2025-07-04 20:20:15,599 - __main__ - INFO - Loading ccc_gpu correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_vagina-var_pc_log2-ccc_gpu.pkl
+2025-07-04 20:20:39,166 - __main__ - INFO - Converting ccc_gpu matrix from float32 to float16 for memory optimization
+2025-07-04 20:20:50,621 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 20:20:50,623 - __main__ - INFO - Loaded ccc_gpu correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 20:20:50,623 - __main__ - INFO - Processing ccc_gpu correlation matrix (dtype: float16)
+2025-07-04 20:22:56,047 - __main__ - INFO - Processed ccc_gpu correlation matrix to series with 1578049918 values (dtype: float16)
+2025-07-04 20:22:56,060 - __main__ - INFO - Processed ccc_gpu matrix before alignment:
+2025-07-04 20:22:56,060 - __main__ - INFO -   Original shape: (1578049918,)
+2025-07-04 20:22:56,060 - __main__ - INFO -   Data type: float16
+2025-07-04 20:23:05,741 - __main__ - INFO -   Memory usage: 15061.45 MB
+2025-07-04 20:29:29,425 - __main__ - INFO - Alignment summary:
+2025-07-04 20:29:29,425 - __main__ - INFO -   Aligned shape: (1328623926,)
+2025-07-04 20:29:29,425 - __main__ - INFO -   Alignment ratio: 84.19% of original
+2025-07-04 20:29:37,655 - __main__ - INFO -   Memory saved: 35402.71 MB
+2025-07-04 20:29:37,655 - __main__ - INFO - Cache saving disabled - not saving aligned ccc_gpu matrix for vagina
+2025-07-04 20:29:37,903 - __main__ - INFO -   Freed 6030.24 MB by deleting original ccc_gpu correlation matrix from memory
+2025-07-04 20:29:40,909 - __main__ - INFO - Got aligned ccc_gpu series for vagina with 1328623926 values
+2025-07-04 20:29:40,909 - __main__ - INFO - No cache found for pearson, loading, processing and aligning matrix
+2025-07-04 20:29:40,909 - __main__ - INFO - Loading pearson correlation matrix from /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_vagina-var_pc_log2-pearson.pkl
+2025-07-04 20:30:04,269 - __main__ - INFO - Converting pearson matrix from float32 to float16 for memory optimization
+2025-07-04 20:30:11,878 - __main__ - INFO - Memory usage: 12052.5MB → 6028.2MB (saved 6024.2MB, 50.0%)
+2025-07-04 20:30:11,879 - __main__ - INFO - Loaded pearson correlation matrix with shape: (56200, 56200), dtype: float16
+2025-07-04 20:30:11,880 - __main__ - INFO - Processing pearson correlation matrix (dtype: float16)
+2025-07-04 20:33:22,976 - __main__ - INFO - Applied absolute value to pearson correlations (maintaining float16)
+2025-07-04 20:33:22,977 - __main__ - INFO - Processed pearson correlation matrix to series with 1328623926 values (dtype: float16)
+2025-07-04 20:33:22,990 - __main__ - INFO - Processed pearson matrix before alignment:
+2025-07-04 20:33:22,991 - __main__ - INFO -   Original shape: (1328623926,)
+2025-07-04 20:33:22,991 - __main__ - INFO -   Data type: float16
+2025-07-04 20:33:31,224 - __main__ - INFO -   Memory usage: 12682.73 MB
+2025-07-04 20:39:47,068 - __main__ - INFO - Alignment summary:
+2025-07-04 20:39:47,068 - __main__ - INFO -   Aligned shape: (1328623926,)
+2025-07-04 20:39:47,068 - __main__ - INFO -   Alignment ratio: 100.00% of original
+2025-07-04 20:39:55,276 - __main__ - INFO -   Memory saved: 33024.00 MB
+2025-07-04 20:39:55,276 - __main__ - INFO - Cache saving disabled - not saving aligned pearson matrix for vagina
+2025-07-04 20:39:55,527 - __main__ - INFO -   Freed 6030.24 MB by deleting original pearson correlation matrix from memory
+2025-07-04 20:39:58,503 - __main__ - INFO - Got aligned pearson series for vagina with 1328623926 values
+2025-07-04 20:39:58,503 - __main__ - INFO - Combining 1328623926 gene pairs for vagina
+2025-07-04 20:46:01,470 - __main__ - INFO - Successfully combined correlations for vagina into DataFrame with shape: (1328623926, 3)
+2025-07-04 20:46:01,470 - __main__ - INFO - Final DataFrame dtype: float16, memory usage: 17751.0MB
+2025-07-04 20:46:01,907 - __main__ - INFO - Saving combined correlations for vagina to /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_vagina-var_pc_log2-all.pkl
+2025-07-04 20:46:01,907 - __main__ - INFO - Saving DataFrame with shape: (1328623926, 3), memory: 17751.0MB
+2025-07-04 20:46:01,907 - __main__ - INFO - Data types: ccc: float16, pearson: float16, spearman: float16
+2025-07-04 20:49:43,609 - __main__ - INFO - Results saved successfully. File size: 17740.4MB
+2025-07-04 20:49:43,609 - __main__ - INFO - Memory optimization: Using float16 reduces memory usage by ~50% compared to float32
+2025-07-04 20:49:43,609 - __main__ - INFO - Successfully processed tissue 53/54: vagina
+2025-07-04 20:49:43,609 - __main__ - INFO - Tissue processing time: 31.7 minutes
+2025-07-04 20:49:43,610 - __main__ - INFO - === Processing tissue 54/54: whole_blood ===
+2025-07-04 20:49:43,610 - __main__ - INFO - Progress: 53/54 completed
+2025-07-04 20:49:43,610 - __main__ - INFO - Elapsed time: 487.0 minutes
+2025-07-04 20:49:43,610 - __main__ - INFO - Estimated time remaining: 9.2 minutes
+2025-07-04 20:49:43,610 - __main__ - INFO - Average time per tissue: 9.2 minutes
+2025-07-04 20:49:43,610 - __main__ - INFO - Output file already exists for whole_blood: /mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all.pkl
+2025-07-04 20:49:43,610 - __main__ - INFO - File size: 18963.8MB
+2025-07-04 20:49:43,610 - __main__ - INFO - Skipping whole_blood - result already exists
+2025-07-04 20:49:43,616 - __main__ - INFO - === CORRELATION COMBINATION WORKFLOW COMPLETED ===
+2025-07-04 20:49:43,616 - __main__ - INFO - Total processing time: 487.0 minutes (8.1 hours)
+2025-07-04 20:49:43,616 - __main__ - INFO - Total tissues selected: 54
+2025-07-04 20:49:43,616 - __main__ - INFO - Processed tissues (14): ['nerve_tibial', 'ovary', 'pancreas', 'pituitary', 'prostate', 'skin_not_sun_exposed_suprapubic', 'skin_sun_exposed_lower_leg', 'small_intestine_terminal_ileum', 'spleen', 'stomach', 'testis', 'thyroid', 'uterus', 'vagina']
+2025-07-04 20:49:43,616 - __main__ - INFO - Skipped tissues (40): ['adipose_subcutaneous', 'adipose_visceral_omentum', 'adrenal_gland', 'artery_aorta', 'artery_coronary', 'artery_tibial', 'bladder', 'brain_amygdala', 'brain_anterior_cingulate_cortex_ba24', 'brain_caudate_basal_ganglia', 'brain_cerebellar_hemisphere', 'brain_cerebellum', 'brain_cortex', 'brain_frontal_cortex_ba9', 'brain_hippocampus', 'brain_hypothalamus', 'brain_nucleus_accumbens_basal_ganglia', 'brain_putamen_basal_ganglia', 'brain_spinal_cord_cervical_c1', 'brain_substantia_nigra', 'breast_mammary_tissue', 'cells_cultured_fibroblasts', 'cells_ebvtransformed_lymphocytes', 'cervix_ectocervix', 'cervix_endocervix', 'colon_sigmoid', 'colon_transverse', 'esophagus_gastroesophageal_junction', 'esophagus_mucosa', 'esophagus_muscularis', 'fallopian_tube', 'heart_atrial_appendage', 'heart_left_ventricle', 'kidney_cortex', 'kidney_medulla', 'liver', 'lung', 'minor_salivary_gland', 'muscle_skeletal', 'whole_blood']
+2025-07-04 20:49:43,616 - __main__ - INFO - Use --force to override existing files
+2025-07-04 20:49:43,616 - __main__ - INFO - Average processing time per tissue: 34.8 minutes
+2025-07-04 20:49:43,616 - __main__ - INFO - Success rate: 25.9% (14/54 tissues)
+2025-07-04 20:49:43,689 - __main__ - INFO - CLI tool completed successfully
+2025-07-04 20:49:43,689 - __main__ - INFO - Logs for this run saved in: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/10_combine_coefs/logs/run_2025-07-04_12-42-42
