@@ -156,6 +156,7 @@ class Config:
     temp_dir: Path = (
         None  # Will be auto-generated in similarity_matrices folder if None
     )
+    save_cache: bool = False  # Whether to save cache files during processing
 
     def __post_init__(self):
         """Validate configuration after initialization."""
@@ -631,8 +632,11 @@ class CorrelationProcessor:
             f"  Memory saved: {(processed_series.memory_usage(deep=True) - aligned_series.memory_usage(deep=True)) / 1024**2:.2f} MB"
         )
 
-                # Cache the aligned result
-        self._save_aligned_matrix(aligned_series, method, tissue)
+                # Cache the aligned result if caching is enabled
+        if self.config.save_cache:
+            self._save_aligned_matrix(aligned_series, method, tissue)
+        else:
+            self.logger.info(f"Cache saving disabled - not saving aligned {method} matrix for {tissue}")
         
         # Free up memory by deleting the original correlation matrix
         if method in correlation_matrices:
@@ -703,7 +707,10 @@ class CorrelationProcessor:
             self.logger.info("  Will be used as alignment reference for other methods")
 
             # Save as aligned cache (Spearman is the reference, so it's "aligned" to itself)
-            self._save_aligned_matrix(spearman_series, "spearman", tissue)
+            if self.config.save_cache:
+                self._save_aligned_matrix(spearman_series, "spearman", tissue)
+            else:
+                self.logger.info(f"Cache saving disabled - not saving aligned spearman matrix for {tissue}")
             
             # Free up memory by deleting the original Spearman correlation matrix
             if "spearman" in correlation_matrices:
@@ -995,12 +1002,17 @@ TISSUE SELECTION:
 - Use --exclude to skip tissues matching regex patterns
 - Both can be used multiple times for complex filtering
 
+CACHE CONTROL:
+- By default, cache files are NOT saved to reduce disk usage
+- Use --save-cache to save intermediate cache files for faster future runs
+- Use --clear-cache to remove existing cache files before processing
+
 EXAMPLES:
-  # Process all 54 tissues
+  # Process all 54 tissues (no cache saving)
   python combine_coefs.py
   
-  # Process only brain tissues (13 tissues)
-  python combine_coefs.py --include brain
+  # Process only brain tissues with cache saving enabled
+  python combine_coefs.py --include brain --save-cache
   
   # Process all except brain and cell tissues
   python combine_coefs.py --exclude brain --exclude cells
@@ -1083,6 +1095,12 @@ EXAMPLES:
         help="Force reprocessing even if output file already exists",
     )
 
+    parser.add_argument(
+        "--save-cache",
+        action="store_true",
+        help="Save cache files during processing to speed up future runs (default: False)",
+    )
+
     return parser
 
 
@@ -1105,6 +1123,7 @@ def main() -> None:
             log_level=args.log_level,
             log_dir=args.log_dir,
             temp_dir=args.temp_dir,
+            save_cache=args.save_cache,
         )
 
         # Setup logging
@@ -1130,6 +1149,12 @@ def main() -> None:
         # Log force processing if requested
         if args.force:
             logger.info("Force flag enabled - will overwrite existing results")
+            
+        # Log cache setting
+        if args.save_cache:
+            logger.info("Cache saving enabled - will save intermediate cache files to speed up future runs")
+        else:
+            logger.info("Cache saving disabled - will not save intermediate cache files (default behavior)")
 
         # Run processor
         cleanup_temp = not args.no_cleanup
