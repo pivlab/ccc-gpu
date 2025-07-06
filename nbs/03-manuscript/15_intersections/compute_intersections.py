@@ -35,7 +35,7 @@ GTEX_TISSUE = "whole_blood"
 GENE_SEL_STRATEGY = "var_pc_log2"
 TOP_N_GENES = "all"
 
-DATA_DIR = Path("/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8")
+DATA_DIR = Path("/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/")
 SIMILARITY_MATRICES_DIR = DATA_DIR / "similarity_matrices" / TOP_N_GENES
 
 
@@ -48,8 +48,8 @@ Q_DIFF = 0.30
 # In[3]:
 
 
-OUTPUT_DIR = Path("/mnt/data/proj_data/ccc-gpu/results/gene_pair_intersections")
-OUTPUT_FIGURE_NAME = "upsetplot_gtex_{GTEX_TISSUE}"
+OUTPUT_DIR = Path("/pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections")
+OUTPUT_FIGURE_NAME = f"upsetplot_gtex_{GTEX_TISSUE}"
 OUTPUT_GENE_PAIR_INTERSECTIONS_NAME = f"gene_pair_intersections-gtex_v8-{GTEX_TISSUE}-{GENE_SEL_STRATEGY}.pkl"
 
 # Create timestamp-based log folder
@@ -631,11 +631,6 @@ logger.info(f"Output file for gene pair intersections: {output_file}")
 logger.info("Saving gene pair intersections data...")
 df_plot.to_pickle(output_file)
 logger.info(f"Saved gene pair intersections to: {output_file}")
-
-# Also save to log directory
-log_pkl_path = LOG_DIR / OUTPUT_GENE_PAIR_INTERSECTIONS_NAME
-shutil.copy2(output_file, log_pkl_path)
-logger.info(f"Copied gene pair intersections to log directory: {log_pkl_path}")
 
 
 # In[ ]:
