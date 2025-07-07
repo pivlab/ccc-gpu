@@ -17,7 +17,7 @@ import numpy as np
 from ccc.pytorch.core import unravel_index_2d
 from ccc.scipy.stats import rank
 from ccc.sklearn.metrics import adjusted_rand_index as ari
-from ccc.utils import chunker
+from ccc.utils import DummyExecutor, chunker
 from numpy.typing import NDArray
 
 
@@ -882,16 +882,92 @@ def ccc(
     #         # Writing out a break to indicate different slices...
     #         outfile.write('# New slice\n')
 
-    # Use cuda extension to compute CCC values
-    try:
+    # Compute the CCC coefficient for all feature pairs
+    # Handle cases where the data has categorical features
+    if X_has_cat_features:
+        # Select from parts the features that are numerical
+        parts_numerical = parts[X_numerical_type]
+        n_features_numerical = parts_numerical.shape[0]
+        # Compute the CCC coefficient for the numerical features using the GPU
+        if n_features_numerical > 0:
+            coef_gpu = ccc_cuda_ext.compute_coef(
+                parts_numerical,
+                n_features_numerical,
+                n_clusters,
+                n_objects,
+                return_parts,
+                pvalue_n_perms,
+            )
+            num_cm_values, num_cm_pvalues, num_max_parts = coef_gpu
+        else:
+            num_cm_values = np.array([])
+            num_cm_pvalues = np.array([])
+            num_max_parts = np.array([])
+
+        # Compute the CCC coefficient for the categorical features using the CPU
+        # Below, there are two layers of parallelism: 1) parallel execution
+        # across feature pairs and 2) the cdist_parts_parallel function, which
+        # also runs several threads to compare partitions using ari. In 2) we
+        # need to disable parallelization in case len(cm_values) > 1 (that is,
+        # we have several feature pairs to compare), because parallelization is
+        # already performed at this level. Otherwise, more threads than
+        # specified by the user are started.
+
+        map_func = map
+        cdist_executor = False
+        inner_executor = DummyExecutor()
+
+        if n_workers > 1:
+            if n_features_comp == 1:
+                map_func = map
+                cdist_executor = executor
+                inner_executor = pexecutor
+
+            else:
+                map_func = pexecutor.map
+
+        # iterate over all chunks of object pairs and compute the coefficient
+        inputs = get_chunks(n_features_comp, n_workers, n_chunks_threads_ratio)
+        inputs = [
+            (
+                i,
+                n_features,
+                parts,
+                pvalue_n_perms,
+                n_workers,
+                n_chunks_threads_ratio,
+                cdist_executor,
+                inner_executor,
+                X_numerical_type,
+            )
+            for i in inputs
+        ]
+
+        for params, (max_ari_list, max_part_idx_list, pvalues) in zip(
+            inputs,
+            map_func(compute_coef, inputs),  # Apply compute_coef to each input
+        ):
+            f_idx = params[0]
+
+            cm_values[f_idx] = max_ari_list
+            max_parts[f_idx, :] = max_part_idx_list
+            cm_pvalues[f_idx] = pvalues
+
+        # Combine the results from the GPU and CPU computations
+        num_coef_idx = 0
+        for coef_idx, coef in enumerate(cm_values):
+            if np.isnan(coef):
+                cm_values[coef_idx] = num_cm_values[num_coef_idx]
+                # cm_pvalues[coef_idx] = num_cm_pvalues[num_coef_idx]
+                # max_parts[coef_idx, :] = num_max_parts[num_coef_idx, :]
+                num_coef_idx += 1
+
+    else:
+        # Use the original implementation for numerical features
         coef = ccc_cuda_ext.compute_coef(
             parts, n_features, n_clusters, n_objects, return_parts, pvalue_n_perms
         )
         cm_values, cm_pvalues, max_parts = coef
-    except Exception as e:
-        raise RuntimeError(
-            f"Failed to compute CCC coefficients using CUDA extension: {e}"
-        ) from e
 
     # return an array of values or a single scalar, depending on the input data
     if cm_values.shape[0] == 1:

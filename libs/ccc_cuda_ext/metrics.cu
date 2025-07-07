@@ -441,17 +441,17 @@ auto ari_core_device(const T *parts,
     before_device_mem = print_cuda_memory_info();
 
     // Launch the kernel
-    // ari_kernel<<<grid_size, block_size, s_mem_size>>>(
-    //     thrust::raw_pointer_cast(d_parts->data()),
-    //     actual_batch_size,
-    //     n_features,
-    //     n_parts,
-    //     n_objs,
-    //     n_parts * n_objs,
-    //     n_parts * n_parts,
-    //     k,
-    //     batch_start,
-    //     thrust::raw_pointer_cast(d_out->data()));
+    ari_kernel<<<grid_size, block_size, s_mem_size>>>(
+        thrust::raw_pointer_cast(d_parts->data()),
+        actual_batch_size,
+        n_features,
+        n_parts,
+        n_objs,
+        n_parts * n_objs,
+        n_parts * n_parts,
+        k,
+        batch_start,
+        thrust::raw_pointer_cast(d_out->data()));
 
     // Track memory after kernel launch
     spdlog::debug("Memory after kernel launch: ");

@@ -231,7 +231,7 @@ def test_ccc_gpu_with_numerical_input(
     # c1 = ccc_gpu(df)
     # Catch exceptions
     try:
-        c1 = ccc_gpu(df, n_jobs=n_cpu_cores)
+        c1 = ccc_gpu(df)
     except Exception as e:
         print(f"Error: {e}")
         raise e
@@ -278,7 +278,7 @@ def test_ccc_gpu_with_numerical_input(
     [
         # Simple cases
         ((10, 20), 10, 2),
-        ((20, 200), 10, 3),
+        ((20, 200), 50, 3),
         # ((30, 300), 200, 4), # Failed for the number of categories
         # ((9, 10000), 500, 5), # Failed for the number of categories
     ],
@@ -297,7 +297,7 @@ def test_ccc_gpu_with_categorical_input(
         n_features, n_samples, n_categories, str_length=str_length, random_state=seed
     )
     res_cpu = ccc(df, n_jobs=n_cpu_cores)
-    res_gpu = ccc_gpu(df, n_jobs=n_cpu_cores)
+    res_gpu = ccc_gpu(df)
     assert np.allclose(res_cpu, res_gpu)
 
 
