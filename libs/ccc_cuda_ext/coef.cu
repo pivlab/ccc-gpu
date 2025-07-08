@@ -55,9 +55,12 @@ __global__ void findMaxAriKernel(const T *aris,
      * -----------------------------
      * Each thread maintains its own maximum value and index,
      * which will be reduced across the block later.
+     * Using a key-value pair for proper ArgMax reduction.
      */
-    uint64_t max_idx = UINT64_MAX;
-    T max_val = -1.0f;
+    typedef cub::KeyValuePair<int, T> KeyValuePairT;
+    KeyValuePairT thread_data;
+    thread_data.key = -1;  // Initialize to invalid index
+    thread_data.value = -1.0f;  // Initialize to very small value
     bool has_nan = false;
 
     /*
@@ -78,10 +81,10 @@ __global__ void findMaxAriKernel(const T *aris,
             continue;
         }
 
-        if (val > max_val)
+        if (val > thread_data.value)
         {
-            max_val = val;
-            max_idx = i;
+            thread_data.value = val;
+            thread_data.key = i;  // Store the local index
         }
     }
 
@@ -90,57 +93,44 @@ __global__ void findMaxAriKernel(const T *aris,
      * -----------
      * If any thread found a NaN, the entire feature comparison is marked as invalid.
      */
-    if (threadIdx.x == 0 && has_nan)
+    // Use shared memory to communicate NaN status
+    __shared__ bool block_has_nan;
+    if (threadIdx.x == 0)
     {
-        cm_values[comp_idx] = NAN;
-        max_parts[comp_idx * 2] = UINT8_MAX;
-        max_parts[comp_idx * 2 + 1] = UINT8_MAX;
+        block_has_nan = false;
+    }
+    __syncthreads();
+    
+    if (has_nan)
+    {
+        block_has_nan = true;
+    }
+    __syncthreads();
+    
+    if (block_has_nan)
+    {
+        if (threadIdx.x == 0)
+        {
+            cm_values[comp_idx] = NAN;
+            max_parts[comp_idx * 2] = UINT8_MAX;
+            max_parts[comp_idx * 2 + 1] = UINT8_MAX;
+        }
         return;
     }
 
     /*
      * Block-level Reduction Setup
      * -------------------------
-     * Prepare shared memory for CUB block reduction operations.
-     * We need separate storage for values and indices.
+     * Use CUB's ArgMax to find both the maximum value and its index in one operation.
      */
-    __shared__ typename cub::BlockReduce<T, 128>::TempStorage temp_storage_val;
-    __shared__ typename cub::BlockReduce<uint64_t, 128>::TempStorage temp_storage_idx;
+    typedef cub::BlockReduce<KeyValuePairT, 128> BlockReduceT;
+    __shared__ typename BlockReduceT::TempStorage temp_storage;
 
-    /*
-     * Value Reduction
-     * -------------
-     * First reduce to find the maximum ARI value across all threads.
-     */
-    struct
-    {
-        T val;
-        uint64_t idx;
-    } in, out;
-
-    in.val = max_val;
-    in.idx = max_idx;
-
-    // Find the maximum value within the block
-    T max_block_val = cub::BlockReduce<T, 128>(temp_storage_val).Reduce(in.val, cub::Max());
-
-    /*
-     * Index Selection
-     * -------------
-     * After finding the maximum value, select the smallest index
-     * among threads that found this maximum value.
-     */
-    __syncthreads();
-
-    uint64_t selected_idx = UINT64_MAX;
-    if (in.val == max_block_val)
-    {
-        selected_idx = in.idx;
-    }
-
-    // Get the smallest valid index of the max value
-    uint64_t min_idx = cub::BlockReduce<uint64_t, 128>(temp_storage_idx).Reduce(selected_idx, [](uint64_t a, uint64_t b)
-                                                                                { return (a == UINT64_MAX) ? b : ((b == UINT64_MAX) ? a : min(a, b)); });
+    // Perform ArgMax reduction - this finds the maximum value and its corresponding index
+    KeyValuePairT aggregate = BlockReduceT(temp_storage).Reduce(
+        thread_data, 
+        cub::ArgMax()
+    );
 
     /*
      * Result Writing
@@ -151,11 +141,11 @@ __global__ void findMaxAriKernel(const T *aris,
     if (threadIdx.x == 0)
     {
         // Store the maximum ARI value
-        cm_values[comp_idx] = max_block_val > 0.0f ? max_block_val : 0.0f;
+        cm_values[comp_idx] = aggregate.value > 0.0f ? aggregate.value : 0.0f;
 
         // Convert linear index to partition pair
-        unsigned int m = min_idx / n_partitions;
-        unsigned int n = min_idx % n_partitions;
+        unsigned int m = aggregate.key / n_partitions;
+        unsigned int n = aggregate.key % n_partitions;
 
         // Store the partition pair
         max_parts[comp_idx * 2] = m;
