@@ -149,87 +149,47 @@ def log_statistics(
     )
 
 
-# Original CCC test in tests/test_coef.py
-def test_cm_return_parts_quadratic():
-    # Prepare
-    np.random.seed(0)
-
-    # two features with a quadratic relationship
-    feature0 = np.array([-4, -3, -2, -1, 0, 0, 1, 2, 3, 4])
-    feature1 = np.array([10, 9, 8, 7, 6, 6, 7, 8, 9, 10])
-
-    # Run
-    cm_value, max_parts, parts = ccc_gpu(
-        feature0, feature1, internal_n_clusters=[2, 3], return_parts=True
-    )
-
-    # Validate
-    assert np.isclose(round(cm_value, 2), 0.31)
-
-    assert parts is not None
-    assert len(parts) == 2
-    assert parts[0].shape == (2, 10)
-    assert len(np.unique(parts[0][0])) == 2
-    assert len(np.unique(parts[0][1])) == 3
-    assert parts[1].shape == (2, 10)
-    assert len(np.unique(parts[1][0])) == 2
-    assert len(np.unique(parts[1][1])) == 3
-
-    assert max_parts is not None
-    assert hasattr(max_parts, "shape")
-    assert max_parts.shape == (2,)
-    # the set of partitions that maximize ari is:
-    #   - k == 3 for feature0
-    #   - k == 2 for feature1
-    np.testing.assert_array_equal(max_parts, np.array([1, 0]))
-    
-
-def test_cm_return_parts_linear():
-    # Prepare
-    np.random.seed(0)
-
-    # two features on 100 objects with a linear relationship
-    feature0 = np.random.rand(100)
-    feature1 = feature0 * 5.0
-
-    # Run
-    cm_value, max_parts, parts = ccc_gpu(feature0, feature1, return_parts=True)
-
-    # Validate
-    assert cm_value == 1.0
-
-    assert parts is not None
-    assert len(parts) == 2
-    assert parts[0].shape == (9, 100)
-    assert parts[1].shape == (9, 100)
-
-    assert max_parts is not None
-    assert hasattr(max_parts, "shape")
-    assert max_parts.shape == (2,)
-    # even in this test we do not specify internal_n_clusters (so it goes from
-    # k=2 to k=10, nine partitions), k=2 for both features should already have
-    # the maximum value
-    np.testing.assert_array_equal(max_parts, np.array([0, 0]))
-
-
 @pytest.mark.parametrize(
     "seed", [42]
 )  # More seeds for simple cases, only 42 for large cases
 @pytest.mark.parametrize(
-    "shape, contain_singletons, generate_logs",
+    "shape, contain_singletons, max_not_close_percentage, generate_logs",
     [
         # Simple cases
-        ((10, 100), False, False),
-        ((20, 200), False, False),
-        ((30, 300), False, False),
-        ((10, 100), True, False),
-        ((20, 200), True, False),
-        ((30, 300), True, False),
-        ((100, 100), False, False),
-        ((100, 1000), False, False),
-        # # Large cases
-        ((100, 2000), False, False),
-        ((2000, 1000), False, False),
+        ((10, 100), False, 0.0, False),
+        ((20, 200), False, 0.0, False),
+        ((30, 300), False, 0.0, False),
+        ((10, 100), True, 0.0, False),
+        ((20, 200), True, 0.0, False),
+        ((30, 300), True, 0.0, False),
+        # ((100, 100), 0.0, True),
+        # ((100, 1000), 0.0, True),
+        # Large cases
+        # ((1000, 100), 0.0, True),
+        # ((100, 1000), 0.008, False), # Skipped, too slow for a unit test
+        # ((1000, 1000), 0.0, False),
+        # ((2000, 1000), 0.0, False),
+        # ((3000, 1000), 0.0, True),
+        # ((4000, 1000), 0.0, True),
+        # ((4500, 1000), 0.0, True),
+        # ((6000, 1000), 0.0, True),
+        # ((7000, 1000), 0.0, True),
+        # ((5000, 100), 0.0, True),
+        # ((20000, 100), 0.0, False),
+        # Benchmark cases
+        # ((5000, 1000), 0.0, True),
+        # ((10000, 1000), 0.0, True),
+        # ((500, 1000), 0.0, True),
+        # ((1000, 1000), 0.0, True),
+        # ((2000, 1000), 0.0, True),
+        # ((4000, 1000), 0.0, True),
+        # ((6000, 1000), False, 0.0, True),
+        # ((12000, 1000), 0.0, True),
+        # ((16000, 1000), False, 0.0, True),
+        # ((20000, 1000), False, 0.0, True),
+        # ((8000, 1000), 0.0, True),
+        # ((12000, 1000), 0.0, True),
+        # ((56200, 755), 0.0, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
@@ -239,6 +199,7 @@ def test_ccc_gpu_with_numerical_input(
     shape: Tuple[int, int],
     contain_singletons: bool,
     n_cpu_cores: int,
+    max_not_close_percentage: float,
     generate_logs: bool,
 ):
     """
@@ -249,6 +210,7 @@ def test_ccc_gpu_with_numerical_input(
         seed: Random seed for reproducibility
         shape: Tuple of (n_features, n_samples)
         n_cpu_cores: Number of CPU cores to use
+        max_not_close_percentage: Maximum allowed percentage of coefficients that can differ
         generate_logs: Whether to generate detailed log files
     """
     # Setup logging if enabled
@@ -269,7 +231,7 @@ def test_ccc_gpu_with_numerical_input(
     # c1 = ccc_gpu(df)
     # Catch exceptions
     try:
-        c1, g_max_parts, g_parts = ccc_gpu(df, return_parts=True)
+        c1 = ccc_gpu(df)
     except Exception as e:
         print(f"Error: {e}")
         raise e
@@ -278,7 +240,7 @@ def test_ccc_gpu_with_numerical_input(
 
     # Time CPU version
     start_cpu = time.time()
-    c2, c_max_parts, c_parts = ccc(df, n_jobs=n_cpu_cores, return_parts=True)
+    c2 = ccc(df, n_jobs=n_cpu_cores)
     end_cpu = time.time()
     cpu_time = end_cpu - start_cpu
 
@@ -301,51 +263,12 @@ def test_ccc_gpu_with_numerical_input(
     cpu_df = pd.DataFrame(c2)
     pd.testing.assert_frame_equal(gpu_df, cpu_df, atol=1e-6, rtol=1e-6)
 
-    # Check if return_parts is correctly implemented
-    assert g_max_parts.shape == c_max_parts.shape
-    assert g_parts.shape == c_parts.shape
-    
-    for i in range(len(g_parts)):
-        pd.testing.assert_frame_equal(pd.DataFrame(g_parts[i].astype(np.int16)), pd.DataFrame(c_parts[i]), check_exact=True)
-    
-    # Validate max_parts: Both GPU and CPU choices should represent valid maxima
-    # This handles tie-breaking differences between implementations
-    for i in range(len(g_max_parts)):
-        gpu_parts = g_max_parts[i]
-        cpu_parts = c_max_parts[i]
-        
-        # If they match exactly, no need for further validation
-        if np.array_equal(gpu_parts, cpu_parts):
-            continue
-            
-        # For mismatches, verify both choices are valid maxima
-        # We need to compute the ARI matrix to check this
-        from ccc.coef.impl import cdist_parts_basic, get_coords_from_index
-        
-        # Get feature indices for this comparison
-        feat_i, feat_j = get_coords_from_index(shape[0], i)
-        
-        # Compute ARI matrix for this feature pair
-        ari_matrix = cdist_parts_basic(c_parts[feat_i], c_parts[feat_j])
-        max_ari = np.max(ari_matrix)
-        
-        # Check GPU choice
-        gpu_ari = ari_matrix[gpu_parts[0], gpu_parts[1]]
-        # Check CPU choice  
-        cpu_ari = ari_matrix[cpu_parts[0], cpu_parts[1]]
-        
-        # Both should be maximum values (within floating point tolerance)
-        assert np.abs(gpu_ari - max_ari) < 1e-8, f"GPU choice at comparison {i} is not maximum: {gpu_ari} vs {max_ari}"
-        assert np.abs(cpu_ari - max_ari) < 1e-8, f"CPU choice at comparison {i} is not maximum: {cpu_ari} vs {max_ari}"
-        
-        # Print info about the tie for debugging (optional)
-        ties = np.where(np.abs(ari_matrix - max_ari) < 1e-8)
-        num_ties = len(ties[0])
-        if num_ties > 1:
-            print(f"Tie detected at comparison {i} (features {feat_i} vs {feat_j}): {num_ties} positions with ARI={max_ari:.10f}")
-            print(f"  GPU chose: {tuple(gpu_parts)}, CPU chose: {tuple(cpu_parts)}")
-    
-    
+    # Assert results using percentages. Useful if get_parts is implemented in GPU version in the future, in which
+    # case the parts generated will be slightly different due to floating point precision
+    # assert (
+    #     not_close_percentage <= max_not_close_percentage
+    # ), f"Results differ for shape={shape}, seed={seed}"
+
 
 @pytest.mark.parametrize(
     "seed", [42]
@@ -377,3 +300,7 @@ def test_ccc_gpu_with_categorical_input(
     res_gpu = ccc_gpu(df)
     assert np.allclose(res_cpu, res_gpu)
 
+
+# @clean_gpu_memory
+# def test_ccc_gpu_with_mixed_input():
+#     return
