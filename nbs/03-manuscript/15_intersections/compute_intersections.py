@@ -63,7 +63,175 @@ def parse_arguments():
         help="Output directory for results"
     )
     
+    parser.add_argument(
+        "--use-existing",
+        action="store_true",
+        help="If set, load existing intersection.pkl file (if it exists) to generate plots instead of recomputing"
+    )
+    
     return parser.parse_args()
+
+
+def generate_upset_plots(df_plot, categories, args, OUTPUT_FIGURE_NAME, LOG_DIR, logger):
+    """Generate both full and trimmed upset plots from the intersection data."""
+    
+    # Generate full upset plot
+    logger.info("Creating full upset plot...")
+    df_r_data = df_plot
+    gene_pairs_by_cats = from_indicators(categories, data=df_r_data)
+    
+    fig = plt.figure(figsize=(18, 5))
+    g = plot(
+        gene_pairs_by_cats,
+        show_counts=True,
+        sort_categories_by=None,
+        element_size=None,
+        fig=fig,
+    )
+
+    full_svg_path = args.output_dir / f"{OUTPUT_FIGURE_NAME}_full.svg"
+    plt.savefig(
+        full_svg_path,
+        bbox_inches="tight",
+        facecolor="white",
+    )
+    logger.info(f"Saved full upset plot to: {full_svg_path}")
+
+    # Also save to log directory
+    log_svg_path = LOG_DIR / f"{OUTPUT_FIGURE_NAME}_full.svg"
+    shutil.copy2(full_svg_path, log_svg_path)
+    logger.info(f"Copied full upset plot to log directory: {log_svg_path}")
+
+    # Generate trimmed upset plot
+    logger.info("Creating trimmed upset plot...")
+    df_r_data = df_plot
+    gene_pairs_by_cats = from_indicators(categories, data=df_r_data)
+    gene_pairs_by_cats = gene_pairs_by_cats.sort_index()
+
+    _tmp_index = gene_pairs_by_cats.index.unique().to_frame(False)
+    logger.info("Unique index combinations:")
+    logger.info(f"\n{_tmp_index}")
+
+    combinations_with_3 = _tmp_index[_tmp_index.sum(axis=1) == 3]
+    logger.info(f"Combinations with exactly 3 True values:")
+    logger.info(f"\n{combinations_with_3}")
+
+    first_3_zero = _tmp_index.apply(lambda x: x[0:3].sum() == 0, axis=1)
+    logger.info(f"Number of combinations where first 3 are all False: {first_3_zero.sum()}")
+
+    # agreements on top
+    agreements_top = _tmp_index.loc[
+        _tmp_index[
+            _tmp_index.apply(lambda x: x.sum() > 1, axis=1)
+            & _tmp_index.apply(lambda x: x[0:3].sum() == 0, axis=1)
+            & _tmp_index.apply(lambda x: 3 > x[3:].sum() > 1, axis=1)
+        ].index
+    ].apply(tuple, axis=1).to_numpy()
+    logger.info(f"Agreements on top: {agreements_top}")
+
+    # agreements on bottom
+    agreements_bottom = _tmp_index.loc[
+        _tmp_index[
+            _tmp_index.apply(lambda x: x.sum() > 1, axis=1)
+            & _tmp_index.apply(lambda x: 3 > x[0:3].sum() > 1, axis=1)
+            & _tmp_index.apply(lambda x: x[3:].sum() == 0, axis=1)
+        ].index
+    ].apply(tuple, axis=1).to_numpy()
+    logger.info(f"Agreements on bottom: {agreements_bottom}")
+
+    # diagreements
+    disagreements = _tmp_index.loc[
+        _tmp_index[
+            _tmp_index.apply(lambda x: x.sum() > 1, axis=1)
+            & _tmp_index.apply(lambda x: x[0:3].sum() > 0, axis=1)
+            & _tmp_index.apply(lambda x: x[3:].sum() > 0, axis=1)
+        ].index
+    ].apply(tuple, axis=1).to_numpy()
+    logger.info(f"Disagreements: {disagreements}")
+
+    # order subsets
+    gene_pairs_by_cats = gene_pairs_by_cats.loc[
+        [
+            # pairs not included in categories:
+            # (False, False, False, False, False, False),
+            # full agreements on high:
+            (False, False, False, True, True, True),
+            # agreements on top
+            (False, False, False, False, True, True),
+            (False, False, False, True, False, True),
+            (False, False, False, True, True, False),
+            # agreements on bottom
+            (False, True, True, False, False, False),
+            (True, False, True, False, False, False),
+            (True, True, False, False, False, False),
+            # full agreements on low:
+            (True, True, True, False, False, False),
+            # diagreements
+            #   ccc
+            (False, True, False, True, False, True),
+            (False, True, False, False, False, True),
+            (True, False, False, False, False, True),
+            (True, True, False, False, False, True),
+            #   pearson
+            (False, False, True, False, True, False),
+            (True, False, False, False, True, False),
+            (True, False, True, False, True, False),
+            #   spearman
+            (False, True, False, True, False, False),
+            # Spearman (high) & Clustermatch (low)
+            (False, False, True, True, False, False),
+            # Spearman (high) & Clustermatch (low) & Pearson (low)
+            (False, True, True, True, False, False),
+            # Pearson (high) & Spearman (high) & Clustermatch (low)
+            (False, False, True, True, True, False),
+            # Pearson (high) & Clustermatch (high) & Spearman (low)
+            (True, False, False, False, True, True)
+        ]
+    ]
+
+    logger.info("Gene pairs by categories after reordering:")
+    logger.info(f"\n{gene_pairs_by_cats.head()}")
+
+    gene_pairs_by_cats = gene_pairs_by_cats.rename(
+        columns={
+            "Clustermatch (high)": "CCC (high)",
+            "Clustermatch (low)": "CCC (low)",
+        }
+    )
+
+    gene_pairs_by_cats.index.set_names(
+        {
+            "Clustermatch (high)": "CCC (high)",
+            "Clustermatch (low)": "CCC (low)",
+        },
+        inplace=True,
+    )
+
+    fig = plt.figure(figsize=(14, 5))
+
+    g = MyUpSet(
+        gene_pairs_by_cats,
+        show_counts=True,
+        sort_categories_by=None,
+        sort_by=None,
+        show_percentages=True,
+        element_size=None,
+    ).plot(fig)
+
+    g["totals"].remove()
+
+    trimmed_svg_path = args.output_dir / f"{OUTPUT_FIGURE_NAME}_trimmed.svg"
+    plt.savefig(
+        trimmed_svg_path,
+        bbox_inches="tight",
+        facecolor="white",
+    )
+    logger.info(f"Saved trimmed upset plot to: {trimmed_svg_path}")
+
+    # Also save to log directory
+    log_svg_path = LOG_DIR / f"{OUTPUT_FIGURE_NAME}_trimmed.svg"
+    shutil.copy2(trimmed_svg_path, log_svg_path)
+    logger.info(f"Copied trimmed upset plot to log directory: {log_svg_path}")
 
 
 def main():
@@ -75,11 +243,58 @@ def main():
     OUTPUT_FIGURE_NAME = f"upsetplot_gtex_{args.gtex_tissue}"
     OUTPUT_GENE_PAIR_INTERSECTIONS_NAME = f"gene_pair_intersections-gtex_v8-{args.gtex_tissue}-{args.gene_sel_strategy}.pkl"
     
-    # Check if output file already exists (early exit)
+    # Check if output file already exists
     output_file = args.output_dir / OUTPUT_GENE_PAIR_INTERSECTIONS_NAME
-    if output_file.exists():
+    
+    # If --use-existing is enabled and file exists, load it for plotting
+    if args.use_existing and output_file.exists():
+        print(f"Loading existing intersection file: {output_file}")
+        
+        # Create timestamp-based log folder
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        LOG_DIR = Path("logs") / timestamp
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Setup logging
+        log_file = LOG_DIR / "compute_intersections.log"
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler()
+            ]
+        )
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"Starting compute_intersections.py with --use-existing flag")
+        logger.info(f"Loading existing intersection data from: {output_file}")
+        
+        # Load existing data
+        df_plot = pd.read_pickle(output_file)
+        logger.info(f"Loaded dataframe shape: {df_plot.shape}")
+        logger.info(f"Loaded dataframe columns: {df_plot.columns.tolist()}")
+        
+        # Create categories list (same as in computation)
+        categories = sorted(
+            [x for x in df_plot.columns if " (" in x],
+            reverse=True,
+            key=lambda x: x.split(" (")[1] + " (" + x.split(" (")[0],
+        )
+        logger.info(f"Categories for upset plot: {categories}")
+        
+        # Generate upset plots
+        generate_upset_plots(df_plot, categories, args, OUTPUT_FIGURE_NAME, LOG_DIR, logger)
+        
+        logger.info("Plots generated successfully from existing data!")
+        logger.info(f"All outputs saved to log directory: {LOG_DIR}")
+        return
+
+    # If not using existing or file doesn't exist, check for early exit
+    if not args.use_existing and output_file.exists():
         print(f"Output file already exists: {output_file}")
         print("Script stopping - output file already exists")
+        print("Use --use-existing flag to load existing data and generate plots")
         sys.exit(0)
 
     # Create timestamp-based log folder
@@ -107,6 +322,7 @@ def main():
     logger.info(f"  TOP_N_GENES: {args.top_n_genes}")
     logger.info(f"  Q_DIFF: {args.q_diff}")
     logger.info(f"  OUTPUT_DIR: {args.output_dir}")
+    logger.info(f"  USE_EXISTING: {args.use_existing}")
 
     assert args.output_dir.exists()
     assert SIMILARITY_MATRICES_DIR.exists()
@@ -256,186 +472,8 @@ def main():
 
     logger.info(f"Categories for upset plot: {categories}")
 
-    df_r_data = df_plot
-
-    logger.info(f"Data shape for upset plot: {df_r_data.shape}")
-
-    # Convert the boolean indicator DataFrame to an UpSet-compatible format
-    # This transforms our boolean columns (categories) into a multi-index structure
-    # where each gene pair is associated with the set of categories it belongs to
-
-    # from_indicators is a function from the upsetplot library that converts
-    # boolean indicator columns into a multi-index Series suitable for UpSet plots
-    # It takes the boolean columns (categories) and creates a Series where:
-    # - The index is a MultiIndex with levels for each category
-    # - Each gene pair is associated with True/False for each category
-    # - Only combinations that actually exist in the data are included
-    gene_pairs_by_cats = from_indicators(categories, data=df_r_data)
-
-    logger.info(f"Gene pairs by categories shape: {gene_pairs_by_cats.shape}")
-    logger.info("First few entries:")
-    logger.info(f"\n{gene_pairs_by_cats.head()}")
-
-    logger.info("Creating full upset plot...")
-    fig = plt.figure(figsize=(18, 5))
-
-    g = plot(
-        gene_pairs_by_cats,
-        show_counts=True,
-        sort_categories_by=None,
-        element_size=None,
-        fig=fig,
-    )
-
-    full_svg_path = args.output_dir / f"{OUTPUT_FIGURE_NAME}_full.svg"
-    plt.savefig(
-        full_svg_path,
-        bbox_inches="tight",
-        facecolor="white",
-    )
-    logger.info(f"Saved full upset plot to: {full_svg_path}")
-
-    # Also save to log directory
-    log_svg_path = LOG_DIR / f"{OUTPUT_FIGURE_NAME}_full.svg"
-    shutil.copy2(full_svg_path, log_svg_path)
-    logger.info(f"Copied full upset plot to log directory: {log_svg_path}")
-
-    df_r_data = df_plot
-
-    logger.info(f"Data shape for trimmed plot: {df_r_data.shape}")
-
-    gene_pairs_by_cats = from_indicators(categories, data=df_r_data)
-
-    logger.info("Gene pairs by categories for trimmed plot:")
-    logger.info(f"Shape: {gene_pairs_by_cats.shape}")
-
-    gene_pairs_by_cats = gene_pairs_by_cats.sort_index()
-
-    _tmp_index = gene_pairs_by_cats.index.unique().to_frame(False)
-    logger.info("Unique index combinations:")
-    logger.info(f"\n{_tmp_index}")
-
-    combinations_with_3 = _tmp_index[_tmp_index.sum(axis=1) == 3]
-    logger.info(f"Combinations with exactly 3 True values:")
-    logger.info(f"\n{combinations_with_3}")
-
-    first_3_zero = _tmp_index.apply(lambda x: x[0:3].sum() == 0, axis=1)
-    logger.info(f"Number of combinations where first 3 are all False: {first_3_zero.sum()}")
-
-    # agreements on top
-    agreements_top = _tmp_index.loc[
-        _tmp_index[
-            _tmp_index.apply(lambda x: x.sum() > 1, axis=1)
-            & _tmp_index.apply(lambda x: x[0:3].sum() == 0, axis=1)
-            & _tmp_index.apply(lambda x: 3 > x[3:].sum() > 1, axis=1)
-        ].index
-    ].apply(tuple, axis=1).to_numpy()
-    logger.info(f"Agreements on top: {agreements_top}")
-
-    # agreements on bottom
-    agreements_bottom = _tmp_index.loc[
-        _tmp_index[
-            _tmp_index.apply(lambda x: x.sum() > 1, axis=1)
-            & _tmp_index.apply(lambda x: 3 > x[0:3].sum() > 1, axis=1)
-            & _tmp_index.apply(lambda x: x[3:].sum() == 0, axis=1)
-        ].index
-    ].apply(tuple, axis=1).to_numpy()
-    logger.info(f"Agreements on bottom: {agreements_bottom}")
-
-    # diagreements
-    disagreements = _tmp_index.loc[
-        _tmp_index[
-            _tmp_index.apply(lambda x: x.sum() > 1, axis=1)
-            & _tmp_index.apply(lambda x: x[0:3].sum() > 0, axis=1)
-            & _tmp_index.apply(lambda x: x[3:].sum() > 0, axis=1)
-        ].index
-    ].apply(tuple, axis=1).to_numpy()
-    logger.info(f"Disagreements: {disagreements}")
-
-    # order subsets
-    gene_pairs_by_cats = gene_pairs_by_cats.loc[
-        [
-            # pairs not included in categories:
-            # (False, False, False, False, False, False),
-            # full agreements on high:
-            (False, False, False, True, True, True),
-            # agreements on top
-            (False, False, False, False, True, True),
-            (False, False, False, True, False, True),
-            (False, False, False, True, True, False),
-            # agreements on bottom
-            (False, True, True, False, False, False),
-            (True, False, True, False, False, False),
-            (True, True, False, False, False, False),
-            # full agreements on low:
-            (True, True, True, False, False, False),
-            # diagreements
-            #   ccc
-            (False, True, False, True, False, True),
-            (False, True, False, False, False, True),
-            (True, False, False, False, False, True),
-            (True, True, False, False, False, True),
-            #   pearson
-            (False, False, True, False, True, False),
-            (True, False, False, False, True, False),
-            (True, False, True, False, True, False),
-            #   spearman
-            (False, True, False, True, False, False),
-            # Spearman (high) & Clustermatch (low)
-            (False, False, True, True, False, False),
-            # Spearman (high) & Clustermatch (low) & Pearson (low)
-            (False, True, True, True, False, False),
-            # Pearson (high) & Spearman (high) & Clustermatch (low)
-            (False, False, True, True, True, False),
-            # Pearson (high) & Clustermatch (high) & Spearman (low)
-            (True, False, False, False, True, True)
-        ]
-    ]
-
-    logger.info("Gene pairs by categories after reordering:")
-    logger.info(f"\n{gene_pairs_by_cats.head()}")
-
-    gene_pairs_by_cats = gene_pairs_by_cats.rename(
-        columns={
-            "Clustermatch (high)": "CCC (high)",
-            "Clustermatch (low)": "CCC (low)",
-        }
-    )
-
-    gene_pairs_by_cats.index.set_names(
-        {
-            "Clustermatch (high)": "CCC (high)",
-            "Clustermatch (low)": "CCC (low)",
-        },
-        inplace=True,
-    )
-
-    logger.info("Creating trimmed upset plot...")
-    fig = plt.figure(figsize=(14, 5))
-
-    g = MyUpSet(
-        gene_pairs_by_cats,
-        show_counts=True,
-        sort_categories_by=None,
-        sort_by=None,
-        show_percentages=True,
-        element_size=None,
-    ).plot(fig)
-
-    g["totals"].remove()
-
-    trimmed_svg_path = args.output_dir / f"{OUTPUT_FIGURE_NAME}_trimmed.svg"
-    plt.savefig(
-        trimmed_svg_path,
-        bbox_inches="tight",
-        facecolor="white",
-    )
-    logger.info(f"Saved trimmed upset plot to: {trimmed_svg_path}")
-
-    # Also save to log directory
-    log_svg_path = LOG_DIR / f"{OUTPUT_FIGURE_NAME}_trimmed.svg"
-    shutil.copy2(trimmed_svg_path, log_svg_path)
-    logger.info(f"Copied trimmed upset plot to log directory: {log_svg_path}")
+    # Generate upset plots
+    generate_upset_plots(df_plot, categories, args, OUTPUT_FIGURE_NAME, LOG_DIR, logger)
 
     logger.info(f"Final dataframe shape: {df_plot.shape}")
     logger.info("Final dataframe head:")
