@@ -381,6 +381,14 @@ def main():
             (True, False, True, False, True, False),
             #   spearman
             (False, True, False, True, False, False),
+            # Spearman (high) & Clustermatch (low)
+            (False, False, True, True, False, False),
+            # Spearman (high) & Clustermatch (low) & Pearson (low)
+            (False, True, True, True, False, False),
+            # Pearson (high) & Spearman (high) & Clustermatch (low)
+            (False, False, True, True, True, False),
+            # Pearson (high) & Clustermatch (high) & Spearman (low)
+            (True, False, False, False, True, True)
         ]
     ]
 
