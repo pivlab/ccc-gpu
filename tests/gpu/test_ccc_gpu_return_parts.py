@@ -231,7 +231,7 @@ def test_cm_return_parts_linear():
         # ((1000, 100), 0.0, True),
         # ((100, 1000), 0.008, False), # Skipped, too slow for a unit test
         ((100, 2000), False, False),
-        # ((2000, 1000), False, False),
+        ((2000, 1000), False, False),
         # ((3000, 1000), False, True),
         # ((4000, 1000), 0.0, True),
         # ((4500, 1000), 0.0, True),
@@ -331,8 +331,42 @@ def test_ccc_gpu_with_numerical_input(
     for i in range(len(g_parts)):
         pd.testing.assert_frame_equal(pd.DataFrame(g_parts[i].astype(np.int16)), pd.DataFrame(c_parts[i]), check_exact=True)
     
+    # Validate max_parts: Both GPU and CPU choices should represent valid maxima
+    # This handles tie-breaking differences between implementations
     for i in range(len(g_max_parts)):
-        pd.testing.assert_frame_equal(pd.DataFrame(g_max_parts[i].astype(np.uint64)), pd.DataFrame(c_max_parts[i]), check_exact=True)
+        gpu_parts = g_max_parts[i]
+        cpu_parts = c_max_parts[i]
+        
+        # If they match exactly, no need for further validation
+        if np.array_equal(gpu_parts, cpu_parts):
+            continue
+            
+        # For mismatches, verify both choices are valid maxima
+        # We need to compute the ARI matrix to check this
+        from ccc.coef.impl import cdist_parts_basic, get_coords_from_index
+        
+        # Get feature indices for this comparison
+        feat_i, feat_j = get_coords_from_index(shape[0], i)
+        
+        # Compute ARI matrix for this feature pair
+        ari_matrix = cdist_parts_basic(c_parts[feat_i], c_parts[feat_j])
+        max_ari = np.max(ari_matrix)
+        
+        # Check GPU choice
+        gpu_ari = ari_matrix[gpu_parts[0], gpu_parts[1]]
+        # Check CPU choice  
+        cpu_ari = ari_matrix[cpu_parts[0], cpu_parts[1]]
+        
+        # Both should be maximum values (within floating point tolerance)
+        assert np.abs(gpu_ari - max_ari) < 1e-8, f"GPU choice at comparison {i} is not maximum: {gpu_ari} vs {max_ari}"
+        assert np.abs(cpu_ari - max_ari) < 1e-8, f"CPU choice at comparison {i} is not maximum: {cpu_ari} vs {max_ari}"
+        
+        # Print info about the tie for debugging (optional)
+        ties = np.where(np.abs(ari_matrix - max_ari) < 1e-8)
+        num_ties = len(ties[0])
+        if num_ties > 1:
+            print(f"Tie detected at comparison {i} (features {feat_i} vs {feat_j}): {num_ties} positions with ARI={max_ari:.10f}")
+            print(f"  GPU chose: {tuple(gpu_parts)}, CPU chose: {tuple(cpu_parts)}")
     
     
 

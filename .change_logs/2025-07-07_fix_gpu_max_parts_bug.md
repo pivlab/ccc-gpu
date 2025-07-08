@@ -1,6 +1,6 @@
 # Change Log: Fix GPU max_parts Bug
 
-**Date:** January 7, 2025  
+**Date:** July 7, 2025  
 **Issue:** GPU implementation returning incorrect partition indices when `return_parts=True`  
 **Severity:** High - Functional correctness bug  
 **Files Modified:** `libs/ccc_cuda_ext/coef.cu`
@@ -105,6 +105,6 @@ KeyValuePairT aggregate = BlockReduceT(temp_storage).Reduce(thread_data, cub::Ar
 - No performance regressions expected
 
 ---
-**Reviewed by:** [Pending]  
+**Reviewed by:** [haoyu-zc]  
 **Deployment Status:** ✅ Complete  
 **Rollback Plan:** Revert `findMaxAriKernel` to previous implementation if unforeseen issues arise

@@ -126,7 +126,7 @@ __global__ void findMaxAriKernel(const T *aris,
     typedef cub::BlockReduce<KeyValuePairT, 128> BlockReduceT;
     __shared__ typename BlockReduceT::TempStorage temp_storage;
 
-    // Perform ArgMax reduction - this finds the maximum value and its corresponding index
+    // Use standard ArgMax but rely on CUB's tie-breaking behavior
     KeyValuePairT aggregate = BlockReduceT(temp_storage).Reduce(
         thread_data, 
         cub::ArgMax()
