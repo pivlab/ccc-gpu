@@ -112,8 +112,8 @@ __global__ void findMaxAriKernel(const T *aris,
         if (threadIdx.x == 0)
         {
             cm_values[comp_idx] = NAN;
-            max_parts[comp_idx * 2] = UINT8_MAX;
-            max_parts[comp_idx * 2 + 1] = UINT8_MAX;
+            max_parts[comp_idx * 2] = 0;
+            max_parts[comp_idx * 2 + 1] = 0;
         }
         return;
     }
