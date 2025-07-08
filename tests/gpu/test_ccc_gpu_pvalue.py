@@ -4,6 +4,7 @@ import numpy as np
 from typing import Tuple, Optional, Dict, Any
 import os
 import pandas as pd
+from sklearn.preprocessing import minmax_scale
 from ccc.coef.impl_gpu import ccc as ccc_gpu
 from ccc.coef.impl import ccc
 from utils import clean_gpu_memory, generate_categorical_data
