@@ -69,6 +69,12 @@ def parse_arguments():
         help="If set, load existing intersection.pkl file (if it exists) to generate plots instead of recomputing"
     )
     
+    parser.add_argument(
+        "--log-dir",
+        type=Path,
+        help="Log directory to use. If not provided, creates a new timestamped directory"
+    )
+    
     return parser.parse_args()
 
 
@@ -246,13 +252,18 @@ def main():
     if args.use_existing and output_file.exists():
         print(f"Loading existing intersection file: {output_file}")
         
-        # Create timestamp-based log folder
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        LOG_DIR = Path("logs") / timestamp
-        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        # Setup log directory
+        if args.log_dir:
+            LOG_DIR = args.log_dir
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
+        else:
+            # Create timestamp-based log folder
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            LOG_DIR = Path("logs") / timestamp
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-        # Setup logging
-        log_file = LOG_DIR / "compute_intersections.log"
+        # Setup logging with tissue-specific log file
+        log_file = LOG_DIR / f"compute_intersections_{args.gtex_tissue}.log"
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -263,7 +274,7 @@ def main():
         )
         logger = logging.getLogger(__name__)
 
-        logger.info(f"Starting compute_intersections.py with --use-existing flag")
+        logger.info(f"Starting compute_intersections.py with --use-existing flag for tissue: {args.gtex_tissue}")
         logger.info(f"Loading existing intersection data from: {output_file}")
         
         # Load existing data
@@ -293,13 +304,19 @@ def main():
         print("Use --use-existing flag to load existing data and generate plots")
         sys.exit(0)
 
-    # Create timestamp-based log folder
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    LOG_DIR = Path("logs") / timestamp
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    # Setup log directory
+    if args.log_dir:
+        LOG_DIR = args.log_dir
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        timestamp = "user_provided"
+    else:
+        # Create timestamp-based log folder
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        LOG_DIR = Path("logs") / timestamp
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Setup logging
-    log_file = LOG_DIR / "compute_intersections.log"
+    # Setup logging with tissue-specific log file
+    log_file = LOG_DIR / f"compute_intersections_{args.gtex_tissue}.log"
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -310,7 +327,7 @@ def main():
     )
     logger = logging.getLogger(__name__)
 
-    logger.info(f"Starting compute_intersections.py with timestamp: {timestamp}")
+    logger.info(f"Starting compute_intersections.py for tissue: {args.gtex_tissue}")
     logger.info(f"Log directory: {LOG_DIR}")
     logger.info(f"Configuration:")
     logger.info(f"  GTEX_TISSUE: {args.gtex_tissue}")
@@ -319,6 +336,7 @@ def main():
     logger.info(f"  Q_DIFF: {args.q_diff}")
     logger.info(f"  OUTPUT_DIR: {args.output_dir}")
     logger.info(f"  USE_EXISTING: {args.use_existing}")
+    logger.info(f"  LOG_DIR: {args.log_dir}")
 
     assert args.output_dir.exists()
     assert SIMILARITY_MATRICES_DIR.exists()
