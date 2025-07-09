@@ -13,6 +13,14 @@
 # Create temporary directory for outputs if it doesn't exist
 mkdir -p _tmp
 
+# Create timestamped log directory for all tissues
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+LOG_DIR="logs/${TIMESTAMP}"
+mkdir -p "$LOG_DIR"
+
+echo "Created log directory: $LOG_DIR"
+echo "All tissue logs will be saved in this directory"
+
 # Define list of GTEx tissues to process
 TISSUES=(
     "adipose_subcutaneous"
@@ -91,10 +99,11 @@ for i in "${!TISSUES[@]}"; do
     echo "=========================================="
     echo "Processing tissue $TISSUE_NUM/$TOTAL_TISSUES: $TISSUE"
     echo "Started at: $(date)"
+    echo "Log file: $LOG_DIR/compute_intersections_${TISSUE}.log"
     echo "=========================================="
     
-    # Run compute_intersections.py for this tissue
-    if python compute_intersections.py --gtex-tissue "$TISSUE"; then
+    # Run compute_intersections.py for this tissue with shared log directory
+    if python compute_intersections.py --gtex-tissue "$TISSUE" --log-dir "$LOG_DIR"; then
         echo "✓ Successfully processed $TISSUE"
         ((PROCESSED++))
     else
@@ -119,6 +128,7 @@ echo "  Total tissues: $TOTAL_TISSUES"
 echo "  Successfully processed: $PROCESSED"
 echo "  Skipped (output exists): $SKIPPED"
 echo "  Failed: $FAILED"
+echo "  All log files saved in: $LOG_DIR"
 echo "Job completed at: $(date)"
 echo "=========================================="
 
