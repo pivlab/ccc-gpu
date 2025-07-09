@@ -206,6 +206,7 @@ __global__ void generatePermutations(curandState *states, uint32_t *perm_indices
 
 /**
  * @brief Device function to compute ARI between two partitions with permutation
+ * Optimized for GPU execution with smaller memory footprint
  * @param part_i First partition
  * @param part_j Second partition (will be permuted)
  * @param perm Permutation indices
@@ -216,20 +217,37 @@ template <typename T, typename R>
 __device__ R computePermutedARI(const T *part_i, const T *part_j, 
                                const uint32_t *perm, const uint32_t n_objects)
 {
-    // Find the maximum cluster IDs to determine contingency matrix size
+    // Quick validation
+    if (n_objects == 0) return 0.0f;
+    
+    // For GPU efficiency, limit the maximum number of clusters
+    const int MAX_CLUSTERS = 16;
+    
+    // Find the maximum cluster IDs
     T max_i = 0, max_j = 0;
     for (uint32_t idx = 0; idx < n_objects; ++idx)
     {
-        if (part_i[idx] >= 0 && part_i[idx] > max_i) max_i = part_i[idx];
-        if (part_j[perm[idx]] >= 0 && part_j[perm[idx]] > max_j) max_j = part_j[perm[idx]];
+        T cluster_i = part_i[idx];
+        T cluster_j = part_j[perm[idx]];
+        
+        if (cluster_i >= 0 && cluster_i > max_i) max_i = cluster_i;
+        if (cluster_j >= 0 && cluster_j > max_j) max_j = cluster_j;
     }
     
     const int k = max(max_i, max_j) + 1;
-    if (k <= 0 || k > 32) return 0.0f; // Reasonable limit for k
+    if (k <= 0 || k > MAX_CLUSTERS) return 0.0f;
     
-    // Compute contingency matrix
-    int contingency[32][32] = {0}; // Stack allocation for small matrices
+    // Use a more memory-efficient approach with smaller arrays
+    int contingency[MAX_CLUSTERS * MAX_CLUSTERS]; // Flatten the matrix
+    int sum_rows[MAX_CLUSTERS];
+    int sum_cols[MAX_CLUSTERS];
     
+    // Initialize arrays
+    for (int i = 0; i < k * k; ++i) contingency[i] = 0;
+    for (int i = 0; i < k; ++i) { sum_rows[i] = 0; sum_cols[i] = 0; }
+    
+    // Build contingency matrix and compute sums in single pass
+    int sum_squares = 0;
     for (uint32_t idx = 0; idx < n_objects; ++idx)
     {
         T cluster_i = part_i[idx];
@@ -237,64 +255,61 @@ __device__ R computePermutedARI(const T *part_i, const T *part_j,
         
         if (cluster_i >= 0 && cluster_j >= 0 && cluster_i < k && cluster_j < k)
         {
-            contingency[cluster_i][cluster_j]++;
+            int cont_idx = cluster_i * k + cluster_j;
+            contingency[cont_idx]++;
+            int val = contingency[cont_idx];
+            
+            // Update sum_squares incrementally
+            sum_squares += 2 * val - 1; // val^2 - (val-1)^2 = 2*val - 1
         }
     }
     
     // Compute row and column sums
-    int sum_rows[32] = {0};
-    int sum_cols[32] = {0};
-    int sum_squares = 0;
-    
     for (int i = 0; i < k; ++i)
     {
         for (int j = 0; j < k; ++j)
         {
-            int val = contingency[i][j];
+            int val = contingency[i * k + j];
             sum_rows[i] += val;
             sum_cols[j] += val;
-            sum_squares += val * val;
         }
     }
     
-    // Compute pair confusion matrix elements
-    int sum_comb_c = 0;
-    int sum_comb_k = 0;
-    
+    // Compute combination sums
+    int sum_comb_c = 0, sum_comb_k = 0;
     for (int i = 0; i < k; ++i)
     {
         if (sum_rows[i] > 1)
-        {
             sum_comb_c += (sum_rows[i] * (sum_rows[i] - 1)) / 2;
-        }
         if (sum_cols[i] > 1)
-        {
             sum_comb_k += (sum_cols[i] * (sum_cols[i] - 1)) / 2;
-        }
     }
     
     int sum_comb_ck = (sum_squares - n_objects) / 2;
     
-    // Compute ARI
+    // Compute ARI with improved numerical stability
     if (sum_comb_c == 0 && sum_comb_k == 0)
     {
         return (sum_comb_ck == 0) ? 1.0f : 0.0f;
     }
     
-    R expected_index = static_cast<R>(sum_comb_c * sum_comb_k) / 
-                       static_cast<R>((n_objects * (n_objects - 1)) / 2);
-    R max_index = static_cast<R>(sum_comb_c + sum_comb_k) / 2.0f;
+    // Use double precision for intermediate calculations to avoid overflow
+    double n_choose_2 = static_cast<double>(n_objects) * (n_objects - 1) / 2.0;
+    double expected_index = static_cast<double>(sum_comb_c) * sum_comb_k / n_choose_2;
+    double max_index = (static_cast<double>(sum_comb_c) + sum_comb_k) / 2.0;
     
-    if (max_index == expected_index)
+    if (fabs(max_index - expected_index) < 1e-10)
     {
         return 0.0f;
     }
     
-    return (static_cast<R>(sum_comb_ck) - expected_index) / (max_index - expected_index);
+    double ari = (static_cast<double>(sum_comb_ck) - expected_index) / (max_index - expected_index);
+    return static_cast<R>(ari);
 }
 
 /**
  * @brief CUDA kernel to compute CCC values for permuted partitions
+ * Optimized with better error handling and bounds checking
  * @param parts_i Partitions for feature i
  * @param parts_j Partitions for feature j
  * @param perm_indices Permutation indices
@@ -310,37 +325,65 @@ __global__ void computePermutationCCC(const T *parts_i, const T *parts_j,
                                      const uint32_t n_objects)
 {
     uint32_t perm_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (perm_idx < n_perms)
+    if (perm_idx >= n_perms) return;
+    
+    // Initialize with a reasonable default value
+    R max_ari = 0.0f;
+    bool found_valid_ari = false;
+    
+    // Get permutation for this thread
+    const uint32_t *perm = &perm_indices[perm_idx * n_objects];
+    
+    // Validate permutation indices (basic sanity check)
+    bool valid_perm = true;
+    for (uint32_t k = 0; k < min(n_objects, 10u); ++k) // Check first 10 for efficiency
     {
-        const uint32_t *perm = &perm_indices[perm_idx * n_objects];
-        R max_ari = -1.0f;
-        
-        // Compute ARI for all partition pairs with this permutation
-        for (uint32_t i = 0; i < n_partitions; ++i)
+        if (perm[k] >= n_objects)
         {
-            for (uint32_t j = 0; j < n_partitions; ++j)
+            valid_perm = false;
+            break;
+        }
+    }
+    
+    if (!valid_perm)
+    {
+        if (perm_idx < n_perms)  // Add bounds check
+            perm_ccc_values[perm_idx] = 0.0f;
+        return;
+    }
+    
+    // Compute ARI for all partition pairs with this permutation
+    for (uint32_t i = 0; i < n_partitions; ++i)
+    {
+        for (uint32_t j = 0; j < n_partitions; ++j)
+        {
+            const T *part_i = &parts_i[i * n_objects];
+            const T *part_j = &parts_j[j * n_objects];
+            
+            // Check for invalid partitions (categorical markers or singletons)
+            if (part_i[0] < 0 || part_j[0] < 0)
             {
-                const T *part_i = &parts_i[i * n_objects];
-                const T *part_j = &parts_j[j * n_objects];
-                
-                // Check for invalid partitions
-                if (part_i[0] < 0 || part_j[0] < 0)
-                {
-                    continue;
-                }
-                
-                // Compute ARI between part_i and permuted part_j
-                R ari_value = computePermutedARI<T, R>(part_i, part_j, perm, n_objects);
-                
-                if (ari_value > max_ari)
+                continue;
+            }
+            
+            // Compute ARI between part_i and permuted part_j
+            R ari_value = computePermutedARI<T, R>(part_i, part_j, perm, n_objects);
+            
+            // Handle NaN/inf values
+            if (isfinite(ari_value))
+            {
+                if (!found_valid_ari || ari_value > max_ari)
                 {
                     max_ari = ari_value;
+                    found_valid_ari = true;
                 }
             }
         }
-        
-        perm_ccc_values[perm_idx] = max_ari;
     }
+    
+    // Store result (0.0 if no valid ARI was computed)
+    if (perm_idx < n_perms)  // Add bounds check
+        perm_ccc_values[perm_idx] = found_valid_ari ? max_ari : 0.0f;
 }
 
 /**
@@ -616,6 +659,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         const uint32_t n_perms = pvalue_n_perms.value();
         const uint32_t rand_seed = 42; // Fixed seed for reproducibility
         
+        // Copy partition data to device for p-value computation
+        thrust::device_vector<T> d_parts(parts.data(), parts.data() + (n_features * n_partitions * n_objects));
+        
         // Allocate device memory for p-value computation
         thrust::device_vector<curandState> d_rand_states(n_perms);
         thrust::device_vector<uint32_t> d_perm_indices(n_perms * n_objects);
@@ -625,9 +671,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         
         // Initialize random states
         const uint32_t block_size = 256;
-        const uint32_t grid_size = (n_perms + block_size - 1) / block_size;
+        const uint32_t grid_size_states = (n_perms + block_size - 1) / block_size;
         
-        initRandomStates<<<grid_size, block_size>>>(
+        initRandomStates<<<grid_size_states, block_size>>>(
             thrust::raw_pointer_cast(d_rand_states.data()),
             n_perms,
             rand_seed
@@ -635,7 +681,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         CUDA_CHECK_MANDATORY(cudaDeviceSynchronize());
         
         // Generate permutation indices
-        generatePermutations<<<grid_size, block_size>>>(
+        generatePermutations<<<grid_size_states, block_size>>>(
             thrust::raw_pointer_cast(d_rand_states.data()),
             thrust::raw_pointer_cast(d_perm_indices.data()),
             n_perms,
@@ -643,18 +689,84 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         );
         CUDA_CHECK_MANDATORY(cudaDeviceSynchronize());
         
-        // For simplicity, skip the full p-value computation for now
-        // This is a complex implementation that needs proper memory management
-        // TODO: Implement proper p-value computation
-        spdlog::debug("P-value computation placeholder - setting to 0.5");
+        // Compute CCC values for each feature pair with permutations
+        spdlog::debug("Computing permutation CCC values for {} feature comparisons", n_feature_comp);
         
-        // Fill with placeholder p-values
-        for (uint64_t i = 0; i < n_feature_comp; ++i)
+        for (uint64_t comp_idx = 0; comp_idx < n_feature_comp; ++comp_idx)
         {
-            cm_pvalues[i] = 0.5f;
+            // Get feature indices for this comparison
+            unsigned int feat_i, feat_j;
+            get_coords_from_index(static_cast<unsigned int>(n_features), 
+                                static_cast<unsigned int>(comp_idx), feat_i, feat_j);
+            
+            // Calculate device pointers for the two features
+            const T* d_parts_i = thrust::raw_pointer_cast(d_parts.data()) + feat_i * n_partitions * n_objects;
+            const T* d_parts_j = thrust::raw_pointer_cast(d_parts.data()) + feat_j * n_partitions * n_objects;
+            
+            // Count valid partitions on host (since this is a small operation)
+            uint32_t valid_count_i = 0, valid_count_j = 0;
+            const T* host_parts_i = parts.data() + feat_i * n_partitions * n_objects;
+            const T* host_parts_j = parts.data() + feat_j * n_partitions * n_objects;
+            
+            // Validate feature indices to prevent memory corruption
+            if (feat_i >= n_features || feat_j >= n_features)
+            {
+                spdlog::error("Invalid feature indices: feat_i={}, feat_j={}, n_features={}", 
+                             feat_i, feat_j, n_features);
+                continue; // Skip this comparison
+            }
+            
+            for (uint32_t p = 0; p < n_partitions; ++p)
+            {
+                if (host_parts_i[p * n_objects] >= 0) valid_count_i++;
+                if (host_parts_j[p * n_objects] >= 0) valid_count_j++;
+            }
+            
+            // Select feature with more valid partitions for permutation (CPU logic)
+            const T* d_parts_to_permute = (valid_count_i > valid_count_j) ? d_parts_j : d_parts_i;
+            const T* d_parts_fixed = (valid_count_i > valid_count_j) ? d_parts_i : d_parts_j;
+            
+            // Compute CCC values for all permutations of this feature pair
+            const uint32_t perm_grid_size = (n_perms + block_size - 1) / block_size;
+            
+            computePermutationCCC<<<perm_grid_size, block_size>>>(
+                d_parts_fixed,
+                d_parts_to_permute,
+                thrust::raw_pointer_cast(d_perm_indices.data()),
+                thrust::raw_pointer_cast(d_perm_ccc_values.data()) + comp_idx * n_perms,
+                n_perms,
+                n_partitions,
+                n_objects
+            );
+            CUDA_CHECK_MANDATORY(cudaDeviceSynchronize());
         }
         
-        spdlog::debug("P-value computation completed (placeholder)");
+        // Compute p-values from permutation results
+        spdlog::debug("Computing final p-values");
+        const uint32_t pval_grid_size = (n_feature_comp + block_size - 1) / block_size;
+        
+        computePValues<<<pval_grid_size, block_size>>>(
+            thrust::raw_pointer_cast(d_perm_ccc_values.data()),
+            thrust::raw_pointer_cast(d_observed_ccc_values.data()),
+            thrust::raw_pointer_cast(d_computed_pvalues.data()),
+            n_feature_comp,
+            n_perms
+        );
+        CUDA_CHECK_MANDATORY(cudaDeviceSynchronize());
+        
+        // Copy p-values back to host
+        thrust::copy(d_computed_pvalues.begin(), d_computed_pvalues.end(), cm_pvalues.begin());
+        
+        // Set p-values to NaN where corresponding CCC values are NaN
+        for (uint64_t i = 0; i < n_feature_comp; ++i)
+        {
+            if (std::isnan(cm_values[i]))
+            {
+                cm_pvalues[i] = std::numeric_limits<R>::quiet_NaN();
+            }
+        }
+        
+        spdlog::debug("P-value computation completed successfully");
     }
 
     /*
