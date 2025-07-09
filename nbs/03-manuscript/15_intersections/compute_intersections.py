@@ -168,24 +168,20 @@ def generate_upset_plots(df_plot, categories, args, OUTPUT_FIGURE_NAME, LOG_DIR,
             (True, True, True, False, False, False),
             # diagreements
             #   ccc
-            (False, True, False, True, False, True),
             (False, True, False, False, False, True),
             (True, False, False, False, False, True),
             (True, True, False, False, False, True),
+            (True, False, False, False, True, True)
+            (False, True, False, True, False, True),
             #   pearson
             (False, False, True, False, True, False),
-            (True, False, False, False, True, False),
             (True, False, True, False, True, False),
-            #   spearman
-            (False, True, False, True, False, False),
-            # Spearman (high) & Clustermatch (low)
-            (False, False, True, True, False, False),
-            # Spearman (high) & Clustermatch (low) & Pearson (low)
-            (False, True, True, True, False, False),
-            # Pearson (high) & Spearman (high) & Clustermatch (low)
+            (True, False, False, False, True, False),
             (False, False, True, True, True, False),
-            # Pearson (high) & Clustermatch (high) & Spearman (low)
-            (True, False, False, False, True, True)
+            #   spearman
+            (False, False, True, True, False, False),
+            (False, True, True, True, False, False),
+            (False, True, False, True, False, False),
         ]
     ]
 
