@@ -189,7 +189,7 @@ def log_statistics(
         # ((20000, 1000), False, 0.0, True),
         # ((8000, 1000), 0.0, True),
         # ((12000, 1000), 0.0, True),
-        # ((56200, 755), 0.0, True),
+        # ((56200, 755), False, 0.0, True),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
@@ -298,8 +298,10 @@ def test_ccc_gpu_with_categorical_input(
     )
     res_cpu = ccc(df, n_jobs=n_cpu_cores)
     res_gpu = ccc_gpu(df)
-    assert np.allclose(res_cpu, res_gpu)
 
+    cpu_df = pd.DataFrame(res_cpu)
+    gpu_df = pd.DataFrame(res_gpu.astype(np.float64))
+    pd.testing.assert_frame_equal(gpu_df, cpu_df, atol=1e-6, rtol=1e-6)
 
 # @clean_gpu_memory
 # def test_ccc_gpu_with_mixed_input():

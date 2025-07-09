@@ -39,7 +39,7 @@ def get_perc_from_k(k: int) -> list[float]:
 
 
 @njit(cache=True, nogil=True)
-def run_quantile_clustering(data: NDArray, k: int) -> NDArray[np.int8]:
+def run_quantile_clustering(data: NDArray, k: int) -> NDArray[np.int16]:
     """
     Performs a simple quantile clustering on one dimensional data (1d). Quantile
     clustering is defined as the procedure that forms clusters in 1d data by
@@ -64,7 +64,7 @@ def run_quantile_clustering(data: NDArray, k: int) -> NDArray[np.int8]:
     cut_points = np.searchsorted(data_perc[data_sorted], percentiles, side="right")
 
     current_cluster = 0
-    part = np.zeros(data.shape, dtype=np.int8) - 1
+    part = np.zeros(data.shape, dtype=np.int16) - 1
 
     for i in range(len(cut_points) - 1):
         lim1 = cut_points[i]
@@ -79,7 +79,7 @@ def run_quantile_clustering(data: NDArray, k: int) -> NDArray[np.int8]:
 @njit(cache=True, nogil=True)
 def get_range_n_clusters(
     n_features: int, internal_n_clusters: Iterable[int] = None
-) -> NDArray[np.int8]:
+) -> NDArray[np.int16]:
     """
     Given the number of features it returns a tuple of k values to cluster those
     features into. By default, it generates a tuple of k values from 2 to
@@ -115,7 +115,7 @@ def get_range_n_clusters(
 @njit(cache=True, nogil=True)
 def get_parts(
     data: NDArray, range_n_clusters: tuple[int], data_is_numerical: bool = True
-) -> NDArray[np.int8]:
+) -> NDArray[np.int16]:
     """
     Given a 1d data array, it computes a partition for each k value in the given
     range of clusters. If partitions with only one cluster are returned (singletons),
@@ -136,7 +136,7 @@ def get_parts(
         detected (partitions with one cluster), usually because of problems with the
         input data (it has all the same values, for example).
     """
-    parts = np.zeros((len(range_n_clusters), data.shape[0]), dtype=np.int8) - 1
+    parts = np.zeros((len(range_n_clusters), data.shape[0]), dtype=np.int16) - 1
 
     if data_is_numerical:
         for idx in range(len(range_n_clusters)):
@@ -149,7 +149,7 @@ def get_parts(
     else:
         # if the data is categorical, then the encoded feature is already the partition
         # only the first partition is filled, the rest will be -1 (missing)
-        parts[0] = data.astype(np.int8)
+        parts[0] = data.astype(np.int16)
 
     return parts
 
@@ -218,7 +218,7 @@ def get_feature_parts(params):
     # ]
 
     n_objects = params[0][1].shape[0]
-    parts = np.zeros((len(params), n_objects), dtype=np.int8) - 1
+    parts = np.zeros((len(params), n_objects), dtype=np.int16) - 1
 
     # iterate over a list of tuples that indicate a feature-k pair
     for p_idx, p in enumerate(params):
@@ -471,14 +471,13 @@ def compute_coef(params):
     processing.
 
     Args:
-        params: a tuple with eight elements: 1) the indexes of the features
+        params: a tuple with seven elements: 1) the indexes of the features
             to compare, 2) the number of features, 3) the partitions for each
             feature, 4) the number of permutations to compute the p-value, 5)
             the number of threads to use for parallelization, 6) the ratio
             between the number of chunks and the number of threads, 7) the
             executor to use for cdist parallelization, and 8) the executor to use
             for parallelization of permutations.
-        X_numerical_type: a boolean array indicating if each feature is numerical
     Returns:
         Returns a tuple with three arrays. The first array has the CCC
         coefficients, the second array has the indexes of the partitions that
@@ -493,7 +492,6 @@ def compute_coef(params):
         n_chunks_threads_ratio,
         cdist_executor,
         executor,
-        X_numerical_type,
     ) = params
 
     cdist_func = cdist_parts_basic
@@ -509,11 +507,7 @@ def compute_coef(params):
 
     for idx, data_idx in enumerate(idx_list):
         i, j = get_coords_from_index(n_features, data_idx)
-        # Check if the features i and j are both numerical
-        if X_numerical_type[i] and X_numerical_type[j]:
-            # This feature pair is computed using the GPU
-            continue
-
+        
         # get partitions for the pair of objects
         obji_parts, objj_parts = parts[i], parts[j]
 
@@ -613,7 +607,7 @@ def ccc(
     n_jobs: int = 1,
     pvalue_n_perms: int = None,
     partitioning_executor: str = "thread",
-) -> tuple[NDArray[float], NDArray[float], NDArray[np.uint64], NDArray[np.int8]]:
+) -> tuple[NDArray[float], NDArray[float], NDArray[np.uint64], NDArray[np.int16]]:
     """
     This is the main function that computes the Clustermatch Correlation
     Coefficient (CCC) between two arrays. The implementation supports numerical
@@ -732,8 +726,7 @@ def ccc(
     else:
         raise ValueError("Wrong combination of parameters x and y")
 
-    # Check if any feature has categorical data
-    X_has_cat_features = np.any(X_numerical_type == False)
+    # Note: Categorical data is now handled by the GPU implementation
 
     # get number of cores to use
     n_workers = get_n_workers(n_jobs)
@@ -758,7 +751,7 @@ def ccc(
 
     # store a set of partitions per row (object) in X as a multidimensional
     # array, where the second dimension is the number of partitions per object.
-    parts = np.zeros((n_features, n_clusters, n_objects), dtype=np.int8) - 1
+    parts = np.zeros((n_features, n_clusters, n_objects), dtype=np.int16) - 1
 
     # cm_values stores the CCC coefficients
     n_features_comp = (n_features * (n_features - 1)) // 2
@@ -883,91 +876,11 @@ def ccc(
     #         outfile.write('# New slice\n')
 
     # Compute the CCC coefficient for all feature pairs
-    # Handle cases where the data has categorical features
-    if X_has_cat_features:
-        # Select from parts the features that are numerical
-        parts_numerical = parts[X_numerical_type]
-        n_features_numerical = parts_numerical.shape[0]
-        # Compute the CCC coefficient for the numerical features using the GPU
-        if n_features_numerical > 0:
-            coef_gpu = ccc_cuda_ext.compute_coef(
-                parts_numerical,
-                n_features_numerical,
-                n_clusters,
-                n_objects,
-                return_parts,
-                pvalue_n_perms,
-            )
-            num_cm_values, num_cm_pvalues, num_max_parts = coef_gpu
-        else:
-            num_cm_values = np.array([])
-            num_cm_pvalues = np.array([])
-            num_max_parts = np.array([])
-
-        # Compute the CCC coefficient for the categorical features using the CPU
-        # Below, there are two layers of parallelism: 1) parallel execution
-        # across feature pairs and 2) the cdist_parts_parallel function, which
-        # also runs several threads to compare partitions using ari. In 2) we
-        # need to disable parallelization in case len(cm_values) > 1 (that is,
-        # we have several feature pairs to compare), because parallelization is
-        # already performed at this level. Otherwise, more threads than
-        # specified by the user are started.
-
-        map_func = map
-        cdist_executor = False
-        inner_executor = DummyExecutor()
-
-        if n_workers > 1:
-            if n_features_comp == 1:
-                map_func = map
-                cdist_executor = executor
-                inner_executor = pexecutor
-
-            else:
-                map_func = pexecutor.map
-
-        # iterate over all chunks of object pairs and compute the coefficient
-        inputs = get_chunks(n_features_comp, n_workers, n_chunks_threads_ratio)
-        inputs = [
-            (
-                i,
-                n_features,
-                parts,
-                pvalue_n_perms,
-                n_workers,
-                n_chunks_threads_ratio,
-                cdist_executor,
-                inner_executor,
-                X_numerical_type,
-            )
-            for i in inputs
-        ]
-
-        for params, (max_ari_list, max_part_idx_list, pvalues) in zip(
-            inputs,
-            map_func(compute_coef, inputs),  # Apply compute_coef to each input
-        ):
-            f_idx = params[0]
-
-            cm_values[f_idx] = max_ari_list
-            max_parts[f_idx, :] = max_part_idx_list
-            cm_pvalues[f_idx] = pvalues
-
-        # Combine the results from the GPU and CPU computations
-        num_coef_idx = 0
-        for coef_idx, coef in enumerate(cm_values):
-            if np.isnan(coef):
-                cm_values[coef_idx] = num_cm_values[num_coef_idx]
-                # cm_pvalues[coef_idx] = num_cm_pvalues[num_coef_idx]
-                # max_parts[coef_idx, :] = num_max_parts[num_coef_idx, :]
-                num_coef_idx += 1
-
-    else:
-        # Use the original implementation for numerical features
-        coef = ccc_cuda_ext.compute_coef(
-            parts, n_features, n_clusters, n_objects, return_parts, pvalue_n_perms
-        )
-        cm_values, cm_pvalues, max_parts = coef
+    # Use the GPU implementation for all data types (numerical and categorical)
+    coef = ccc_cuda_ext.compute_coef(
+        parts, n_features, n_clusters, n_objects, return_parts, pvalue_n_perms
+    )
+    cm_values, cm_pvalues, max_parts = coef
 
     # return an array of values or a single scalar, depending on the input data
     if cm_values.shape[0] == 1:

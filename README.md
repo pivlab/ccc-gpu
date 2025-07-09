@@ -181,7 +181,7 @@ CCC-GPU provides significant performance improvements over CPU-only implementati
 | 16000 | 73.83 |
 | 20000 | 73.88 |
 
-*Benchmarks performed on synthetic gene expression data with 1000 fixed samples. Hardware: AMD Ryzen Threadripper 7960X CPU and an NVIDIA RTX 4090 GPU*
+*Benchmarks performed on synthetic gene expression data with 1000 fixed samples. Hardware: AMD Ryzen Threadripper 7960X CPU and an NVIDIA RTX 4090 GPU. Git commit on which the benchmark results were collected: 05f129dfa47ad801eff963b4189484c7c64bd28e*
 
 ## Documentation
 

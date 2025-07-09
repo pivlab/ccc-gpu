@@ -824,7 +824,7 @@ auto example_return_optional_vectors(bool include_first,
 // separate the implementation into a .cpp file to make things clearer. In order to make the compiler know the
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
-template auto compute_coef<int8_t, float>(const py::array_t<int8_t, py::array::c_style> &parts,
+template auto compute_coef<int16_t, float>(const py::array_t<int16_t, py::array::c_style> &parts,
                                           const size_t n_features,
                                           const size_t n_partitions,
                                           const size_t n_objects,
