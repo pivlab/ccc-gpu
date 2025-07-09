@@ -112,7 +112,7 @@ __device__ __host__ inline void get_coords_from_index(uint32_t n_obj, uint64_t i
  * @param[in] k Maximum number of clusters (size of contingency matrix is k x k)
  */
 template <typename T>
-__device__ void get_contingency_matrix(T *part0, T *part1, int n_objs, int *shared_cont_mat, int k)
+__device__ void get_contingency_matrix_shared(T *part0, T *part1, int n_objs, int *shared_cont_mat, int k)
 {
     const int tid = threadIdx.x;
     const int n_block_threads = blockDim.x;
@@ -143,6 +143,43 @@ __device__ void get_contingency_matrix(T *part0, T *part1, int n_objs, int *shar
     }
     // __syncthreads();
 }
+
+/**
+ * @brief Compute the contingency matrix for two partitions using global memory
+ * @param[in] part0 Pointer to the first partition array, global memory
+ * @param[in] part1 Pointer to the second partition array, global memory
+ * @param[in] n_objs Number of elements in each partition array
+ * @param[out] global_cont_mat Pointer to global memory for storing the contingency matrix
+ * @param[in] k Maximum number of clusters (size of contingency matrix is k x k)
+ */
+template <typename T>
+__device__ void get_contingency_matrix_global(T *part0, T *part1, int n_objs, int *global_cont_mat, int k)
+{
+    const int tid = threadIdx.x;
+    const int n_block_threads = blockDim.x;
+    const int cont_mat_size = k * k;
+
+    // Initialize global memory (only one thread per block initializes each element)
+    for (int i = tid; i < cont_mat_size; i += n_block_threads)
+    {
+        global_cont_mat[i] = 0;
+    }
+    __syncthreads();
+
+#pragma unroll
+    for (int i = tid; i < n_objs; i += n_block_threads)
+    {
+        // Directly load row/col info from global memory into registers
+        const T row = part0[i];
+        const T col = part1[i];
+
+        // Add bounds checking
+        // Use atomic operations since we're writing to global memory
+        atomicAdd(&global_cont_mat[row * k + col], 1);
+    }
+    __syncthreads();
+}
+
 
 /**
  * @brief CUDA device function to compute the pair confusion matrix
@@ -227,6 +264,111 @@ __device__ void get_pair_confusion_matrix(
 }
 
 /**
+ * @brief ARI kernel using global memory for large contingency matrices
+ * @param parts Device pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
+ * @param n_aris Number of ARIs to compute
+ * @param n_features Number of features
+ * @param n_parts Number of partitions of each feature
+ * @param n_objs Number of objects in each partitions
+ * @param n_elems_per_feat Number of elements for each feature, i.e., part[i].x * part[i].y
+ * @param n_part_mat_elems Number of elements in the square partition matrix
+ * @param k The max value of cluster number + 1
+ * @param global_cont_matrices Device pointer to pre-allocated global memory for contingency matrices
+ * @param out Output array of ARIs
+ */
+template <typename T>
+__global__ void ari_kernel_global(T *parts,
+                                  const uint64_t n_aris,
+                                  const uint64_t n_features,
+                                  const uint64_t n_parts,
+                                  const uint64_t n_objs,
+                                  const uint64_t n_elems_per_feat,
+                                  const uint64_t n_part_mat_elems,
+                                  const uint32_t k,
+                                  const uint64_t batch_start,
+                                  int *global_cont_matrices,
+                                  float *out)
+{
+    /*
+     * Step 0: Compute global memory addresses for this block
+     */
+    const uint64_t block_id = blockIdx.x;
+    const uint64_t cont_mat_size = k * k;
+    const uint64_t sum_arrays_size = 2 * k;
+    const uint64_t pair_confusion_size = 4;
+    
+    // Each block gets its own section of global memory
+    int *g_contingency = global_cont_matrices + block_id * (cont_mat_size + sum_arrays_size + pair_confusion_size);
+    int *g_sum_rows = g_contingency + cont_mat_size;
+    int *g_sum_cols = g_sum_rows + k;
+    int *g_pair_confusion_matrix = g_sum_cols + k;
+
+    /*
+     * Step 1: Each thread unravels flat indices and loads the corresponding data
+     */
+    const uint64_t ari_block_idx = blockIdx.x + batch_start;
+    uint64_t feature_comp_flat_idx = ari_block_idx / n_part_mat_elems;
+    uint64_t part_pair_flat_idx = ari_block_idx % n_part_mat_elems;
+    uint64_t i, j;
+
+    get_coords_from_index(n_features, feature_comp_flat_idx, &i, &j);
+    
+    uint64_t m, n;
+    unravel_index(part_pair_flat_idx, n_parts, &m, &n);
+    
+    T *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
+    T *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
+
+    // Check for invalid partitions
+    if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
+    {
+        if (threadIdx.x == 0)
+        {
+            out[blockIdx.x] = 0.0f;
+        }
+        return;
+    }
+    
+    // Check for singletons - these should remain as NaN
+    if (t_data_part0[0] == -2 || t_data_part1[0] == -2)
+    {
+        return;
+    }
+
+    /*
+     * Step 2: Compute contingency matrix using global memory
+     */
+    get_contingency_matrix_global(t_data_part0, t_data_part1, n_objs, g_contingency, k);
+
+    /*
+     * Step 3: Construct pair confusion matrix
+     */
+    get_pair_confusion_matrix(g_contingency, g_sum_rows, g_sum_cols, n_objs, k, g_pair_confusion_matrix);
+
+    /*
+     * Step 4: Compute ARI and write to global memory
+     */
+    if (threadIdx.x == 0)
+    {
+        float tn = g_pair_confusion_matrix[0];
+        float fp = g_pair_confusion_matrix[1];
+        float fn = g_pair_confusion_matrix[2];
+        float tp = g_pair_confusion_matrix[3];
+        float ari = 0.0f;
+        if (fn == 0 && fp == 0)
+        {
+            ari = 1.0f;
+        }
+        else
+        {
+            ari = 2.0f * (tp * tn - fn * fp) / ((tp + fn) * (fn + tn) + (tp + fp) * (fp + tn));
+        }
+        out[blockIdx.x] = ari;
+    }
+    __syncthreads();
+}
+
+/**
  * @brief Main ARI kernel. Now only compare a pair of ARIs
  * @param parts Device pointer to the 3D Array of partitions with shape of (n_features, n_parts, n_objs)
  * @param n_aris Number of ARIs to compute
@@ -295,15 +437,19 @@ __global__ void ari_kernel(T *parts,
     T *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
 
     // Check on categorical partition marker, if the first object of either partition is -1 (actually all the objects are -1),
-    // then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of -1.
+    // then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of 0.0.
     if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
     {
+        if (threadIdx.x == 0)
+        {
+            out[blockIdx.x] = 0.0f;
+        }
         return;
     }
 
     // Check on singletons.  -2 is used when singletons have been detected (partitions with one cluster), usually because of problems with the
     // input data (it has all the same values, for example).
-    // Then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of -1.
+    // Then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of NaN.
     if (t_data_part0[0] == -2 || t_data_part1[0] == -2)
     {
         return;
@@ -314,7 +460,7 @@ __global__ void ari_kernel(T *parts,
      */
     // shared mem address for the contingency matrix
     // int *s_contingency = shared_mem + 2 * n_objs;
-    get_contingency_matrix(t_data_part0, t_data_part1, n_objs, s_contingency, k);
+    get_contingency_matrix_shared(t_data_part0, t_data_part1, n_objs, s_contingency, k);
 
     /*
      * Step 3: Construct pair confusion matrix
@@ -417,16 +563,15 @@ auto ari_core_device(const T *parts,
     // Define shared memory size for each block
     // Pre-compute the max value of the partitions
     const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<T>()) + 1;
-    const auto sz_T = sizeof(T);
+    const auto sz_int = sizeof(int);
     // Compute shared memory size
     auto s_mem_size = 0;
-    s_mem_size += k * k * sz_T; // For contingency matrix
-    s_mem_size += 2 * k * sz_T; // For the internal sum arrays
-    s_mem_size += 4 * sz_T;     // For the pair confusion matrix
+    s_mem_size += k * k * sz_int; // For contingency matrix (always int)
+    s_mem_size += 2 * k * sz_int; // For the internal sum arrays (always int)
+    s_mem_size += 4 * sz_int;     // For the pair confusion matrix (always int)
 
     // Check if shared memory size exceeds device limits
     auto [is_valid, message] = check_shared_memory_size(s_mem_size);
-    if (!is_valid) { throw std::runtime_error(message); }
     spdlog::debug("Shared memory check: {}", message);
 
     /*
@@ -440,18 +585,44 @@ auto ari_core_device(const T *parts,
     spdlog::debug("Memory before kernel launch: ");
     before_device_mem = print_cuda_memory_info();
 
-    // Launch the kernel
-    ari_kernel<<<grid_size, block_size, s_mem_size>>>(
-        thrust::raw_pointer_cast(d_parts->data()),
-        actual_batch_size,
-        n_features,
-        n_parts,
-        n_objs,
-        n_parts * n_objs,
-        n_parts * n_parts,
-        k,
-        batch_start,
-        thrust::raw_pointer_cast(d_out->data()));
+    if (is_valid) {
+        // Use shared memory kernel for smaller contingency matrices
+        spdlog::debug("Using shared memory kernel for k={}", k);
+        ari_kernel<<<grid_size, block_size, s_mem_size>>>(
+            thrust::raw_pointer_cast(d_parts->data()),
+            actual_batch_size,
+            n_features,
+            n_parts,
+            n_objs,
+            n_parts * n_objs,
+            n_parts * n_parts,
+            k,
+            batch_start,
+            thrust::raw_pointer_cast(d_out->data()));
+    } else {
+        // Use global memory kernel for larger contingency matrices
+        spdlog::debug("Using global memory kernel for k={}", k);
+        
+        // Allocate global memory for contingency matrices
+        // Each block needs: k*k (contingency) + 2*k (sum arrays) + 4 (pair confusion)
+        const size_t mem_per_block = k * k * sizeof(int) + 2 * k * sizeof(int) + 4 * sizeof(int);
+        const size_t total_global_mem = actual_batch_size * mem_per_block;
+        
+        auto d_global_cont_matrices = std::make_unique<thrust::device_vector<int>>(total_global_mem / sizeof(int));
+        
+        ari_kernel_global<<<grid_size, block_size>>>(
+            thrust::raw_pointer_cast(d_parts->data()),
+            actual_batch_size,
+            n_features,
+            n_parts,
+            n_objs,
+            n_parts * n_objs,
+            n_parts * n_parts,
+            k,
+            batch_start,
+            thrust::raw_pointer_cast(d_global_cont_matrices->data()),
+            thrust::raw_pointer_cast(d_out->data()));
+    }
 
     // Track memory after kernel launch
     spdlog::debug("Memory after kernel launch: ");
@@ -593,8 +764,8 @@ template auto ari_core_host<int>(
     const uint64_t batch_size) -> std::vector<float>;
 
 // Used in the coef API
-template auto ari_core_device<int8_t, float>(
-    const py::array_t<int8_t, py::array::c_style> &parts,
+template auto ari_core_device<int16_t, float>(
+    const py::array_t<int16_t, py::array::c_style> &parts,
     const uint64_t n_features,
     const uint64_t n_parts,
     const uint64_t n_objs,

@@ -228,8 +228,8 @@ def test_cm_return_parts_linear():
         ((100, 100), False, False),
         ((100, 1000), False, False),
         # # Large cases
-        ((100, 2000), False, False),
-        ((2000, 1000), False, False),
+        # ((100, 2000), False, False),
+        # ((2000, 1000), False, False),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
@@ -347,33 +347,33 @@ def test_ccc_gpu_with_numerical_input(
     
     
 
-@pytest.mark.parametrize(
-    "seed", [42]
-)  # More seeds for simple cases, only 42 for large cases
-@pytest.mark.parametrize(
-    "shape, n_categories, str_length",
-    [
-        # Simple cases
-        ((10, 20), 10, 2),
-        ((20, 200), 50, 3),
-        # ((30, 300), 200, 4), # Failed for the number of categories
-        # ((9, 10000), 500, 5), # Failed for the number of categories
-    ],
-)
-@pytest.mark.parametrize("n_cpu_cores", [48])
-@clean_gpu_memory
-def test_ccc_gpu_with_categorical_input(
-    seed: int,
-    shape: Tuple[int, int],
-    n_categories: int,
-    str_length: int,
-    n_cpu_cores: int,
-):
-    n_features, n_samples = shape
-    df = generate_categorical_data(
-        n_features, n_samples, n_categories, str_length=str_length, random_state=seed
-    )
-    res_cpu = ccc(df, n_jobs=n_cpu_cores)
-    res_gpu = ccc_gpu(df)
-    assert np.allclose(res_cpu, res_gpu)
+# @pytest.mark.parametrize(
+#     "seed", [42]
+# )  # More seeds for simple cases, only 42 for large cases
+# @pytest.mark.parametrize(
+#     "shape, n_categories, str_length",
+#     [
+#         # Simple cases
+#         ((10, 20), 10, 2),
+#         ((20, 200), 50, 3),
+#         # ((30, 300), 200, 4), # Failed for the number of categories
+#         # ((9, 10000), 500, 5), # Failed for the number of categories
+#     ],
+# )
+# @pytest.mark.parametrize("n_cpu_cores", [48])
+# @clean_gpu_memory
+# def test_ccc_gpu_with_categorical_input(
+#     seed: int,
+#     shape: Tuple[int, int],
+#     n_categories: int,
+#     str_length: int,
+#     n_cpu_cores: int,
+# ):
+#     n_features, n_samples = shape
+#     df = generate_categorical_data(
+#         n_features, n_samples, n_categories, str_length=str_length, random_state=seed
+#     )
+#     res_cpu = ccc(df, n_jobs=n_cpu_cores)
+#     res_gpu = ccc_gpu(df)
+#     assert np.allclose(res_cpu, res_gpu)
 

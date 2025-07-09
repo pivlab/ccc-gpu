@@ -58,10 +58,24 @@ def test_ccc_gpu_with_titanic_dataset(titanic_data):
 
     # Verify results
     try:
-        pd.testing.assert_frame_equal(cpu_corrs, gpu_corrs, check_exact=False)
+        # Use numpy testing instead of pandas since these are numpy arrays
+        np.testing.assert_allclose(cpu_corrs, gpu_corrs, rtol=1e-5, atol=1e-6,
+                                  equal_nan=True, 
+                                  err_msg="CPU and GPU correlation matrices should be nearly identical")
     except AssertionError as e:
         # Print more detailed error information
         print("\nDetailed comparison:")
-        print("Maximum absolute difference:", np.max(np.abs(cpu_corrs - gpu_corrs)))
-        print("Mean absolute difference:", np.mean(np.abs(cpu_corrs - gpu_corrs)))
+        print("Maximum absolute difference:", np.nanmax(np.abs(cpu_corrs - gpu_corrs)))
+        print("Mean absolute difference:", np.nanmean(np.abs(cpu_corrs - gpu_corrs)))
+        
+        # Check NaN patterns
+        cpu_nan_mask = np.isnan(cpu_corrs)
+        gpu_nan_mask = np.isnan(gpu_corrs)
+        print(f"CPU NaN count: {np.sum(cpu_nan_mask)}")
+        print(f"GPU NaN count: {np.sum(gpu_nan_mask)}")
+        
+        if not np.array_equal(cpu_nan_mask, gpu_nan_mask):
+            print("ERROR: NaN patterns differ between CPU and GPU!")
+            print("This indicates categorical data processing issues in GPU implementation")
+        
         raise e
