@@ -105,6 +105,6 @@ KeyValuePairT aggregate = BlockReduceT(temp_storage).Reduce(thread_data, cub::Ar
 - No performance regressions expected
 
 ---
-**Reviewed by:** [haoyu-zc]  
+**Fixed by:** [haoyu-zc]  
 **Deployment Status:** ✅ Complete  
 **Rollback Plan:** Revert `findMaxAriKernel` to previous implementation if unforeseen issues arise

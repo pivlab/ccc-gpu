@@ -118,12 +118,13 @@ __device__ void get_contingency_matrix_shared(T *part0, T *part1, int n_objs, in
     const int n_block_threads = blockDim.x;
     const int cont_mat_size = k * k;
 
-    // Initialize shared memory
-    if (tid < cont_mat_size)
+    // Initialize shared memory - ensure ALL elements are initialized
+    for (int i = tid; i < cont_mat_size; i += n_block_threads)
     {
-        shared_cont_mat[tid] = 0;
+        shared_cont_mat[i] = 0;
     }
     __syncthreads();
+    
 
 #pragma unroll
     for (int i = tid; i < n_objs; i += n_block_threads)
@@ -133,15 +134,14 @@ __device__ void get_contingency_matrix_shared(T *part0, T *part1, int n_objs, in
         const T row = part0[i];
         const T col = part1[i];
 
-        // Add bounds checking
-        // assert(row >= 0 && row < k && col >= 0 && col < k);
-        // if (!(row >= 0 && row < k && col >= 0 && col < k)) {
-        //     printf("Invalid partition indices: row: %d, col: %d\n", row, col);
-        // }
-        // OPT: can we use shared memory to avoid atomicAdd?
+        // Bounds checking to ensure valid array access
+        if (row < 0 || row >= k || col < 0 || col >= k) {
+            continue; // Skip invalid indices
+        }
+        
         atomicAdd(&shared_cont_mat[row * k + col], 1);
     }
-    // __syncthreads();
+    __syncthreads();
 }
 
 /**
@@ -174,10 +174,15 @@ __device__ void get_contingency_matrix_global(T *part0, T *part1, int n_objs, in
         const T col = part1[i];
 
         // Add bounds checking
+        if (row < 0 || row >= k || col < 0 || col >= k) {
+            continue; // Skip invalid values
+        }
+        
         // Use atomic operations since we're writing to global memory
         atomicAdd(&global_cont_mat[row * k + col], 1);
     }
     __syncthreads();
+    
 }
 
 
@@ -196,7 +201,7 @@ __device__ void get_pair_confusion_matrix(
     int *sum_cols,
     const int n_objs,
     const int k,
-    int *C)
+    long long *C)
 {
     // TODO: use block-level reduction
 
@@ -222,14 +227,15 @@ __device__ void get_pair_confusion_matrix(
     }
     __syncthreads();
 
-    // Compute sum_squares
-    int sum_squares;
+    // Compute sum_squares using 64-bit arithmetic
+    long long sum_squares;
     if (tid == 0)
     {
         sum_squares = 0;
         for (int i = 0; i < k * k; ++i)
         {
-            sum_squares += (contingency[i] * contingency[i]);
+            long long val = (long long)contingency[i];
+            sum_squares += val * val;
         }
     }
     __syncthreads();
@@ -237,14 +243,14 @@ __device__ void get_pair_confusion_matrix(
     // Use different warps to compute C[1,1], C[0,1], C[1,0], and C[0,0]
     if (tid == 0)
     {
-        C[3] = sum_squares - n_objs; // C[1,1]
+        C[3] = sum_squares - (long long)n_objs; // C[1,1]
 
-        int temp = 0;
+        long long temp = 0;
         for (int i = 0; i < k; ++i)
         {
             for (int j = 0; j < k; ++j)
             {
-                temp += (contingency[i * k + j]) * sum_cols[j];
+                temp += (long long)contingency[i * k + j] * (long long)sum_cols[j];
             }
         }
         C[1] = temp - sum_squares; // C[0,1]
@@ -254,12 +260,13 @@ __device__ void get_pair_confusion_matrix(
         {
             for (int j = 0; j < k; ++j)
             {
-                temp += (contingency[j * k + i]) * sum_rows[j];
+                temp += (long long)contingency[j * k + i] * (long long)sum_rows[j];
             }
         }
         C[2] = temp - sum_squares; // C[1,0]
 
-        C[0] = n_objs * n_objs - C[1] - C[2] - sum_squares; // C[0,0]
+        C[0] = (long long)n_objs * (long long)n_objs - C[1] - C[2] - sum_squares; // C[0,0]
+        
     }
 }
 
@@ -298,10 +305,19 @@ __global__ void ari_kernel_global(T *parts,
     const uint64_t pair_confusion_size = 4;
     
     // Each block gets its own section of global memory
-    int *g_contingency = global_cont_matrices + block_id * (cont_mat_size + sum_arrays_size + pair_confusion_size);
+    // Calculate offsets to ensure proper alignment for long long
+    const uint64_t ints_per_block = cont_mat_size + sum_arrays_size;
+    const uint64_t aligned_ints_per_block = ((ints_per_block + 1) / 2) * 2;  // Align to 8-byte boundary
+    const uint64_t offset_per_block_bytes = aligned_ints_per_block * sizeof(int) + pair_confusion_size * sizeof(long long);
+    const uint64_t offset_per_block_ints = offset_per_block_bytes / sizeof(int);
+    
+    int *g_contingency = global_cont_matrices + block_id * offset_per_block_ints;
     int *g_sum_rows = g_contingency + cont_mat_size;
     int *g_sum_cols = g_sum_rows + k;
-    int *g_pair_confusion_matrix = g_sum_cols + k;
+    // Ensure 8-byte alignment for long long
+    int *aligned_start = g_contingency + aligned_ints_per_block;
+    long long *g_pair_confusion_matrix = (long long*)aligned_start;
+    
 
     /*
      * Step 1: Each thread unravels flat indices and loads the corresponding data
@@ -350,18 +366,23 @@ __global__ void ari_kernel_global(T *parts,
      */
     if (threadIdx.x == 0)
     {
-        float tn = g_pair_confusion_matrix[0];
-        float fp = g_pair_confusion_matrix[1];
-        float fn = g_pair_confusion_matrix[2];
-        float tp = g_pair_confusion_matrix[3];
+        long long tn = g_pair_confusion_matrix[0];
+        long long fp = g_pair_confusion_matrix[1];
+        long long fn = g_pair_confusion_matrix[2];
+        long long tp = g_pair_confusion_matrix[3];
         float ari = 0.0f;
+        
+        
         if (fn == 0 && fp == 0)
         {
             ari = 1.0f;
         }
         else
         {
-            ari = 2.0f * (tp * tn - fn * fp) / ((tp + fn) * (fn + tn) + (tp + fp) * (fp + tn));
+            double numerator = 2.0 * ((double)tp * (double)tn - (double)fn * (double)fp);
+            double denominator = ((double)tp + (double)fn) * ((double)fn + (double)tn) + ((double)tp + (double)fp) * ((double)fp + (double)tn);
+            ari = (float)(numerator / denominator);
+            
         }
         out[blockIdx.x] = ari;
     }
@@ -400,7 +421,11 @@ __global__ void ari_kernel(T *parts,
     int *s_contingency = shared_mem;               // k * k elements
     int *s_sum_rows = s_contingency + (k * k);     // k elements
     int *s_sum_cols = s_sum_rows + k;              // k elements
-    int *s_pair_confusion_matrix = s_sum_cols + k; // 4 elements
+    // Align to 8-byte boundary for long long
+    // Calculate offset in int units, then align to 8-byte boundary
+    int offset_ints = k * k + 2 * k;
+    int aligned_offset_ints = ((offset_ints + 1) / 2) * 2;  // Align to 8-byte (2 int) boundary
+    long long *s_pair_confusion_matrix = (long long*)(shared_mem + aligned_offset_ints); // 4 elements
 
     /*
      * Step 1: Each thead, unravel flat indices and load the corresponding data into shared memory
@@ -462,6 +487,7 @@ __global__ void ari_kernel(T *parts,
     // int *s_contingency = shared_mem + 2 * n_objs;
     get_contingency_matrix_shared(t_data_part0, t_data_part1, n_objs, s_contingency, k);
 
+
     /*
      * Step 3: Construct pair confusion matrix
      */
@@ -472,18 +498,23 @@ __global__ void ari_kernel(T *parts,
      */
     if (threadIdx.x == 0)
     {
-        float tn = s_pair_confusion_matrix[0];
-        float fp = s_pair_confusion_matrix[1];
-        float fn = s_pair_confusion_matrix[2];
-        float tp = s_pair_confusion_matrix[3];
+        long long tn = s_pair_confusion_matrix[0];
+        long long fp = s_pair_confusion_matrix[1];
+        long long fn = s_pair_confusion_matrix[2];
+        long long tp = s_pair_confusion_matrix[3];
         float ari = 0.0f;
+        
+        
         if (fn == 0 && fp == 0)
         {
             ari = 1.0f;
         }
         else
         {
-            ari = 2.0f * (tp * tn - fn * fp) / ((tp + fn) * (fn + tn) + (tp + fp) * (fp + tn));
+            double numerator = 2.0 * ((double)tp * (double)tn - (double)fn * (double)fp);
+            double denominator = ((double)tp + (double)fn) * ((double)fn + (double)tn) + ((double)tp + (double)fp) * ((double)fp + (double)tn);
+            ari = (float)(numerator / denominator);
+            
         }
         out[blockIdx.x] = ari;
     }
@@ -568,7 +599,10 @@ auto ari_core_device(const T *parts,
     auto s_mem_size = 0;
     s_mem_size += k * k * sz_int; // For contingency matrix (always int)
     s_mem_size += 2 * k * sz_int; // For the internal sum arrays (always int)
-    s_mem_size += 4 * sz_int;     // For the pair confusion matrix (always int)
+    // Align to 8-byte boundary for long long and add space for pair confusion matrix
+    int offset_ints = k * k + 2 * k;
+    int aligned_offset_ints = ((offset_ints + 1) / 2) * 2;  // Align to 8-byte (2 int) boundary
+    s_mem_size = aligned_offset_ints * sz_int + 4 * sizeof(long long);  // Total size
 
     // Check if shared memory size exceeds device limits
     auto [is_valid, message] = check_shared_memory_size(s_mem_size);
@@ -604,11 +638,14 @@ auto ari_core_device(const T *parts,
         spdlog::debug("Using global memory kernel for k={}", k);
         
         // Allocate global memory for contingency matrices
-        // Each block needs: k*k (contingency) + 2*k (sum arrays) + 4 (pair confusion)
-        const size_t mem_per_block = k * k * sizeof(int) + 2 * k * sizeof(int) + 4 * sizeof(int);
+        // Each block needs: k*k (contingency) + 2*k (sum arrays) + 4 (pair confusion as long long)
+        // Ensure 8-byte alignment for long long by using char vector
+        const size_t ints_per_block = k * k + 2 * k;  // contingency + sum arrays
+        const size_t aligned_ints_per_block = ((ints_per_block + 1) / 2) * 2;  // Align to 8-byte boundary
+        const size_t mem_per_block = aligned_ints_per_block * sizeof(int) + 4 * sizeof(long long);
         const size_t total_global_mem = actual_batch_size * mem_per_block;
         
-        auto d_global_cont_matrices = std::make_unique<thrust::device_vector<int>>(total_global_mem / sizeof(int));
+        auto d_global_cont_matrices = std::make_unique<thrust::device_vector<char>>(total_global_mem);
         
         ari_kernel_global<<<grid_size, block_size>>>(
             thrust::raw_pointer_cast(d_parts->data()),
@@ -620,7 +657,7 @@ auto ari_core_device(const T *parts,
             n_parts * n_parts,
             k,
             batch_start,
-            thrust::raw_pointer_cast(d_global_cont_matrices->data()),
+            reinterpret_cast<int*>(thrust::raw_pointer_cast(d_global_cont_matrices->data())),
             thrust::raw_pointer_cast(d_out->data()));
     }
 
