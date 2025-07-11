@@ -108,6 +108,13 @@ conda-lock --file environment/environment-gpu.yml --conda mamba
 conda-lock install --name ccc-gpu conda-lock.yml --conda mamba
 ```
 
+## Testing
+To execute all the test suites, at the root of the repository, run:
+
+```bash
+bash ./scripts/run_tests.sh python
+```
+
 ## Usage
 
 ### Basic Usage
