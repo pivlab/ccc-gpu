@@ -155,41 +155,51 @@ def generate_upset_plots(df_plot, categories, args, OUTPUT_FIGURE_NAME, LOG_DIR,
     ].apply(tuple, axis=1).to_numpy()
     logger.info(f"Disagreements: {disagreements}")
 
-    # order subsets
-    gene_pairs_by_cats = gene_pairs_by_cats.loc[
-        [
-            # pairs not included in categories:
-            # (False, False, False, False, False, False),
-            # full agreements on high:
-            (False, False, False, True, True, True),
-            # agreements on top
-            (False, False, False, False, True, True),
-            (False, False, False, True, False, True),
-            (False, False, False, True, True, False),
-            # agreements on bottom
-            (False, True, True, False, False, False),
-            (True, False, True, False, False, False),
-            (True, True, False, False, False, False),
-            # full agreements on low:
-            (True, True, True, False, False, False),
-            # diagreements
-            #   ccc
-            (False, True, False, False, False, True),
-            (True, False, False, False, False, True),
-            (True, True, False, False, False, True),
-            (True, False, False, False, True, True),
-            (False, True, False, True, False, True),
-            #   pearson
-            (False, False, True, False, True, False),
-            (True, False, True, False, True, False),
-            (True, False, False, False, True, False),
-            (False, False, True, True, True, False),
-            #   spearman
-            (False, False, True, True, False, False),
-            (False, True, True, True, False, False),
-            (False, True, False, True, False, False),
-        ]
+    # order subsets - only select indices that actually exist to avoid KeyError
+    desired_order = [
+        # pairs not included in categories:
+        # (False, False, False, False, False, False),
+        # full agreements on high:
+        (False, False, False, True, True, True),
+        # agreements on top
+        (False, False, False, False, True, True),
+        (False, False, False, True, False, True),
+        (False, False, False, True, True, False),
+        # agreements on bottom
+        (False, True, True, False, False, False),
+        (True, False, True, False, False, False),
+        (True, True, False, False, False, False),
+        # full agreements on low:
+        (True, True, True, False, False, False),
+        # diagreements
+        #   ccc
+        (False, True, False, False, False, True),
+        (True, False, False, False, False, True),
+        (True, True, False, False, False, True),
+        (True, False, False, False, True, True),
+        (False, True, False, True, False, True),
+        #   pearson
+        (False, False, True, False, True, False),
+        (True, False, True, False, True, False),
+        (True, False, False, False, True, False),
+        (False, False, True, True, True, False),
+        #   spearman
+        (False, False, True, True, False, False),
+        (False, True, True, True, False, False),
+        (False, True, False, True, False, False),
     ]
+    
+    # Filter desired order to only include indices that exist in gene_pairs_by_cats
+    existing_indices = [idx for idx in desired_order if idx in gene_pairs_by_cats.index]
+    logger.info(f"Desired order indices: {len(desired_order)}, existing indices: {len(existing_indices)}")
+    
+    # Log which indices are missing
+    missing_indices = [idx for idx in desired_order if idx not in gene_pairs_by_cats.index]
+    if missing_indices:
+        logger.info(f"Missing indices (will be skipped): {missing_indices}")
+    
+    # Only select existing indices
+    gene_pairs_by_cats = gene_pairs_by_cats.loc[existing_indices]
 
     logger.info("Gene pairs by categories after reordering:")
     logger.info(f"\n{gene_pairs_by_cats.head()}")
