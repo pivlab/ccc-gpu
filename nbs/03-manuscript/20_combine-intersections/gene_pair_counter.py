@@ -26,6 +26,19 @@ import sys
 from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from datetime import datetime
+
+def create_timestamped_folder() -> Path:
+    """
+    Create a timestamped folder for outputs.
+    
+    Returns:
+        Path to the created folder
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    folder_path = Path(timestamp)
+    folder_path.mkdir(parents=True, exist_ok=True)
+    return folder_path
 
 def setup_logging(log_file: str = None):
     """
@@ -198,6 +211,47 @@ def display_results(results_df: pd.DataFrame, top_n: int = 10):
         print(f"    Clustermatch (low): {row['Clustermatch (low)']}")
         print("-" * 50)
 
+def format_number_with_units(number: int) -> str:
+    """
+    Format a number with K, M, B units and exactly 3 digits including decimal places.
+    
+    Args:
+        number: Integer to format
+        
+    Returns:
+        Formatted string with units
+    """
+    if number >= 1_000_000_000:
+        # Billions
+        formatted = number / 1_000_000_000
+        if formatted >= 100:
+            return f"{formatted:.0f}B"
+        elif formatted >= 10:
+            return f"{formatted:.1f}B"
+        else:
+            return f"{formatted:.2f}B"
+    elif number >= 1_000_000:
+        # Millions
+        formatted = number / 1_000_000
+        if formatted >= 100:
+            return f"{formatted:.0f}M"
+        elif formatted >= 10:
+            return f"{formatted:.1f}M"
+        else:
+            return f"{formatted:.2f}M"
+    elif number >= 1_000:
+        # Thousands
+        formatted = number / 1_000
+        if formatted >= 100:
+            return f"{formatted:.0f}K"
+        elif formatted >= 10:
+            return f"{formatted:.1f}K"
+        else:
+            return f"{formatted:.2f}K"
+    else:
+        # Less than 1000, no unit needed
+        return str(number)
+
 def create_bar_plot(results_df: pd.DataFrame, output_path: str) -> Optional[str]:
     """
     Create a bar plot of gene pair counts by indicator combinations.
@@ -337,7 +391,7 @@ def create_bar_plot(results_df: pd.DataFrame, output_path: str) -> Optional[str]
     for bar, value in zip(bars, plot_data):
         height = bar.get_height()
         plt.text(bar.get_x() + bar.get_width()/2., height + max(plot_data)*0.01,
-                f'{value}', ha='center', va='bottom', fontweight='bold')
+                format_number_with_units(value), ha='center', va='bottom', fontweight='bold')
     
     # Add grid for better readability
     plt.grid(axis='y', alpha=0.3, linestyle='--')
@@ -356,8 +410,8 @@ def create_bar_plot(results_df: pd.DataFrame, output_path: str) -> Optional[str]
     plt.tight_layout()
     
     # Save the plot
-    plot_path = output_path.replace('.pkl', '_barplot.png')
-    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    plot_path = output_path.replace('.pkl', '_barplot.svg')
+    plt.savefig(plot_path, format='svg', bbox_inches='tight')
     plt.close()
     
     logger.info(f"Bar plot saved to {plot_path}")
@@ -438,7 +492,7 @@ Examples:
     parser.add_argument(
         '--plot',
         action='store_true',
-        help='Generate bar plot of results'
+        help='Generate bar plot of results (SVG format)'
     )
     
     return parser.parse_args()
@@ -450,14 +504,26 @@ def main():
     # Parse command line arguments
     args = parse_arguments()
     
+    # Create timestamped folder for outputs
+    output_folder = create_timestamped_folder()
+    
+    # Setup output paths in the timestamped folder
+    input_filename = Path(args.input_file).name
+    output_filename = Path(args.output_file).name
+    
+    # Update output paths to use timestamped folder
+    output_file_path = output_folder / output_filename
+    
     # Setup logging
     log_file = args.log_file
     if log_file is None:
-        # Create log file name based on output file
-        output_path = Path(args.output_file)
-        log_file = output_path.parent / f"{output_path.stem}_analysis.log"
+        # Create log file name based on output file in timestamped folder
+        log_file = output_folder / f"{Path(output_filename).stem}_analysis.log"
+    else:
+        # Put custom log file in timestamped folder too
+        log_file = output_folder / Path(log_file).name
     
-    setup_logging(log_file)
+    setup_logging(str(log_file))
     
     # Get logger after setup
     global logger
@@ -465,7 +531,8 @@ def main():
     
     logger.info("Starting Gene Pair Counter CLI Script")
     logger.info(f"Input file: {args.input_file}")
-    logger.info(f"Output file: {args.output_file}")
+    logger.info(f"Output folder: {output_folder}")
+    logger.info(f"Output file: {output_file_path}")
     logger.info(f"Log file: {log_file}")
     logger.info(f"Generate plot: {args.plot}")
     
@@ -474,10 +541,6 @@ def main():
         if not Path(args.input_file).exists():
             logger.error(f"Input file does not exist: {args.input_file}")
             sys.exit(1)
-        
-        # Create output directory if it doesn't exist
-        output_path = Path(args.output_file)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
         
         # Load data
         df = load_data(args.input_file)
@@ -499,12 +562,12 @@ def main():
             display_results(results, top_n=args.top_n)
         
         # Save results
-        save_results(results, args.output_file)
+        save_results(results, str(output_file_path))
         
         # Generate plot if requested
         plot_path = None
         if args.plot:
-            plot_path = create_bar_plot(results, args.output_file)
+            plot_path = create_bar_plot(results, str(output_file_path))
         
         logger.info("Gene pair counting completed successfully!")
         
@@ -513,7 +576,8 @@ def main():
         print("SUMMARY")
         print(f"{'='*80}")
         print(f"Input file: {args.input_file}")
-        print(f"Output file: {args.output_file}")
+        print(f"Output folder: {output_folder}")
+        print(f"Output file: {output_file_path}")
         print(f"Log file: {log_file}")
         if plot_path:
             print(f"Plot file: {plot_path}")
