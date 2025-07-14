@@ -1,0 +1,555 @@
+Created log directory: logs/20250709_220836
+All tissue logs will be saved in this directory
+Starting gene pair intersections analysis for 54 tissues
+Job started at: Wed Jul  9 10:08:36 PM MDT 2025
+
+==========================================
+Processing tissue 1/54: adipose_subcutaneous
+Started at: Wed Jul  9 10:08:36 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_adipose_subcutaneous.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-adipose_subcutaneous-var_pc_log2.pkl
+✓ Successfully processed adipose_subcutaneous
+Finished adipose_subcutaneous at: Wed Jul  9 10:42:59 PM MDT 2025
+Progress: 1 processed, 0 skipped, 0 failed, 53 remaining
+
+==========================================
+Processing tissue 2/54: adipose_visceral_omentum
+Started at: Wed Jul  9 10:42:59 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_adipose_visceral_omentum.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-adipose_visceral_omentum-var_pc_log2.pkl
+✓ Successfully processed adipose_visceral_omentum
+Finished adipose_visceral_omentum at: Wed Jul  9 11:14:54 PM MDT 2025
+Progress: 2 processed, 0 skipped, 0 failed, 52 remaining
+
+==========================================
+Processing tissue 3/54: adrenal_gland
+Started at: Wed Jul  9 11:14:54 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_adrenal_gland.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-adrenal_gland-var_pc_log2.pkl
+✓ Successfully processed adrenal_gland
+Finished adrenal_gland at: Wed Jul  9 11:45:34 PM MDT 2025
+Progress: 3 processed, 0 skipped, 0 failed, 51 remaining
+
+==========================================
+Processing tissue 4/54: artery_aorta
+Started at: Wed Jul  9 11:45:34 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_artery_aorta.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-artery_aorta-var_pc_log2.pkl
+✓ Successfully processed artery_aorta
+Finished artery_aorta at: Thu Jul 10 12:17:32 AM MDT 2025
+Progress: 4 processed, 0 skipped, 0 failed, 50 remaining
+
+==========================================
+Processing tissue 5/54: artery_coronary
+Started at: Thu Jul 10 12:17:32 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_artery_coronary.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-artery_coronary-var_pc_log2.pkl
+✓ Successfully processed artery_coronary
+Finished artery_coronary at: Thu Jul 10 12:48:06 AM MDT 2025
+Progress: 5 processed, 0 skipped, 0 failed, 49 remaining
+
+==========================================
+Processing tissue 6/54: artery_tibial
+Started at: Thu Jul 10 12:48:06 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_artery_tibial.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-artery_tibial-var_pc_log2.pkl
+✓ Successfully processed artery_tibial
+Finished artery_tibial at: Thu Jul 10 01:20:46 AM MDT 2025
+Progress: 6 processed, 0 skipped, 0 failed, 48 remaining
+
+==========================================
+Processing tissue 7/54: bladder
+Started at: Thu Jul 10 01:20:46 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_bladder.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-bladder-var_pc_log2.pkl
+✓ Successfully processed bladder
+Finished bladder at: Thu Jul 10 01:44:35 AM MDT 2025
+Progress: 7 processed, 0 skipped, 0 failed, 47 remaining
+
+==========================================
+Processing tissue 8/54: brain_amygdala
+Started at: Thu Jul 10 01:44:35 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_amygdala.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_amygdala-var_pc_log2.pkl
+✓ Successfully processed brain_amygdala
+Finished brain_amygdala at: Thu Jul 10 02:14:15 AM MDT 2025
+Progress: 8 processed, 0 skipped, 0 failed, 46 remaining
+
+==========================================
+Processing tissue 9/54: brain_anterior_cingulate_cortex_ba24
+Started at: Thu Jul 10 02:14:15 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_anterior_cingulate_cortex_ba24.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_anterior_cingulate_cortex_ba24-var_pc_log2.pkl
+✓ Successfully processed brain_anterior_cingulate_cortex_ba24
+Finished brain_anterior_cingulate_cortex_ba24 at: Thu Jul 10 02:45:07 AM MDT 2025
+Progress: 9 processed, 0 skipped, 0 failed, 45 remaining
+
+==========================================
+Processing tissue 10/54: brain_caudate_basal_ganglia
+Started at: Thu Jul 10 02:45:07 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_caudate_basal_ganglia.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_caudate_basal_ganglia-var_pc_log2.pkl
+✓ Successfully processed brain_caudate_basal_ganglia
+Finished brain_caudate_basal_ganglia at: Thu Jul 10 03:17:03 AM MDT 2025
+Progress: 10 processed, 0 skipped, 0 failed, 44 remaining
+
+==========================================
+Processing tissue 11/54: brain_cerebellar_hemisphere
+Started at: Thu Jul 10 03:17:03 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_cerebellar_hemisphere.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_cerebellar_hemisphere-var_pc_log2.pkl
+✓ Successfully processed brain_cerebellar_hemisphere
+Finished brain_cerebellar_hemisphere at: Thu Jul 10 03:47:40 AM MDT 2025
+Progress: 11 processed, 0 skipped, 0 failed, 43 remaining
+
+==========================================
+Processing tissue 12/54: brain_cerebellum
+Started at: Thu Jul 10 03:47:40 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_cerebellum.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_cerebellum-var_pc_log2.pkl
+✓ Successfully processed brain_cerebellum
+Finished brain_cerebellum at: Thu Jul 10 04:18:51 AM MDT 2025
+Progress: 12 processed, 0 skipped, 0 failed, 42 remaining
+
+==========================================
+Processing tissue 13/54: brain_cortex
+Started at: Thu Jul 10 04:18:51 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_cortex.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_cortex-var_pc_log2.pkl
+✓ Successfully processed brain_cortex
+Finished brain_cortex at: Thu Jul 10 04:52:59 AM MDT 2025
+Progress: 13 processed, 0 skipped, 0 failed, 41 remaining
+
+==========================================
+Processing tissue 14/54: brain_frontal_cortex_ba9
+Started at: Thu Jul 10 04:52:59 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_frontal_cortex_ba9.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_frontal_cortex_ba9-var_pc_log2.pkl
+✓ Successfully processed brain_frontal_cortex_ba9
+Finished brain_frontal_cortex_ba9 at: Thu Jul 10 05:23:42 AM MDT 2025
+Progress: 14 processed, 0 skipped, 0 failed, 40 remaining
+
+==========================================
+Processing tissue 15/54: brain_hippocampus
+Started at: Thu Jul 10 05:23:42 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_hippocampus.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_hippocampus-var_pc_log2.pkl
+✓ Successfully processed brain_hippocampus
+Finished brain_hippocampus at: Thu Jul 10 05:54:47 AM MDT 2025
+Progress: 15 processed, 0 skipped, 0 failed, 39 remaining
+
+==========================================
+Processing tissue 16/54: brain_hypothalamus
+Started at: Thu Jul 10 05:54:47 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_hypothalamus.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_hypothalamus-var_pc_log2.pkl
+✓ Successfully processed brain_hypothalamus
+Finished brain_hypothalamus at: Thu Jul 10 06:25:56 AM MDT 2025
+Progress: 16 processed, 0 skipped, 0 failed, 38 remaining
+
+==========================================
+Processing tissue 17/54: brain_nucleus_accumbens_basal_ganglia
+Started at: Thu Jul 10 06:25:56 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_nucleus_accumbens_basal_ganglia.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_nucleus_accumbens_basal_ganglia-var_pc_log2.pkl
+✓ Successfully processed brain_nucleus_accumbens_basal_ganglia
+Finished brain_nucleus_accumbens_basal_ganglia at: Thu Jul 10 06:58:57 AM MDT 2025
+Progress: 17 processed, 0 skipped, 0 failed, 37 remaining
+
+==========================================
+Processing tissue 18/54: brain_putamen_basal_ganglia
+Started at: Thu Jul 10 06:58:57 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_putamen_basal_ganglia.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_putamen_basal_ganglia-var_pc_log2.pkl
+✓ Successfully processed brain_putamen_basal_ganglia
+Finished brain_putamen_basal_ganglia at: Thu Jul 10 07:29:22 AM MDT 2025
+Progress: 18 processed, 0 skipped, 0 failed, 36 remaining
+
+==========================================
+Processing tissue 19/54: brain_spinal_cord_cervical_c1
+Started at: Thu Jul 10 07:29:22 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_spinal_cord_cervical_c1.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_spinal_cord_cervical_c1-var_pc_log2.pkl
+✓ Successfully processed brain_spinal_cord_cervical_c1
+Finished brain_spinal_cord_cervical_c1 at: Thu Jul 10 07:59:04 AM MDT 2025
+Progress: 19 processed, 0 skipped, 0 failed, 35 remaining
+
+==========================================
+Processing tissue 20/54: brain_substantia_nigra
+Started at: Thu Jul 10 07:59:04 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_brain_substantia_nigra.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-brain_substantia_nigra-var_pc_log2.pkl
+✓ Successfully processed brain_substantia_nigra
+Finished brain_substantia_nigra at: Thu Jul 10 08:27:52 AM MDT 2025
+Progress: 20 processed, 0 skipped, 0 failed, 34 remaining
+
+==========================================
+Processing tissue 21/54: breast_mammary_tissue
+Started at: Thu Jul 10 08:27:52 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_breast_mammary_tissue.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-breast_mammary_tissue-var_pc_log2.pkl
+✓ Successfully processed breast_mammary_tissue
+Finished breast_mammary_tissue at: Thu Jul 10 09:00:47 AM MDT 2025
+Progress: 21 processed, 0 skipped, 0 failed, 33 remaining
+
+==========================================
+Processing tissue 22/54: cells_cultured_fibroblasts
+Started at: Thu Jul 10 09:00:47 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_cells_cultured_fibroblasts.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-cells_cultured_fibroblasts-var_pc_log2.pkl
+✓ Successfully processed cells_cultured_fibroblasts
+Finished cells_cultured_fibroblasts at: Thu Jul 10 09:32:34 AM MDT 2025
+Progress: 22 processed, 0 skipped, 0 failed, 32 remaining
+
+==========================================
+Processing tissue 23/54: cells_ebvtransformed_lymphocytes
+Started at: Thu Jul 10 09:32:34 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_cells_ebvtransformed_lymphocytes.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-cells_ebvtransformed_lymphocytes-var_pc_log2.pkl
+✓ Successfully processed cells_ebvtransformed_lymphocytes
+Finished cells_ebvtransformed_lymphocytes at: Thu Jul 10 10:02:51 AM MDT 2025
+Progress: 23 processed, 0 skipped, 0 failed, 31 remaining
+
+==========================================
+Processing tissue 24/54: cervix_ectocervix
+Started at: Thu Jul 10 10:02:51 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_cervix_ectocervix.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-cervix_ectocervix-var_pc_log2.pkl
+✓ Successfully processed cervix_ectocervix
+Finished cervix_ectocervix at: Thu Jul 10 10:23:21 AM MDT 2025
+Progress: 24 processed, 0 skipped, 0 failed, 30 remaining
+
+==========================================
+Processing tissue 25/54: cervix_endocervix
+Started at: Thu Jul 10 10:23:21 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_cervix_endocervix.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-cervix_endocervix-var_pc_log2.pkl
+✓ Successfully processed cervix_endocervix
+Finished cervix_endocervix at: Thu Jul 10 10:44:02 AM MDT 2025
+Progress: 25 processed, 0 skipped, 0 failed, 29 remaining
+
+==========================================
+Processing tissue 26/54: colon_sigmoid
+Started at: Thu Jul 10 10:44:02 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_colon_sigmoid.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-colon_sigmoid-var_pc_log2.pkl
+✓ Successfully processed colon_sigmoid
+Finished colon_sigmoid at: Thu Jul 10 11:16:14 AM MDT 2025
+Progress: 26 processed, 0 skipped, 0 failed, 28 remaining
+
+==========================================
+Processing tissue 27/54: colon_transverse
+Started at: Thu Jul 10 11:16:14 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_colon_transverse.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-colon_transverse-var_pc_log2.pkl
+✓ Successfully processed colon_transverse
+Finished colon_transverse at: Thu Jul 10 11:48:39 AM MDT 2025
+Progress: 27 processed, 0 skipped, 0 failed, 27 remaining
+
+==========================================
+Processing tissue 28/54: esophagus_gastroesophageal_junction
+Started at: Thu Jul 10 11:48:39 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_esophagus_gastroesophageal_junction.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-esophagus_gastroesophageal_junction-var_pc_log2.pkl
+✓ Successfully processed esophagus_gastroesophageal_junction
+Finished esophagus_gastroesophageal_junction at: Thu Jul 10 12:20:22 PM MDT 2025
+Progress: 28 processed, 0 skipped, 0 failed, 26 remaining
+
+==========================================
+Processing tissue 29/54: esophagus_mucosa
+Started at: Thu Jul 10 12:20:22 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_esophagus_mucosa.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-esophagus_mucosa-var_pc_log2.pkl
+✓ Successfully processed esophagus_mucosa
+Finished esophagus_mucosa at: Thu Jul 10 12:51:59 PM MDT 2025
+Progress: 29 processed, 0 skipped, 0 failed, 25 remaining
+
+==========================================
+Processing tissue 30/54: esophagus_muscularis
+Started at: Thu Jul 10 12:51:59 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_esophagus_muscularis.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-esophagus_muscularis-var_pc_log2.pkl
+✓ Successfully processed esophagus_muscularis
+Finished esophagus_muscularis at: Thu Jul 10 01:24:33 PM MDT 2025
+Progress: 30 processed, 0 skipped, 0 failed, 24 remaining
+
+==========================================
+Processing tissue 31/54: fallopian_tube
+Started at: Thu Jul 10 01:24:33 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_fallopian_tube.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-fallopian_tube-var_pc_log2.pkl
+✓ Successfully processed fallopian_tube
+Finished fallopian_tube at: Thu Jul 10 01:45:00 PM MDT 2025
+Progress: 31 processed, 0 skipped, 0 failed, 23 remaining
+
+==========================================
+Processing tissue 32/54: heart_atrial_appendage
+Started at: Thu Jul 10 01:45:00 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_heart_atrial_appendage.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-heart_atrial_appendage-var_pc_log2.pkl
+✓ Successfully processed heart_atrial_appendage
+Finished heart_atrial_appendage at: Thu Jul 10 02:16:46 PM MDT 2025
+Progress: 32 processed, 0 skipped, 0 failed, 22 remaining
+
+==========================================
+Processing tissue 33/54: heart_left_ventricle
+Started at: Thu Jul 10 02:16:46 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_heart_left_ventricle.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-heart_left_ventricle-var_pc_log2.pkl
+✓ Successfully processed heart_left_ventricle
+Finished heart_left_ventricle at: Thu Jul 10 02:47:52 PM MDT 2025
+Progress: 33 processed, 0 skipped, 0 failed, 21 remaining
+
+==========================================
+Processing tissue 34/54: kidney_cortex
+Started at: Thu Jul 10 02:47:52 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_kidney_cortex.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-kidney_cortex-var_pc_log2.pkl
+✓ Successfully processed kidney_cortex
+Finished kidney_cortex at: Thu Jul 10 03:15:07 PM MDT 2025
+Progress: 34 processed, 0 skipped, 0 failed, 20 remaining
+
+==========================================
+Processing tissue 35/54: kidney_medulla
+Started at: Thu Jul 10 03:15:07 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_kidney_medulla.log
+==========================================
+✗ Failed to process kidney_medulla (exit code: 1)
+Finished kidney_medulla at: Thu Jul 10 03:34:46 PM MDT 2025
+Progress: 34 processed, 0 skipped, 1 failed, 19 remaining
+
+==========================================
+Processing tissue 36/54: liver
+Started at: Thu Jul 10 03:34:46 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_liver.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-liver-var_pc_log2.pkl
+✓ Successfully processed liver
+Finished liver at: Thu Jul 10 04:04:32 PM MDT 2025
+Progress: 35 processed, 0 skipped, 1 failed, 18 remaining
+
+==========================================
+Processing tissue 37/54: lung
+Started at: Thu Jul 10 04:04:32 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_lung.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-lung-var_pc_log2.pkl
+✓ Successfully processed lung
+Finished lung at: Thu Jul 10 04:37:44 PM MDT 2025
+Progress: 36 processed, 0 skipped, 1 failed, 17 remaining
+
+==========================================
+Processing tissue 38/54: minor_salivary_gland
+Started at: Thu Jul 10 04:37:44 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_minor_salivary_gland.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-minor_salivary_gland-var_pc_log2.pkl
+✓ Successfully processed minor_salivary_gland
+Finished minor_salivary_gland at: Thu Jul 10 05:09:41 PM MDT 2025
+Progress: 37 processed, 0 skipped, 1 failed, 16 remaining
+
+==========================================
+Processing tissue 39/54: muscle_skeletal
+Started at: Thu Jul 10 05:09:41 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_muscle_skeletal.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-muscle_skeletal-var_pc_log2.pkl
+✓ Successfully processed muscle_skeletal
+Finished muscle_skeletal at: Thu Jul 10 05:43:22 PM MDT 2025
+Progress: 38 processed, 0 skipped, 1 failed, 15 remaining
+
+==========================================
+Processing tissue 40/54: nerve_tibial
+Started at: Thu Jul 10 05:43:22 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_nerve_tibial.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-nerve_tibial-var_pc_log2.pkl
+✓ Successfully processed nerve_tibial
+Finished nerve_tibial at: Thu Jul 10 06:15:36 PM MDT 2025
+Progress: 39 processed, 0 skipped, 1 failed, 14 remaining
+
+==========================================
+Processing tissue 41/54: ovary
+Started at: Thu Jul 10 06:15:36 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_ovary.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-ovary-var_pc_log2.pkl
+✓ Successfully processed ovary
+Finished ovary at: Thu Jul 10 06:46:06 PM MDT 2025
+Progress: 40 processed, 0 skipped, 1 failed, 13 remaining
+
+==========================================
+Processing tissue 42/54: pancreas
+Started at: Thu Jul 10 06:46:06 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_pancreas.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-pancreas-var_pc_log2.pkl
+✓ Successfully processed pancreas
+Finished pancreas at: Thu Jul 10 07:16:33 PM MDT 2025
+Progress: 41 processed, 0 skipped, 1 failed, 12 remaining
+
+==========================================
+Processing tissue 43/54: pituitary
+Started at: Thu Jul 10 07:16:33 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_pituitary.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-pituitary-var_pc_log2.pkl
+✓ Successfully processed pituitary
+Finished pituitary at: Thu Jul 10 07:47:36 PM MDT 2025
+Progress: 42 processed, 0 skipped, 1 failed, 11 remaining
+
+==========================================
+Processing tissue 44/54: prostate
+Started at: Thu Jul 10 07:47:36 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_prostate.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-prostate-var_pc_log2.pkl
+✓ Successfully processed prostate
+Finished prostate at: Thu Jul 10 08:19:09 PM MDT 2025
+Progress: 43 processed, 0 skipped, 1 failed, 10 remaining
+
+==========================================
+Processing tissue 45/54: skin_not_sun_exposed_suprapubic
+Started at: Thu Jul 10 08:19:09 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_skin_not_sun_exposed_suprapubic.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-skin_not_sun_exposed_suprapubic-var_pc_log2.pkl
+✓ Successfully processed skin_not_sun_exposed_suprapubic
+Finished skin_not_sun_exposed_suprapubic at: Thu Jul 10 08:51:18 PM MDT 2025
+Progress: 44 processed, 0 skipped, 1 failed, 9 remaining
+
+==========================================
+Processing tissue 46/54: skin_sun_exposed_lower_leg
+Started at: Thu Jul 10 08:51:18 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_skin_sun_exposed_lower_leg.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-skin_sun_exposed_lower_leg-var_pc_log2.pkl
+✓ Successfully processed skin_sun_exposed_lower_leg
+Finished skin_sun_exposed_lower_leg at: Thu Jul 10 09:24:05 PM MDT 2025
+Progress: 45 processed, 0 skipped, 1 failed, 8 remaining
+
+==========================================
+Processing tissue 47/54: small_intestine_terminal_ileum
+Started at: Thu Jul 10 09:24:05 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_small_intestine_terminal_ileum.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-small_intestine_terminal_ileum-var_pc_log2.pkl
+✓ Successfully processed small_intestine_terminal_ileum
+Finished small_intestine_terminal_ileum at: Thu Jul 10 09:54:05 PM MDT 2025
+Progress: 46 processed, 0 skipped, 1 failed, 7 remaining
+
+==========================================
+Processing tissue 48/54: spleen
+Started at: Thu Jul 10 09:54:05 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_spleen.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-spleen-var_pc_log2.pkl
+✓ Successfully processed spleen
+Finished spleen at: Thu Jul 10 10:25:03 PM MDT 2025
+Progress: 47 processed, 0 skipped, 1 failed, 6 remaining
+
+==========================================
+Processing tissue 49/54: stomach
+Started at: Thu Jul 10 10:25:03 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_stomach.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-stomach-var_pc_log2.pkl
+✓ Successfully processed stomach
+Finished stomach at: Thu Jul 10 10:57:55 PM MDT 2025
+Progress: 48 processed, 0 skipped, 1 failed, 5 remaining
+
+==========================================
+Processing tissue 50/54: testis
+Started at: Thu Jul 10 10:57:55 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_testis.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-testis-var_pc_log2.pkl
+✓ Successfully processed testis
+Finished testis at: Thu Jul 10 11:35:45 PM MDT 2025
+Progress: 49 processed, 0 skipped, 1 failed, 4 remaining
+
+==========================================
+Processing tissue 51/54: thyroid
+Started at: Thu Jul 10 11:35:45 PM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_thyroid.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-thyroid-var_pc_log2.pkl
+✓ Successfully processed thyroid
+Finished thyroid at: Fri Jul 11 12:08:13 AM MDT 2025
+Progress: 50 processed, 0 skipped, 1 failed, 3 remaining
+
+==========================================
+Processing tissue 52/54: uterus
+Started at: Fri Jul 11 12:08:13 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_uterus.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-uterus-var_pc_log2.pkl
+✓ Successfully processed uterus
+Finished uterus at: Fri Jul 11 12:37:39 AM MDT 2025
+Progress: 51 processed, 0 skipped, 1 failed, 2 remaining
+
+==========================================
+Processing tissue 53/54: vagina
+Started at: Fri Jul 11 12:37:39 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_vagina.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-vagina-var_pc_log2.pkl
+✓ Successfully processed vagina
+Finished vagina at: Fri Jul 11 01:07:12 AM MDT 2025
+Progress: 52 processed, 0 skipped, 1 failed, 1 remaining
+
+==========================================
+Processing tissue 54/54: whole_blood
+Started at: Fri Jul 11 01:07:12 AM MDT 2025
+Log file: logs/20250709_220836/compute_intersections_whole_blood.log
+==========================================
+Loading existing intersection file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+✓ Successfully processed whole_blood
+Finished whole_blood at: Fri Jul 11 01:38:53 AM MDT 2025
+Progress: 53 processed, 0 skipped, 1 failed, 0 remaining
+
+==========================================
+All tissues processing completed!
+Final Summary:
+  Total tissues: 54
+  Successfully processed: 53
+  Skipped (output exists): 0
+  Failed: 1
+  All log files saved in: logs/20250709_220836
+Job completed at: Fri Jul 11 01:38:53 AM MDT 2025
+==========================================
+WARNING: 1 tissues failed to process
