@@ -1,0 +1,154 @@
+Created log directory: logs/20250714_134615
+All tissue logs will be saved in this directory
+2025-07-14 13:46:16,141 - INFO - Starting Gene Pair Counter CLI Script
+2025-07-14 13:46:16,142 - INFO - Input file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+2025-07-14 13:46:16,142 - INFO - Output file: ./wholeblood_out.pkl
+2025-07-14 13:46:16,142 - INFO - Log file: wholeblood_out_analysis.log
+2025-07-14 13:46:16,142 - INFO - Generate plot: True
+2025-07-14 13:46:16,142 - INFO - Loading data from /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+2025-07-14 13:46:42,131 - INFO - Successfully loaded data with shape: (1420258456, 9)
+2025-07-14 13:46:42,131 - INFO - Index type: <class 'pandas.core.indexes.multi.MultiIndex'>
+2025-07-14 13:46:42,132 - INFO - Multi-index levels: [None, None]
+2025-07-14 13:46:42,132 - INFO - Columns: ['Pearson (high)', 'Pearson (low)', 'Spearman (high)', 'Spearman (low)', 'Clustermatch (high)', 'Clustermatch (low)', 'ccc', 'pearson', 'spearman']
+2025-07-14 13:46:42,132 - INFO - Validating data structure...
+2025-07-14 13:46:42,133 - INFO - Data validation passed!
+2025-07-14 13:46:42,133 - INFO - Dataset contains 1420258456 gene pairs
+2025-07-14 14:15:20,526 - INFO - Unique gene pairs: 1420258456
+2025-07-14 14:15:20,526 - INFO - Starting gene pair counting by indicator combinations...
+2025-07-14 14:15:20,526 - INFO - Grouping by indicator columns: ['Pearson (high)', 'Pearson (low)', 'Spearman (high)', 'Spearman (low)', 'Clustermatch (high)', 'Clustermatch (low)']
+2025-07-14 14:20:12,645 - INFO - Found 27 unique indicator combinations
+2025-07-14 14:20:12,646 - INFO - Total gene pairs processed: 1420258456
+2025-07-14 14:20:12,647 - INFO - Most common combination has 273477035 gene pairs
+2025-07-14 14:20:12,647 - INFO - Least common combination has 24752 gene pairs
+2025-07-14 14:20:12,647 - INFO - Average gene pairs per combination: 52602165.04
+2025-07-14 14:20:12,647 - INFO - Displaying top 10 most common indicator combinations:
+
+================================================================================
+GENE PAIR COUNTING RESULTS
+================================================================================
+
+Rank 1:
+  Gene pairs: 273477035
+  Indicators:
+    Pearson (high): True
+    Pearson (low): False
+    Spearman (high): True
+    Spearman (low): False
+    Clustermatch (high): True
+    Clustermatch (low): False
+--------------------------------------------------
+
+Rank 2:
+  Gene pairs: 198585087
+  Indicators:
+    Pearson (high): False
+    Pearson (low): True
+    Spearman (high): False
+    Spearman (low): True
+    Clustermatch (high): False
+    Clustermatch (low): True
+--------------------------------------------------
+
+Rank 3:
+  Gene pairs: 190287520
+  Indicators:
+    Pearson (high): False
+    Pearson (low): False
+    Spearman (high): False
+    Spearman (low): False
+    Clustermatch (high): False
+    Clustermatch (low): False
+--------------------------------------------------
+
+Rank 4:
+  Gene pairs: 121616710
+  Indicators:
+    Pearson (high): False
+    Pearson (low): False
+    Spearman (high): False
+    Spearman (low): False
+    Clustermatch (high): False
+    Clustermatch (low): True
+--------------------------------------------------
+
+Rank 5:
+  Gene pairs: 79334350
+  Indicators:
+    Pearson (high): False
+    Pearson (low): True
+    Spearman (high): False
+    Spearman (low): True
+    Clustermatch (high): False
+    Clustermatch (low): False
+--------------------------------------------------
+
+Rank 6:
+  Gene pairs: 72681012
+  Indicators:
+    Pearson (high): True
+    Pearson (low): False
+    Spearman (high): True
+    Spearman (low): False
+    Clustermatch (high): False
+    Clustermatch (low): False
+--------------------------------------------------
+
+Rank 7:
+  Gene pairs: 68062040
+  Indicators:
+    Pearson (high): False
+    Pearson (low): False
+    Spearman (high): False
+    Spearman (low): True
+    Clustermatch (high): False
+    Clustermatch (low): False
+--------------------------------------------------
+
+Rank 8:
+  Gene pairs: 67877199
+  Indicators:
+    Pearson (high): False
+    Pearson (low): True
+    Spearman (high): False
+    Spearman (low): False
+    Clustermatch (high): False
+    Clustermatch (low): False
+--------------------------------------------------
+
+Rank 9:
+  Gene pairs: 59194230
+  Indicators:
+    Pearson (high): False
+    Pearson (low): False
+    Spearman (high): False
+    Spearman (low): True
+    Clustermatch (high): False
+    Clustermatch (low): True
+--------------------------------------------------
+
+Rank 10:
+  Gene pairs: 53699841
+  Indicators:
+    Pearson (high): False
+    Pearson (low): False
+    Spearman (high): False
+    Spearman (low): False
+    Clustermatch (high): True
+    Clustermatch (low): False
+--------------------------------------------------
+2025-07-14 14:20:12,648 - INFO - Saving results to ./wholeblood_out.pkl
+2025-07-14 14:20:12,649 - INFO - Results successfully saved to ./wholeblood_out.pkl
+2025-07-14 14:20:12,649 - INFO - Creating bar plot...
+2025-07-14 14:20:13,553 - INFO - Bar plot saved to ./wholeblood_out_barplot.png
+2025-07-14 14:20:13,554 - INFO - Gene pair counting completed successfully!
+
+================================================================================
+SUMMARY
+================================================================================
+Input file: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+Output file: ./wholeblood_out.pkl
+Log file: wholeblood_out_analysis.log
+Plot file: ./wholeblood_out_barplot.png
+Total gene pairs processed: 1420258456
+Unique indicator combinations: 27
+Results saved successfully!
