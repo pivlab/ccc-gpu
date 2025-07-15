@@ -288,21 +288,21 @@ def display_results(results_df: pd.DataFrame, top_n: int = 10):
     """
     logger.info(f"Displaying top {top_n} most common indicator combinations:")
     
-    print("\n" + "="*80)
-    print("GENE PAIR COUNTING RESULTS")
-    print("="*80)
+    logger.info("\n" + "="*80)
+    logger.info("GENE PAIR COUNTING RESULTS")
+    logger.info("="*80)
     
     for i, (_, row) in enumerate(results_df.head(top_n).iterrows()):
-        print(f"\nRank {i+1}:")
-        print(f"  Gene pairs: {row['gene_pair_count']}")
-        print(f"  Indicators:")
-        print(f"    Pearson (high): {row['Pearson (high)']}")
-        print(f"    Pearson (low): {row['Pearson (low)']}")
-        print(f"    Spearman (high): {row['Spearman (high)']}")
-        print(f"    Spearman (low): {row['Spearman (low)']}")
-        print(f"    Clustermatch (high): {row['Clustermatch (high)']}")
-        print(f"    Clustermatch (low): {row['Clustermatch (low)']}")
-        print("-" * 50)
+        logger.info(f"\nRank {i+1}:")
+        logger.info(f"  Gene pairs: {row['gene_pair_count']}")
+        logger.info(f"  Indicators:")
+        logger.info(f"    Pearson (high): {row['Pearson (high)']}")
+        logger.info(f"    Pearson (low): {row['Pearson (low)']}")
+        logger.info(f"    Spearman (high): {row['Spearman (high)']}")
+        logger.info(f"    Spearman (low): {row['Spearman (low)']}")
+        logger.info(f"    Clustermatch (high): {row['Clustermatch (high)']}")
+        logger.info(f"    Clustermatch (low): {row['Clustermatch (low)']}")
+        logger.info("-" * 50)
 
 def format_number_with_units(number: int) -> str:
     """
@@ -547,22 +547,23 @@ def parse_arguments():
         Parsed arguments
     """
     parser = argparse.ArgumentParser(
-        description="Count gene pairs by indicator combinations with parallel processing support",
+        description="Count gene pairs by indicator combinations from multiple intersection files with parallel processing support",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python gene_pair_counter.py input_data.pkl output_counts.pkl
-    python gene_pair_counter.py data.pkl results.pkl --top-n 5
-    python gene_pair_counter.py input.pkl output.pkl --log-file analysis.log
-    python gene_pair_counter.py input.pkl output.pkl --plot
-    python gene_pair_counter.py input.pkl output.pkl --threads 8
+    python gene_pair_counter.py --data-dir /path/to/intersections output_counts.pkl
+    python gene_pair_counter.py --data-dir /data/intersections results.pkl --top-n 5
+    python gene_pair_counter.py --data-dir /data/intersections results.pkl --log-file analysis.log
+    python gene_pair_counter.py --data-dir /data/intersections results.pkl --plot
+    python gene_pair_counter.py --data-dir /data/intersections results.pkl --threads 8
         """
     )
     
     parser.add_argument(
-        'input_file',
+        '--data-dir',
         type=str,
-        help='Path to input pickle file containing gene pair data'
+        required=True,
+        help='Path to directory containing gene_pair_intersections*.pkl files'
     )
     
     parser.add_argument(
@@ -606,9 +607,186 @@ Examples:
     
     return parser.parse_args()
 
+def find_intersection_files(data_dir: str) -> List[Path]:
+    """
+    Find all gene_pair_intersections*.pkl files in the specified directory.
+    
+    Args:
+        data_dir: Path to directory containing intersection files
+        
+    Returns:
+        List of Path objects for found files, sorted by name
+    """
+    data_path = Path(data_dir)
+    
+    if not data_path.exists():
+        raise FileNotFoundError(f"Data directory does not exist: {data_dir}")
+    
+    if not data_path.is_dir():
+        raise NotADirectoryError(f"Data directory is not a directory: {data_dir}")
+    
+    # Find all matching files
+    pattern = "gene_pair_intersections*.pkl"
+    intersection_files = list(data_path.glob(pattern))
+    
+    if not intersection_files:
+        raise FileNotFoundError(f"No files matching pattern '{pattern}' found in {data_dir}")
+    
+    # Sort files by name for consistent processing order
+    intersection_files.sort()
+    
+    return intersection_files
+
+def accumulate_counts(existing_counts: pd.DataFrame, new_counts: pd.DataFrame) -> pd.DataFrame:
+    """
+    Accumulate counts from a new file into existing counts.
+    
+    Args:
+        existing_counts: DataFrame with existing accumulated counts
+        new_counts: DataFrame with new counts to add
+        
+    Returns:
+        DataFrame with accumulated counts
+    """
+    if existing_counts is None or existing_counts.empty:
+        return new_counts.copy()
+    
+    # Merge the dataframes, adding counts for matching combinations
+    # and keeping unique combinations from both
+    merged = pd.merge(
+        existing_counts, 
+        new_counts, 
+        on=['Pearson (high)', 'Pearson (low)', 'Spearman (high)', 'Spearman (low)', 
+            'Clustermatch (high)', 'Clustermatch (low)'],
+        how='outer',
+        suffixes=('_existing', '_new')
+    )
+    
+    # Fill NaN values with 0 and sum the counts
+    merged['gene_pair_count_existing'] = merged['gene_pair_count_existing'].fillna(0)
+    merged['gene_pair_count_new'] = merged['gene_pair_count_new'].fillna(0)
+    merged['gene_pair_count'] = merged['gene_pair_count_existing'] + merged['gene_pair_count_new']
+    
+    # Keep only the necessary columns
+    result = merged[['Pearson (high)', 'Pearson (low)', 'Spearman (high)', 'Spearman (low)', 
+                    'Clustermatch (high)', 'Clustermatch (low)', 'gene_pair_count']]
+    
+    return result
+
+def process_multiple_files(data_dir: str, output_folder: Path, output_file: str, 
+                          args) -> pd.DataFrame:
+    """
+    Process multiple intersection files and accumulate results.
+    
+    Args:
+        data_dir: Directory containing intersection files
+        output_folder: Folder for output files
+        output_file: Base name for output file
+        args: Command line arguments
+        
+    Returns:
+        DataFrame with accumulated results
+    """
+    # Find all intersection files
+    intersection_files = find_intersection_files(data_dir)
+    
+    logger.info(f"Found {len(intersection_files)} intersection files to process")
+    logger.info("Files to process:")
+    for i, file_path in enumerate(intersection_files, 1):
+        logger.info(f"  {i:2d}. {file_path.name}")
+    
+    # Initialize accumulator
+    accumulated_counts = None
+    processed_files = 0
+    total_gene_pairs = 0
+    
+    # Process each file
+    for i, file_path in enumerate(intersection_files, 1):
+        logger.info(f"\n{'='*80}")
+        logger.info(f"PROCESSING FILE {i}/{len(intersection_files)}: {file_path.name}")
+        logger.info(f"{'='*80}")
+        
+        try:
+            # Load and process current file
+            logger.info(f"Loading data from {file_path}")
+            df = load_data(str(file_path))
+            
+            if df is None or df.empty:
+                logger.warning(f"File {file_path.name} is empty or invalid, skipping")
+                continue
+            
+            # Validate data structure
+            if not validate_data(df):
+                logger.error(f"Data validation failed for {file_path.name}, skipping")
+                continue
+            
+            logger.info(f"File contains {len(df)} gene pairs")
+            logger.info(f"Unique gene pairs: {df.index.nunique()}")
+            
+            # Count gene pairs for this file
+            logger.info("Counting gene pairs by indicator combinations...")
+            file_counts = count_gene_pairs_by_indicators(df, n_threads=args.threads)
+            
+            if file_counts is None or file_counts.empty:
+                logger.warning(f"No counts generated for {file_path.name}, skipping")
+                continue
+            
+            # Accumulate counts
+            logger.info("Accumulating counts with previous files...")
+            accumulated_counts = accumulate_counts(accumulated_counts, file_counts)
+            
+            processed_files += 1
+            total_gene_pairs += len(df)
+            
+            # Log progress
+            logger.info(f"File {i} processed successfully")
+            logger.info(f"New combinations found: {len(file_counts)}")
+            logger.info(f"Total combinations so far: {len(accumulated_counts)}")
+            logger.info(f"Total gene pairs processed: {total_gene_pairs:,}")
+            
+            # Save intermediate results
+            intermediate_file = output_folder / f"intermediate_counts_after_{i:02d}_files.pkl"
+            logger.info(f"Saving intermediate results to {intermediate_file}")
+            with open(intermediate_file, 'wb') as f:
+                pickle.dump(accumulated_counts, f)
+            
+            # Generate intermediate plot if requested
+            if args.plot:
+                logger.info("Generating intermediate plot...")
+                intermediate_plot_file = str(output_folder / f"intermediate_plot_after_{i:02d}_files.pkl")
+                plot_path = create_bar_plot(accumulated_counts, intermediate_plot_file)
+                if plot_path:
+                    logger.info(f"Intermediate plot saved to {plot_path}")
+                else:
+                    logger.warning("Failed to generate intermediate plot")
+            
+            # Display current top combinations
+            if not args.no_display:
+                logger.info(f"\nAll {len(accumulated_counts)} combinations so far:")
+                display_results(accumulated_counts, top_n=len(accumulated_counts))
+            
+        except Exception as e:
+            logger.error(f"Error processing file {file_path.name}: {e}")
+            logger.error(f"Skipping file and continuing with next...")
+            continue
+    
+    if accumulated_counts is None or accumulated_counts.empty:
+        logger.error("No valid data processed from any files")
+        return None
+    
+    logger.info(f"\n{'='*80}")
+    logger.info("PROCESSING COMPLETE")
+    logger.info(f"{'='*80}")
+    logger.info(f"Successfully processed {processed_files}/{len(intersection_files)} files")
+    logger.info(f"Total gene pairs processed: {total_gene_pairs:,}")
+    logger.info(f"Total unique combinations: {len(accumulated_counts)}")
+    logger.info(f"Final results will be saved to {output_file}")
+    
+    return accumulated_counts
+
 def main():
     """
-    Main function to orchestrate the gene pair counting process.
+    Main function to orchestrate the gene pair counting process from multiple files.
     """
     # Parse command line arguments
     args = parse_arguments()
@@ -617,10 +795,7 @@ def main():
     output_folder = create_timestamped_folder()
     
     # Setup output paths in the timestamped folder
-    input_filename = Path(args.input_file).name
     output_filename = Path(args.output_file).name
-    
-    # Update output paths to use timestamped folder
     output_file_path = output_folder / output_filename
     
     # Setup logging
@@ -638,68 +813,72 @@ def main():
     global logger
     logger = logging.getLogger(__name__)
     
-    logger.info("Starting Gene Pair Counter CLI Script")
-    logger.info(f"Input file: {args.input_file}")
+    logger.info("Starting Gene Pair Counter CLI Script - Multiple Files Mode")
+    logger.info(f"Data directory: {args.data_dir}")
     logger.info(f"Output folder: {output_folder}")
     logger.info(f"Output file: {output_file_path}")
     logger.info(f"Log file: {log_file}")
-    logger.info(f"Generate plot: {args.plot}")
+    logger.info(f"Generate plots: {args.plot}")
     logger.info(f"Threads: {args.threads if args.threads else 'auto (CPU count)'}")
+    logger.info(f"Top N results: {args.top_n}")
     
     try:
-        # Validate input file exists
-        if not Path(args.input_file).exists():
-            logger.error(f"Input file does not exist: {args.input_file}")
+        # Validate data directory exists
+        if not Path(args.data_dir).exists():
+            logger.error(f"Data directory does not exist: {args.data_dir}")
             sys.exit(1)
         
-        # Load data
-        df = load_data(args.input_file)
+        # Process multiple files and accumulate results
+        results = process_multiple_files(args.data_dir, output_folder, str(output_file_path), args)
         
-        # Validate data structure
-        if not validate_data(df):
-            logger.error("Data validation failed. Exiting.")
+        if results is None or results.empty:
+            logger.error("No valid results obtained from any files. Exiting.")
             sys.exit(1)
         
-        # Display basic info about the dataset
-        logger.info(f"Dataset contains {len(df)} gene pairs")
-        logger.info(f"Unique gene pairs: {df.index.nunique()}")
-        
-        # Count gene pairs by indicator combinations
-        results = count_gene_pairs_by_indicators(df, n_threads=args.threads)
-        
-        # Display results (unless --no-display is specified)
+        # Display final results (unless --no-display is specified)
         if not args.no_display:
+            logger.info(f"\n{'='*80}")
+            logger.info("FINAL RESULTS - TOP COMBINATIONS")
+            logger.info(f"{'='*80}")
             display_results(results, top_n=args.top_n)
         
-        # Save results
+        # Save final results
         save_results(results, str(output_file_path))
         
-        # Generate plot if requested
-        plot_path = None
+        # Generate final plot if requested
+        final_plot_path = None
         if args.plot:
-            plot_path = create_bar_plot(results, str(output_file_path))
+            logger.info("Generating final comprehensive plot...")
+            final_plot_path = create_bar_plot(results, str(output_file_path))
+            if final_plot_path:
+                logger.info(f"Final plot saved to {final_plot_path}")
         
-        logger.info("Gene pair counting completed successfully!")
+        logger.info("Gene pair counting from multiple files completed successfully!")
         
-        # Print summary
+        # Print comprehensive summary
         print(f"\n{'='*80}")
-        print("SUMMARY")
+        print("COMPREHENSIVE SUMMARY")
         print(f"{'='*80}")
-        print(f"Input file: {args.input_file}")
+        print(f"Data directory: {args.data_dir}")
         print(f"Output folder: {output_folder}")
         print(f"Output file: {output_file_path}")
         print(f"Log file: {log_file}")
-        if plot_path:
-            print(f"Plot file: {plot_path}")
-        print(f"Total gene pairs processed: {len(df)}")
+        if final_plot_path:
+            print(f"Final plot: {final_plot_path}")
+        
+        # Count intermediate files
+        intermediate_files = list(output_folder.glob("intermediate_*.pkl"))
+        intermediate_plots = list(output_folder.glob("intermediate_*.svg"))
+        
+        print(f"Intermediate count files: {len(intermediate_files)}")
+        print(f"Intermediate plots: {len(intermediate_plots)}")
         print(f"Unique indicator combinations: {len(results)}")
-        print(f"Processing method: {'Parallel' if len(df) >= 50000 else 'Single-threaded'}")
-        if len(df) >= 50000:
-            print(f"Threading strategy: {'Threads' if len(df) < 500000 else 'Processes'}")
-        print(f"Results saved successfully!")
+        print(f"Processing completed with timestamped outputs!")
         
     except Exception as e:
         logger.error(f"Error in main execution: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         sys.exit(1)
 
 if __name__ == "__main__":

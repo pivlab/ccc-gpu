@@ -2,11 +2,11 @@
 #SBATCH --job-name=CCC_GPU_UPSET_PLOT
 #SBATCH --output=_tmp/CCC_GPU_UPSET_PLOT.%j.out
 #SBATCH --error=_tmp/CCC_GPU_UPSET_PLOT.%j.err
-#SBATCH --time=3:00:00
+#SBATCH --time=48:00:00
 #SBATCH --qos=normal
 #SBATCH --nodes=1
 #SBATCH --cores=4
-#SBATCH --mem=300GB
+#SBATCH --mem=350GB
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=haoyu.zhang@cuanschutz.edu
 
@@ -79,4 +79,4 @@ TISSUES=(
     "whole_blood"
 )
 
-python gene_pair_counter.py /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl ./wholeblood_out.pkl --plot --threads 4
+python gene_pair_counter.py --data-dir /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/ ./counts_for_all_tissues.pkl --plot --threads 4
