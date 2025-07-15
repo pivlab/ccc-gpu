@@ -79,4 +79,4 @@ TISSUES=(
     "whole_blood"
 )
 
-python gene_pair_counter.py /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl ./wholeblood_out.pkl --plot
+python gene_pair_counter.py /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl ./wholeblood_out.pkl --plot --threads 4

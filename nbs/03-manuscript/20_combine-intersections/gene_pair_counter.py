@@ -27,6 +27,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from datetime import datetime
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+import multiprocessing as mp
+
+# Initialize logger (will be configured later)
+logger = None
 
 def create_timestamped_folder() -> Path:
     """
@@ -148,12 +153,37 @@ def validate_data(df: pd.DataFrame) -> bool:
     logger.info("Data validation passed!")
     return True
 
-def count_gene_pairs_by_indicators(df: pd.DataFrame) -> pd.DataFrame:
+def process_chunk(chunk_data: Tuple[pd.DataFrame, int]) -> pd.DataFrame:
     """
-    Count gene pairs for each unique combination of boolean indicators.
+    Process a chunk of data to count gene pairs by indicators.
+    
+    Args:
+        chunk_data: Tuple of (dataframe_chunk, chunk_index)
+        
+    Returns:
+        DataFrame with counts for each indicator combination in this chunk
+    """
+    chunk_df, chunk_idx = chunk_data
+    
+    # Define the boolean indicator columns
+    indicator_cols = [
+        'Pearson (high)', 'Pearson (low)', 
+        'Spearman (high)', 'Spearman (low)',
+        'Clustermatch (high)', 'Clustermatch (low)'
+    ]
+    
+    # Group by the indicator columns and count
+    grouped = chunk_df.groupby(indicator_cols).size().reset_index(name='gene_pair_count')
+    
+    return grouped
+
+def count_gene_pairs_by_indicators(df: pd.DataFrame, n_threads: int = None) -> pd.DataFrame:
+    """
+    Count gene pairs for each unique combination of boolean indicators using parallel processing.
     
     Args:
         df: Input DataFrame with gene pairs
+        n_threads: Number of threads to use (default: CPU count)
         
     Returns:
         DataFrame with counts for each indicator combination
@@ -169,8 +199,70 @@ def count_gene_pairs_by_indicators(df: pd.DataFrame) -> pd.DataFrame:
     
     logger.info(f"Grouping by indicator columns: {indicator_cols}")
     
-    # Group by the indicator columns and count
-    grouped = df.groupby(indicator_cols).size().reset_index(name='gene_pair_count')
+    # Determine number of threads
+    if n_threads is None:
+        n_threads = mp.cpu_count()
+    
+    # For small datasets, don't use parallelization overhead
+    # Increased threshold as multiprocessing overhead can be significant
+    if len(df) < 50000:
+        logger.info(f"Dataset size ({len(df)}) below parallelization threshold (50,000), using single-threaded processing")
+        grouped = df.groupby(indicator_cols).size().reset_index(name='gene_pair_count')
+    else:
+        logger.info(f"Using {n_threads} threads for parallel processing")
+        logger.info(f"Processing {len(df)} gene pairs...")
+        
+        # For this type of operation, ThreadPoolExecutor is often more efficient than ProcessPoolExecutor
+        # as it avoids the overhead of pickling/unpickling data between processes
+        use_threads = len(df) < 500000  # Use threads for medium datasets, processes for very large ones
+        
+        if use_threads:
+            logger.info("Using ThreadPoolExecutor for optimal performance")
+            executor_class = ThreadPoolExecutor
+        else:
+            logger.info("Using ProcessPoolExecutor for very large dataset")
+            executor_class = ProcessPoolExecutor
+        
+        # Split DataFrame into chunks
+        # Use fewer chunks to reduce overhead
+        effective_threads = min(n_threads, max(2, len(df) // 25000))  # At least 25k rows per chunk
+        chunk_size = max(1, len(df) // effective_threads)
+        chunks = []
+        for i in range(0, len(df), chunk_size):
+            chunk = df.iloc[i:i + chunk_size]
+            chunks.append((chunk, i // chunk_size))
+        
+        logger.info(f"Split data into {len(chunks)} chunks of ~{chunk_size} rows each")
+        logger.info(f"Using {effective_threads} effective threads")
+        
+        # Process chunks in parallel
+        chunk_results = []
+        with executor_class(max_workers=effective_threads) as executor:
+            # Submit all chunks for processing
+            future_to_chunk = {executor.submit(process_chunk, chunk): chunk for chunk in chunks}
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_chunk):
+                chunk_idx = future_to_chunk[future][1]
+                try:
+                    result = future.result()
+                    chunk_results.append(result)
+                    logger.info(f"Completed processing chunk {chunk_idx}")
+                except Exception as exc:
+                    logger.error(f"Chunk {chunk_idx} generated an exception: {exc}")
+                    raise
+        
+        # Combine results from all chunks
+        logger.info("Combining results from all chunks...")
+        if chunk_results:
+            # Concatenate all chunk results
+            combined_df = pd.concat(chunk_results, ignore_index=True)
+            
+            # Group by indicator columns again to sum counts from different chunks
+            grouped = combined_df.groupby(indicator_cols)['gene_pair_count'].sum().reset_index()
+        else:
+            # Empty result
+            grouped = pd.DataFrame(columns=indicator_cols + ['gene_pair_count'])
     
     logger.info(f"Found {len(grouped)} unique indicator combinations")
     logger.info(f"Total gene pairs processed: {grouped['gene_pair_count'].sum()}")
@@ -179,9 +271,10 @@ def count_gene_pairs_by_indicators(df: pd.DataFrame) -> pd.DataFrame:
     grouped = grouped.sort_values('gene_pair_count', ascending=False)
     
     # Log some statistics
-    logger.info(f"Most common combination has {grouped['gene_pair_count'].max()} gene pairs")
-    logger.info(f"Least common combination has {grouped['gene_pair_count'].min()} gene pairs")
-    logger.info(f"Average gene pairs per combination: {grouped['gene_pair_count'].mean():.2f}")
+    if len(grouped) > 0:
+        logger.info(f"Most common combination has {grouped['gene_pair_count'].max()} gene pairs")
+        logger.info(f"Least common combination has {grouped['gene_pair_count'].min()} gene pairs")
+        logger.info(f"Average gene pairs per combination: {grouped['gene_pair_count'].mean():.2f}")
     
     return grouped
 
@@ -254,7 +347,7 @@ def format_number_with_units(number: int) -> str:
 
 def create_bar_plot(results_df: pd.DataFrame, output_path: str) -> Optional[str]:
     """
-    Create a bar plot of gene pair counts by indicator combinations.
+    Create a bar plot of gene pair counts by indicator combinations with upset plot-style indicators.
     
     Args:
         results_df: DataFrame with counting results
@@ -353,6 +446,10 @@ def create_bar_plot(results_df: pd.DataFrame, output_path: str) -> Optional[str]
         logger.warning("No data to plot")
         return None
     
+    # Calculate percentages
+    total_count = sum(plot_data)
+    percentages = [count / total_count * 100 for count in plot_data]
+    
     # Create the plot
     plt.figure(figsize=(15, 8))
     
@@ -387,11 +484,15 @@ def create_bar_plot(results_df: pd.DataFrame, output_path: str) -> Optional[str]
     # Set x-axis labels
     plt.xticks(range(len(plot_labels)), plot_labels, rotation=45, ha='right')
     
-    # Add value labels on bars
-    for bar, value in zip(bars, plot_data):
+    # Add value labels on bars with counts and percentages
+    for bar, value, percentage in zip(bars, plot_data, percentages):
         height = bar.get_height()
+        # Count on top
         plt.text(bar.get_x() + bar.get_width()/2., height + max(plot_data)*0.01,
                 format_number_with_units(value), ha='center', va='bottom', fontweight='bold')
+        # Percentage below the count
+        plt.text(bar.get_x() + bar.get_width()/2., height + max(plot_data)*0.04,
+                f'{percentage:.1f}%', ha='center', va='bottom', fontsize=10, color='gray')
     
     # Add grid for better readability
     plt.grid(axis='y', alpha=0.3, linestyle='--')
@@ -406,7 +507,7 @@ def create_bar_plot(results_df: pd.DataFrame, output_path: str) -> Optional[str]
     ]
     plt.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.0, 1.0))
     
-    # Adjust layout to prevent label cutoff
+    # Adjust layout
     plt.tight_layout()
     
     # Save the plot
@@ -446,7 +547,7 @@ def parse_arguments():
         Parsed arguments
     """
     parser = argparse.ArgumentParser(
-        description="Count gene pairs by indicator combinations",
+        description="Count gene pairs by indicator combinations with parallel processing support",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -454,6 +555,7 @@ Examples:
     python gene_pair_counter.py data.pkl results.pkl --top-n 5
     python gene_pair_counter.py input.pkl output.pkl --log-file analysis.log
     python gene_pair_counter.py input.pkl output.pkl --plot
+    python gene_pair_counter.py input.pkl output.pkl --threads 8
         """
     )
     
@@ -493,6 +595,13 @@ Examples:
         '--plot',
         action='store_true',
         help='Generate bar plot of results (SVG format)'
+    )
+    
+    parser.add_argument(
+        '--threads',
+        type=int,
+        default=None,
+        help='Number of threads to use for parallel processing (default: CPU count)'
     )
     
     return parser.parse_args()
@@ -535,6 +644,7 @@ def main():
     logger.info(f"Output file: {output_file_path}")
     logger.info(f"Log file: {log_file}")
     logger.info(f"Generate plot: {args.plot}")
+    logger.info(f"Threads: {args.threads if args.threads else 'auto (CPU count)'}")
     
     try:
         # Validate input file exists
@@ -555,7 +665,7 @@ def main():
         logger.info(f"Unique gene pairs: {df.index.nunique()}")
         
         # Count gene pairs by indicator combinations
-        results = count_gene_pairs_by_indicators(df)
+        results = count_gene_pairs_by_indicators(df, n_threads=args.threads)
         
         # Display results (unless --no-display is specified)
         if not args.no_display:
@@ -583,6 +693,9 @@ def main():
             print(f"Plot file: {plot_path}")
         print(f"Total gene pairs processed: {len(df)}")
         print(f"Unique indicator combinations: {len(results)}")
+        print(f"Processing method: {'Parallel' if len(df) >= 50000 else 'Single-threaded'}")
+        if len(df) >= 50000:
+            print(f"Threading strategy: {'Threads' if len(df) < 500000 else 'Processes'}")
         print(f"Results saved successfully!")
         
     except Exception as e:
