@@ -1,0 +1,126 @@
+Processing tissue: whole_blood, combination: 10
+2025-07-16 15:13:28,188 - INFO - Starting Gene Pair Selector (Non-Interactive Mode)
+2025-07-16 15:13:28,188 - INFO - Data directory: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections
+2025-07-16 15:13:28,189 - INFO - Tissue: whole_blood
+2025-07-16 15:13:28,189 - INFO - Output directory: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_selection/whole_blood_combination_10
+2025-07-16 15:13:28,189 - INFO - Combination index: 10
+2025-07-16 15:13:28,189 - INFO - Sort by: combined
+2025-07-16 15:13:28,189 - INFO - Found intersection file for whole_blood: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+2025-07-16 15:13:28,189 - INFO - Using predefined combination 10:
+2025-07-16 15:13:28,189 - INFO -   [Spearman(L), Pearson(L), Clustermatch(L), Spearman(H), Pearson(H), Clustermatch(H)]
+2025-07-16 15:13:28,189 - INFO -   (True, True, False, False, False, True)
+2025-07-16 15:13:28,189 - INFO - Loading data from /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+2025-07-16 15:13:44,561 - INFO - Successfully loaded data with shape: (1420258456, 9)
+2025-07-16 15:13:44,561 - INFO - Index type: <class 'pandas.core.indexes.multi.MultiIndex'>
+2025-07-16 15:13:44,562 - INFO - Multi-index levels: [None, None]
+2025-07-16 15:13:44,562 - INFO - Columns: ['Pearson (high)', 'Pearson (low)', 'Spearman (high)', 'Spearman (low)', 'Clustermatch (high)', 'Clustermatch (low)', 'ccc', 'pearson', 'spearman']
+2025-07-16 15:13:44,562 - INFO - Cleaning numeric data...
+2025-07-16 15:15:25,550 - WARNING - Capping 1939251 extremely high values in ccc to 0.466064453125
+2025-07-16 15:15:30,941 - INFO - Column ccc: 0 NaN values after cleaning
+2025-07-16 15:18:19,586 - INFO - Column pearson: 0 NaN values after cleaning
+2025-07-16 15:19:47,147 - INFO - Column spearman: 0 NaN values after cleaning
+2025-07-16 15:19:48,634 - INFO - Validating data structure...
+2025-07-16 15:19:54,042 - INFO - Data validation passed!
+2025-07-16 15:19:54,043 - INFO - Filtering data by chosen combination...
+2025-07-16 15:20:10,330 - INFO - Filtered data from 1420258456 to 6120027 gene pairs
+2025-07-16 15:20:10,330 - INFO - Chosen combination:
+2025-07-16 15:20:10,330 - INFO -   Pearson (high): False
+2025-07-16 15:20:10,330 - INFO -   Pearson (low): True
+2025-07-16 15:20:10,330 - INFO -   Spearman (high): False
+2025-07-16 15:20:10,330 - INFO -   Spearman (low): True
+2025-07-16 15:20:10,330 - INFO -   Clustermatch (high): True
+2025-07-16 15:20:10,330 - INFO -   Clustermatch (low): False
+2025-07-16 15:20:10,338 - INFO - Saving filtered data to /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_selection/whole_blood_combination_10/filtered_data_cache.pkl
+2025-07-16 15:20:10,575 - INFO - Successfully saved filtered data with 6120027 rows
+2025-07-16 15:20:10,575 - INFO - 
+Filtered Data Summary
+2025-07-16 15:20:10,575 - INFO - ============================================================
+2025-07-16 15:20:10,575 - INFO - Total gene pairs: 6120027
+2025-07-16 15:20:10,618 - INFO - CCC statistics (n=6120027):
+2025-07-16 15:20:10,630 - INFO -   Mean: 0.016054
+2025-07-16 15:20:10,686 - INFO -   Std:  0.003694
+2025-07-16 15:20:10,699 - INFO -   Min:  0.012085
+2025-07-16 15:20:10,712 - INFO -   Max:  0.131958
+2025-07-16 15:20:10,826 - INFO -   Median: 0.015236
+2025-07-16 15:20:10,873 - INFO - PEARSON statistics (n=6120027):
+2025-07-16 15:20:10,888 - INFO -   Mean: 0.008072
+2025-07-16 15:20:10,939 - INFO -   Std:  0.004784
+2025-07-16 15:20:10,952 - INFO -   Min:  0.000000
+2025-07-16 15:20:10,964 - INFO -   Max:  0.017105
+2025-07-16 15:20:11,072 - INFO -   Median: 0.007874
+2025-07-16 15:20:11,107 - INFO - SPEARMAN statistics (n=6120027):
+2025-07-16 15:20:11,120 - INFO -   Mean: 0.017163
+2025-07-16 15:20:11,165 - INFO -   Std:  0.004657
+2025-07-16 15:20:11,177 - INFO -   Min:  0.000000
+2025-07-16 15:20:11,190 - INFO -   Max:  0.022858
+2025-07-16 15:20:11,297 - INFO -   Median: 0.018188
+2025-07-16 15:20:11,298 - INFO - Calculating CCC distance to Pearson and Spearman...
+2025-07-16 15:20:11,609 - INFO - Calculating absolute differences...
+2025-07-16 15:20:11,673 - INFO - Calculating combined distance...
+2025-07-16 15:20:11,706 - INFO - Calculating mean distance...
+2025-07-16 15:20:11,748 - INFO - Calculating max distance...
+2025-07-16 15:20:12,283 - INFO - Distance calculation completed for 6120027 gene pairs
+2025-07-16 15:20:12,283 - INFO - Sorting by CCC combined distance...
+2025-07-16 15:20:15,601 - INFO - Data sorted by ccc_combined_distance
+2025-07-16 15:20:15,601 - INFO - Saving sorted data to /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_selection/whole_blood_combination_10/sorted_data_cache.pkl
+2025-07-16 15:20:16,055 - INFO - Successfully saved sorted data with 6120027 rows
+2025-07-16 15:20:16,055 - INFO - 
+Sorted Data Summary
+2025-07-16 15:20:16,055 - INFO - ============================================================
+2025-07-16 15:20:16,055 - INFO - Total gene pairs: 6120027
+2025-07-16 15:20:16,094 - INFO - CCC statistics (n=6120027):
+2025-07-16 15:20:16,105 - INFO -   Mean: 0.016054
+2025-07-16 15:20:16,161 - INFO -   Std:  0.003694
+2025-07-16 15:20:16,173 - INFO -   Min:  0.012085
+2025-07-16 15:20:16,186 - INFO -   Max:  0.131958
+2025-07-16 15:20:16,303 - INFO -   Median: 0.015236
+2025-07-16 15:20:16,345 - INFO - PEARSON statistics (n=6120027):
+2025-07-16 15:20:16,358 - INFO -   Mean: 0.008072
+2025-07-16 15:20:16,403 - INFO -   Std:  0.004784
+2025-07-16 15:20:16,416 - INFO -   Min:  0.000000
+2025-07-16 15:20:16,428 - INFO -   Max:  0.017105
+2025-07-16 15:20:16,522 - INFO -   Median: 0.007874
+2025-07-16 15:20:16,556 - INFO - SPEARMAN statistics (n=6120027):
+2025-07-16 15:20:16,568 - INFO -   Mean: 0.017163
+2025-07-16 15:20:16,608 - INFO -   Std:  0.004657
+2025-07-16 15:20:16,621 - INFO -   Min:  0.000000
+2025-07-16 15:20:16,632 - INFO -   Max:  0.022858
+2025-07-16 15:20:16,725 - INFO -   Median: 0.018188
+2025-07-16 15:20:16,758 - INFO - ccc_pearson_diff statistics (n=6120027):
+2025-07-16 15:20:16,770 - INFO -   Mean: 0.008301
+2025-07-16 15:20:16,813 - INFO -   Std:  0.005525
+2025-07-16 15:20:16,826 - INFO -   Min:  0.000000
+2025-07-16 15:20:16,839 - INFO -   Max:  0.120743
+2025-07-16 15:20:16,911 - INFO -   Median: 0.008011
+2025-07-16 15:20:16,940 - INFO - ccc_spearman_diff statistics (n=6120027):
+2025-07-16 15:20:16,951 - INFO -   Mean: 0.004064
+2025-07-16 15:20:16,990 - INFO -   Std:  0.003934
+2025-07-16 15:20:17,001 - INFO -   Min:  0.000000
+2025-07-16 15:20:17,012 - INFO -   Max:  0.118795
+2025-07-16 15:20:17,108 - INFO -   Median: 0.003159
+2025-07-16 15:20:17,141 - INFO - ccc_combined_distance statistics (n=6120027):
+2025-07-16 15:20:17,152 - INFO -   Mean: 0.012366
+2025-07-16 15:20:17,191 - INFO -   Std:  0.007370
+2025-07-16 15:20:17,203 - INFO -   Min:  0.000000
+2025-07-16 15:20:17,215 - INFO -   Max:  0.233017
+2025-07-16 15:20:17,262 - INFO -   Median: 0.011814
+2025-07-16 15:20:17,291 - INFO - ccc_mean_distance statistics (n=6120027):
+2025-07-16 15:20:17,304 - INFO -   Mean: 0.006183
+2025-07-16 15:20:17,346 - INFO -   Std:  0.003685
+2025-07-16 15:20:17,359 - INFO -   Min:  0.000000
+2025-07-16 15:20:17,372 - INFO -   Max:  0.116508
+2025-07-16 15:20:17,418 - INFO -   Median: 0.005907
+2025-07-16 15:20:17,448 - INFO - ccc_max_distance statistics (n=6120027):
+2025-07-16 15:20:17,460 - INFO -   Mean: 0.009176
+2025-07-16 15:20:17,499 - INFO -   Std:  0.005073
+2025-07-16 15:20:17,512 - INFO -   Min:  0.000000
+2025-07-16 15:20:17,525 - INFO -   Max:  0.120743
+2025-07-16 15:20:17,593 - INFO -   Median: 0.008698
+2025-07-16 15:20:17,594 - INFO - Saving selection metadata to /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_selection/whole_blood_combination_10/selection_metadata.pkl
+2025-07-16 15:20:17,595 - INFO - Successfully saved selection metadata with 11 rows
+2025-07-16 15:20:17,595 - INFO - Gene pair selection completed successfully!
+2025-07-16 15:20:17,595 - INFO - Filtered data saved to: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_selection/whole_blood_combination_10/filtered_data_cache.pkl
+2025-07-16 15:20:17,595 - INFO - Sorted data saved to: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_selection/whole_blood_combination_10/sorted_data_cache.pkl
+2025-07-16 15:20:17,595 - INFO - Metadata saved to: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_selection/whole_blood_combination_10/selection_metadata.pkl
+Successfully processed whole_blood with combination 10
+Completed processing all tissues for combination 10

@@ -26,6 +26,12 @@ from typing import Dict, List, Tuple, Optional
 import sys
 from pathlib import Path
 from datetime import datetime
+import warnings
+
+# Suppress specific overflow warnings during controlled operations
+warnings.filterwarnings('ignore', category=RuntimeWarning, message='overflow encountered in cast')
+warnings.filterwarnings('ignore', category=RuntimeWarning, message='overflow encountered in reduce')
+warnings.filterwarnings('ignore', category=RuntimeWarning, message='invalid value encountered in scalar divide')
 
 # Initialize logger (will be configured later)
 logger = None
@@ -35,10 +41,22 @@ def setup_logging(log_file: str = None):
     Setup logging configuration.
     
     Args:
-        log_file: Path to log file. If None, uses default name.
+        log_file: Path to log file. If None, uses default timestamped name in logs folder.
     """
+    global logger
+    
     if log_file is None:
-        log_file = 'gene_pair_selector.log'
+        # Create logs directory if it doesn't exist
+        logs_dir = Path('logs')
+        logs_dir.mkdir(exist_ok=True)
+        
+        # Generate timestamped log filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_file = logs_dir / f'gene_pair_selector_{timestamp}.log'
+    
+    # Ensure parent directory exists
+    log_path = Path(log_file)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     
     logging.basicConfig(
         level=logging.INFO,
@@ -48,6 +66,72 @@ def setup_logging(log_file: str = None):
             logging.StreamHandler(sys.stdout)
         ]
     )
+    
+    # Initialize the global logger
+    logger = logging.getLogger(__name__)
+
+def clean_numeric_data(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
+    """
+    Clean numeric data by handling inf, -inf, and extreme values.
+    
+    Args:
+        df: Input DataFrame
+        columns: List of numeric columns to clean
+        
+    Returns:
+        DataFrame with cleaned numeric data
+    """
+    logger.info("Cleaning numeric data...")
+    df = df.copy()
+    
+    for col in columns:
+        if col not in df.columns:
+            logger.warning(f"Column {col} not found in data, skipping...")
+            continue
+            
+        # Convert to float64 for better precision
+        df[col] = pd.to_numeric(df[col], errors='coerce', downcast=None).astype('float64')
+        
+        # Count problematic values before cleaning
+        inf_count = np.isinf(df[col]).sum()
+        nan_count = df[col].isna().sum()
+        
+        if inf_count > 0:
+            logger.warning(f"Found {inf_count} infinite values in column {col}")
+        if nan_count > 0:
+            logger.warning(f"Found {nan_count} NaN values in column {col}")
+        
+        # Replace inf and -inf with NaN
+        df[col] = df[col].replace([np.inf, -np.inf], np.nan)
+        
+        # For extreme values, cap them at reasonable bounds
+        if not df[col].isna().all():
+            # Calculate robust statistics (5th and 95th percentiles)
+            q05 = df[col].quantile(0.05)
+            q95 = df[col].quantile(0.95)
+            
+            # Define reasonable bounds (extend beyond quantiles)
+            iqr = q95 - q05
+            lower_bound = q05 - 3 * iqr
+            upper_bound = q95 + 3 * iqr
+            
+            # Cap extreme values
+            extreme_low = (df[col] < lower_bound) & (~df[col].isna())
+            extreme_high = (df[col] > upper_bound) & (~df[col].isna())
+            
+            if extreme_low.sum() > 0:
+                logger.warning(f"Capping {extreme_low.sum()} extremely low values in {col} to {lower_bound}")
+                df.loc[extreme_low, col] = lower_bound
+                
+            if extreme_high.sum() > 0:
+                logger.warning(f"Capping {extreme_high.sum()} extremely high values in {col} to {upper_bound}")
+                df.loc[extreme_high, col] = upper_bound
+        
+        # Final count of NaN values
+        final_nan_count = df[col].isna().sum()
+        logger.info(f"Column {col}: {final_nan_count} NaN values after cleaning")
+    
+    return df
 
 def load_data(file_path: str) -> pd.DataFrame:
     """
@@ -74,6 +158,10 @@ def load_data(file_path: str) -> pd.DataFrame:
         if hasattr(df.index, 'names'):
             logger.info(f"Multi-index levels: {df.index.names}")
         logger.info(f"Columns: {list(df.columns)}")
+        
+        # Clean numeric data immediately after loading
+        numeric_cols = ['ccc', 'pearson', 'spearman']
+        df = clean_numeric_data(df, numeric_cols)
         
         return df
         
@@ -129,6 +217,11 @@ def validate_data(df: pd.DataFrame) -> bool:
     for col in expected_numeric_cols:
         if not pd.api.types.is_numeric_dtype(df[col]):
             logger.warning(f"Column '{col}' is not numeric. Current type: {df[col].dtype}")
+        else:
+            # Check for data quality issues
+            nan_count = df[col].isna().sum()
+            if nan_count > 0:
+                logger.warning(f"Column '{col}' has {nan_count} NaN values ({nan_count/len(df)*100:.1f}%)")
     
     # Check for multi-index
     if not isinstance(df.index, pd.MultiIndex):
@@ -286,7 +379,7 @@ def filter_data_by_combination(df: pd.DataFrame, combination: Dict[str, bool]) -
 
 def calculate_ccc_distance(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Calculate CCC distance to Pearson and Spearman values.
+    Calculate CCC distance to Pearson and Spearman values with robust handling.
     
     Args:
         df: Input DataFrame with ccc, pearson, spearman columns
@@ -298,20 +391,61 @@ def calculate_ccc_distance(df: pd.DataFrame) -> pd.DataFrame:
     
     df = df.copy()
     
-    # Calculate absolute differences
-    df['ccc_pearson_diff'] = abs(df['ccc'] - df['pearson'])
-    df['ccc_spearman_diff'] = abs(df['ccc'] - df['spearman'])
+    # Ensure all columns are float64 for precision
+    for col in ['ccc', 'pearson', 'spearman']:
+        if col in df.columns:
+            df[col] = df[col].astype('float64')
+    
+    # Remove rows where any of the required columns have NaN values
+    original_length = len(df)
+    df = df.dropna(subset=['ccc', 'pearson', 'spearman'])
+    dropped_rows = original_length - len(df)
+    
+    if dropped_rows > 0:
+        logger.warning(f"Dropped {dropped_rows} rows with NaN values in required columns")
+    
+    if len(df) == 0:
+        logger.error("No valid data remaining after removing NaN values")
+        raise ValueError("No valid data remaining after cleaning")
+    
+    # Calculate absolute differences using numpy for better control
+    logger.info("Calculating absolute differences...")
+    
+    # Use numpy.abs for more robust calculation
+    df['ccc_pearson_diff'] = np.abs(df['ccc'].values - df['pearson'].values, dtype=np.float64)
+    df['ccc_spearman_diff'] = np.abs(df['ccc'].values - df['spearman'].values, dtype=np.float64)
     
     # Calculate combined distance (sum of both differences)
+    logger.info("Calculating combined distance...")
     df['ccc_combined_distance'] = df['ccc_pearson_diff'] + df['ccc_spearman_diff']
     
     # Calculate mean distance
-    df['ccc_mean_distance'] = (df['ccc_pearson_diff'] + df['ccc_spearman_diff']) / 2
+    logger.info("Calculating mean distance...")
+    df['ccc_mean_distance'] = (df['ccc_pearson_diff'] + df['ccc_spearman_diff']) / 2.0
     
     # Calculate max distance
-    df['ccc_max_distance'] = df[['ccc_pearson_diff', 'ccc_spearman_diff']].max(axis=1)
+    logger.info("Calculating max distance...")
+    df['ccc_max_distance'] = np.maximum(df['ccc_pearson_diff'], df['ccc_spearman_diff'])
     
-    logger.info("Distance calculation completed")
+    # Verify no infinite values were created
+    distance_cols = ['ccc_pearson_diff', 'ccc_spearman_diff', 'ccc_combined_distance', 'ccc_mean_distance', 'ccc_max_distance']
+    for col in distance_cols:
+        if col in df.columns:
+            inf_count = np.isinf(df[col]).sum()
+            if inf_count > 0:
+                logger.warning(f"Found {inf_count} infinite values in {col} after calculation")
+                # Replace with NaN and then handle
+                df[col] = df[col].replace([np.inf, -np.inf], np.nan)
+    
+    # Remove any rows that have infinite distance values
+    before_inf_filter = len(df)
+    df = df.dropna(subset=distance_cols)
+    after_inf_filter = len(df)
+    
+    if before_inf_filter > after_inf_filter:
+        logger.warning(f"Removed {before_inf_filter - after_inf_filter} rows with infinite distance values")
+    
+    logger.info(f"Distance calculation completed for {len(df)} gene pairs")
     
     return df
 
@@ -340,8 +474,18 @@ def sort_by_distance(df: pd.DataFrame, sort_by: str = 'combined') -> pd.DataFram
     
     distance_col = distance_col_map[sort_by]
     
+    if distance_col not in df.columns:
+        logger.error(f"Distance column {distance_col} not found in data")
+        raise ValueError(f"Distance column {distance_col} not found")
+    
+    # Check for NaN values in the sort column
+    nan_count = df[distance_col].isna().sum()
+    if nan_count > 0:
+        logger.warning(f"Found {nan_count} NaN values in {distance_col}, these will be sorted to the end")
+    
     # Sort by distance (ascending - smallest distance first)
-    sorted_df = df.sort_values(distance_col, ascending=True)
+    # NaN values will be placed at the end
+    sorted_df = df.sort_values(distance_col, ascending=True, na_position='last')
     
     logger.info(f"Data sorted by {distance_col}")
     
@@ -374,7 +518,7 @@ def save_data(df: pd.DataFrame, file_path: str, description: str = "data"):
 
 def print_summary_statistics(df: pd.DataFrame, title: str):
     """
-    Print summary statistics for the dataset.
+    Print summary statistics for the dataset with robust handling of problematic values.
     
     Args:
         df: Input DataFrame
@@ -388,21 +532,32 @@ def print_summary_statistics(df: pd.DataFrame, title: str):
     numeric_cols = ['ccc', 'pearson', 'spearman']
     for col in numeric_cols:
         if col in df.columns:
-            logger.info(f"{col.upper()} statistics:")
-            logger.info(f"  Mean: {df[col].mean():.4f}")
-            logger.info(f"  Std:  {df[col].std():.4f}")
-            logger.info(f"  Min:  {df[col].min():.4f}")
-            logger.info(f"  Max:  {df[col].max():.4f}")
+            # Use robust statistics that handle NaN values
+            valid_data = df[col].dropna()
+            if len(valid_data) > 0:
+                logger.info(f"{col.upper()} statistics (n={len(valid_data)}):")
+                logger.info(f"  Mean: {valid_data.mean():.6f}")
+                logger.info(f"  Std:  {valid_data.std():.6f}")
+                logger.info(f"  Min:  {valid_data.min():.6f}")
+                logger.info(f"  Max:  {valid_data.max():.6f}")
+                logger.info(f"  Median: {valid_data.median():.6f}")
+            else:
+                logger.info(f"{col.upper()}: No valid data")
     
     # Distance statistics (if available)
-    distance_cols = ['ccc_pearson_diff', 'ccc_spearman_diff', 'ccc_combined_distance']
+    distance_cols = ['ccc_pearson_diff', 'ccc_spearman_diff', 'ccc_combined_distance', 'ccc_mean_distance', 'ccc_max_distance']
     for col in distance_cols:
         if col in df.columns:
-            logger.info(f"{col} statistics:")
-            logger.info(f"  Mean: {df[col].mean():.4f}")
-            logger.info(f"  Std:  {df[col].std():.4f}")
-            logger.info(f"  Min:  {df[col].min():.4f}")
-            logger.info(f"  Max:  {df[col].max():.4f}")
+            valid_data = df[col].dropna()
+            if len(valid_data) > 0:
+                logger.info(f"{col} statistics (n={len(valid_data)}):")
+                logger.info(f"  Mean: {valid_data.mean():.6f}")
+                logger.info(f"  Std:  {valid_data.std():.6f}")
+                logger.info(f"  Min:  {valid_data.min():.6f}")
+                logger.info(f"  Max:  {valid_data.max():.6f}")
+                logger.info(f"  Median: {valid_data.median():.6f}")
+            else:
+                logger.info(f"{col}: No valid data")
 
 def display_predefined_combinations():
     """
@@ -419,6 +574,116 @@ def display_predefined_combinations():
         spearman_low, pearson_low, clustermatch_low, spearman_high, pearson_high, clustermatch_high = combo
         logger.info(f"{idx:<5} {str(spearman_low):<11} {str(pearson_low):<10} {str(clustermatch_low):<15} {str(spearman_high):<11} {str(pearson_high):<10} {str(clustermatch_high):<15}")
 
+def get_available_tissues() -> List[str]:
+    """
+    Get list of available tissues for selection.
+    
+    Returns:
+        List of tissue names
+    """
+    tissues = [
+        "adipose_subcutaneous",
+        "adipose_visceral_omentum",
+        "adrenal_gland",
+        "artery_aorta",
+        "artery_coronary",
+        "artery_tibial",
+        "bladder",
+        "brain_amygdala",
+        "brain_anterior_cingulate_cortex_ba24",
+        "brain_caudate_basal_ganglia",
+        "brain_cerebellar_hemisphere",
+        "brain_cerebellum",
+        "brain_cortex",
+        "brain_frontal_cortex_ba9",
+        "brain_hippocampus",
+        "brain_hypothalamus",
+        "brain_nucleus_accumbens_basal_ganglia",
+        "brain_putamen_basal_ganglia",
+        "brain_spinal_cord_cervical_c1",
+        "brain_substantia_nigra",
+        "breast_mammary_tissue",
+        "cells_cultured_fibroblasts",
+        "cells_ebvtransformed_lymphocytes",
+        "cervix_ectocervix",
+        "cervix_endocervix",
+        "colon_sigmoid",
+        "colon_transverse",
+        "esophagus_gastroesophageal_junction",
+        "esophagus_mucosa",
+        "esophagus_muscularis",
+        "fallopian_tube",
+        "heart_atrial_appendage",
+        "heart_left_ventricle",
+        "kidney_cortex",
+        "kidney_medulla",
+        "liver",
+        "lung",
+        "minor_salivary_gland",
+        "muscle_skeletal",
+        "nerve_tibial",
+        "ovary",
+        "pancreas",
+        "pituitary",
+        "prostate",
+        "skin_not_sun_exposed_suprapubic",
+        "skin_sun_exposed_lower_leg",
+        "small_intestine_terminal_ileum",
+        "spleen",
+        "stomach",
+        "testis",
+        "thyroid",
+        "uterus",
+        "vagina",
+        "whole_blood"
+    ]
+    return tissues
+
+def find_intersection_file(data_dir: str, tissue: str) -> str:
+    """
+    Find the intersection file for a specific tissue.
+    
+    Args:
+        data_dir: Directory containing intersection files
+        tissue: Tissue name
+        
+    Returns:
+        Path to the intersection file
+    """
+    data_path = Path(data_dir)
+    
+    if not data_path.exists():
+        raise FileNotFoundError(f"Data directory not found: {data_dir}")
+    
+    # Look for files matching the pattern: gene_pair_intersections*{tissue}*.pkl
+    pattern = f"gene_pair_intersections*{tissue}*.pkl"
+    matching_files = list(data_path.glob(pattern))
+    
+    if not matching_files:
+        # Try alternative pattern without asterisks
+        pattern = f"*{tissue}*.pkl"
+        matching_files = list(data_path.glob(pattern))
+    
+    if not matching_files:
+        # List available files for debugging
+        all_files = list(data_path.glob("*.pkl"))
+        logger.error(f"No intersection file found for tissue: {tissue}")
+        logger.error(f"Available files in {data_dir}:")
+        for file in all_files:
+            logger.error(f"  {file.name}")
+        raise FileNotFoundError(f"No intersection file found for tissue: {tissue}")
+    
+    if len(matching_files) > 1:
+        logger.warning(f"Multiple files found for tissue {tissue}:")
+        for file in matching_files:
+            logger.warning(f"  {file}")
+        logger.warning(f"Using first match: {matching_files[0]}")
+    
+    selected_file = str(matching_files[0])
+    logger.info(f"Found intersection file for {tissue}: {selected_file}")
+    
+    return selected_file
+
 def main():
     """
     Main function to run the gene pair selector.
@@ -428,12 +693,20 @@ def main():
         description='Select and filter gene pairs based on boolean indicator combinations'
     )
     parser.add_argument(
-        'input_file',
-        help='Path to input pickle file containing gene pair intersections'
+        '--data-dir',
+        required=True,
+        help='Directory containing gene pair intersection files'
     )
     parser.add_argument(
-        'output_dir',
-        help='Directory to save output files'
+        '--tissue',
+        required=True,
+        choices=get_available_tissues(),
+        help='Tissue to analyze'
+    )
+    parser.add_argument(
+        '--output',
+        required=True,
+        help='Output directory to save results'
     )
     parser.add_argument(
         '--combination-index',
@@ -455,6 +728,11 @@ def main():
         action='store_true',
         help='List all available predefined combinations and exit'
     )
+    parser.add_argument(
+        '--list-tissues',
+        action='store_true',
+        help='List all available tissues and exit'
+    )
     
     args = parser.parse_args()
     
@@ -463,24 +741,35 @@ def main():
     setup_logging(args.log_file)
     logger = logging.getLogger(__name__)
     
+    # If user wants to list tissues, show them and exit
+    if args.list_tissues:
+        logger.info("Available tissues:")
+        for tissue in get_available_tissues():
+            logger.info(f"  {tissue}")
+        return 0
+    
     # If user wants to list combinations, show them and exit
     if args.list_combinations:
         display_predefined_combinations()
         return 0
     
-    # Check if combination-index is provided when not listing combinations
+    # Check if combination-index is provided when not listing
     if args.combination_index is None:
-        logger.error("--combination-index is required when not using --list-combinations")
+        logger.error("--combination-index is required when not using --list-combinations or --list-tissues")
         parser.print_help()
         return 1
     
     logger.info("Starting Gene Pair Selector (Non-Interactive Mode)")
-    logger.info(f"Input file: {args.input_file}")
-    logger.info(f"Output directory: {args.output_dir}")
+    logger.info(f"Data directory: {args.data_dir}")
+    logger.info(f"Tissue: {args.tissue}")
+    logger.info(f"Output directory: {args.output}")
     logger.info(f"Combination index: {args.combination_index}")
     logger.info(f"Sort by: {args.sort_by}")
     
     try:
+        # Find the intersection file for the specified tissue
+        input_file = find_intersection_file(args.data_dir, args.tissue)
+        
         # Get predefined combinations
         predefined_combinations = get_predefined_combinations()
         
@@ -499,7 +788,7 @@ def main():
         logger.info(f"  {chosen_combination_tuple}")
         
         # Load data
-        df = load_data(args.input_file)
+        df = load_data(input_file)
         
         # Validate data
         if not validate_data(df):
@@ -517,7 +806,7 @@ def main():
             return 1
         
         # Save filtered data
-        output_dir = Path(args.output_dir)
+        output_dir = Path(args.output)
         filtered_cache_path = output_dir / 'filtered_data_cache.pkl'
         save_data(filtered_df, filtered_cache_path, "filtered data")
         
@@ -539,7 +828,9 @@ def main():
         
         # Save metadata about the selection
         metadata = {
-            'input_file': args.input_file,
+            'data_dir': args.data_dir,
+            'tissue': args.tissue,
+            'input_file': input_file,
             'output_dir': str(output_dir),
             'sort_by': args.sort_by,
             'chosen_combination_index': args.combination_index,
