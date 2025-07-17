@@ -2,8 +2,9 @@
 """
 Gene Pair Counter CLI Script
 
-This script processes a dataset with gene pairs (multi-index) and counts
+This script processes multiple gene pair intersection datasets and counts
 how many gene pairs exist for each unique combination of boolean indicators.
+It saves individual count files for each tissue and generates accumulated bar plots.
 
 The dataset should have columns:
 - Pearson (high), Pearson (low), Spearman (high), Spearman (low), 
@@ -11,7 +12,12 @@ The dataset should have columns:
 - ccc, pearson, spearman - numeric columns
 
 Usage:
-    python gene_pair_counter.py input_file.pkl output_file.pkl
+    python gene_pair_counter.py input_directory output_base_name
+
+Output:
+    - Individual tissue count files: {tissue}_counts.pkl
+    - Accumulated bar plots (if requested)
+    - Intermediate processing files
 
 Author: AI Assistant
 """
@@ -673,6 +679,30 @@ def accumulate_counts(existing_counts: pd.DataFrame, new_counts: pd.DataFrame) -
     
     return result
 
+def extract_tissue_name(file_path: Path) -> str:
+    """
+    Extract tissue name from intersection file path.
+    
+    Args:
+        file_path: Path to intersection file
+        
+    Returns:
+        Tissue name extracted from filename
+    """
+    # Expected format: gene_pair_intersections-gtex_v8-{tissue}-var_pc_log2.pkl
+    filename = file_path.name
+    
+    # Remove extension and prefix
+    name_parts = filename.replace('.pkl', '').split('-')
+    
+    if len(name_parts) >= 3:
+        # Extract tissue name (3rd part after splitting by '-')
+        tissue_name = name_parts[2]
+        return tissue_name
+    
+    # Fallback: use filename without extension
+    return filename.replace('.pkl', '')
+
 def process_multiple_files(data_dir: str, output_folder: Path, output_file: str, 
                           args) -> pd.DataFrame:
     """
@@ -731,7 +761,14 @@ def process_multiple_files(data_dir: str, output_folder: Path, output_file: str,
                 logger.warning(f"No counts generated for {file_path.name}, skipping")
                 continue
             
-            # Accumulate counts
+            # Extract tissue name and save individual tissue counts
+            tissue_name = extract_tissue_name(file_path)
+            tissue_count_file = output_folder / f"{tissue_name}_counts.pkl"
+            logger.info(f"Saving tissue-specific counts to {tissue_count_file}")
+            with open(tissue_count_file, 'wb') as f:
+                pickle.dump(file_counts, f)
+            
+            # Accumulate counts for plotting
             logger.info("Accumulating counts with previous files...")
             accumulated_counts = accumulate_counts(accumulated_counts, file_counts)
             
@@ -743,8 +780,9 @@ def process_multiple_files(data_dir: str, output_folder: Path, output_file: str,
             logger.info(f"New combinations found: {len(file_counts)}")
             logger.info(f"Total combinations so far: {len(accumulated_counts)}")
             logger.info(f"Total gene pairs processed: {total_gene_pairs:,}")
+            logger.info(f"Tissue-specific counts saved to {tissue_count_file}")
             
-            # Save intermediate results
+            # Save intermediate results for plotting
             intermediate_file = output_folder / f"intermediate_counts_after_{i:02d}_files.pkl"
             logger.info(f"Saving intermediate results to {intermediate_file}")
             with open(intermediate_file, 'wb') as f:
@@ -780,7 +818,7 @@ def process_multiple_files(data_dir: str, output_folder: Path, output_file: str,
     logger.info(f"Successfully processed {processed_files}/{len(intersection_files)} files")
     logger.info(f"Total gene pairs processed: {total_gene_pairs:,}")
     logger.info(f"Total unique combinations: {len(accumulated_counts)}")
-    logger.info(f"Final results will be saved to {output_file}")
+    logger.info(f"Individual tissue count files saved in {output_folder}")
     
     return accumulated_counts
 
@@ -816,7 +854,7 @@ def main():
     logger.info("Starting Gene Pair Counter CLI Script - Multiple Files Mode")
     logger.info(f"Data directory: {args.data_dir}")
     logger.info(f"Output folder: {output_folder}")
-    logger.info(f"Output file: {output_file_path}")
+    logger.info(f"Plot base name: {output_file_path}")
     logger.info(f"Log file: {log_file}")
     logger.info(f"Generate plots: {args.plot}")
     logger.info(f"Threads: {args.threads if args.threads else 'auto (CPU count)'}")
@@ -842,9 +880,6 @@ def main():
             logger.info(f"{'='*80}")
             display_results(results, top_n=args.top_n)
         
-        # Save final results
-        save_results(results, str(output_file_path))
-        
         # Generate final plot if requested
         final_plot_path = None
         if args.plot:
@@ -861,19 +896,26 @@ def main():
         print(f"{'='*80}")
         print(f"Data directory: {args.data_dir}")
         print(f"Output folder: {output_folder}")
-        print(f"Output file: {output_file_path}")
         print(f"Log file: {log_file}")
         if final_plot_path:
             print(f"Final plot: {final_plot_path}")
         
-        # Count intermediate files
+        # Count output files
+        tissue_count_files = list(output_folder.glob("*_counts.pkl"))
         intermediate_files = list(output_folder.glob("intermediate_*.pkl"))
         intermediate_plots = list(output_folder.glob("intermediate_*.svg"))
         
+        print(f"Tissue-specific count files: {len(tissue_count_files)}")
         print(f"Intermediate count files: {len(intermediate_files)}")
         print(f"Intermediate plots: {len(intermediate_plots)}")
         print(f"Unique indicator combinations: {len(results)}")
         print(f"Processing completed with timestamped outputs!")
+        
+        # List tissue-specific files
+        if tissue_count_files:
+            print(f"\nTissue-specific count files created:")
+            for tissue_file in sorted(tissue_count_files):
+                print(f"  - {tissue_file.name}")
         
     except Exception as e:
         logger.error(f"Error in main execution: {e}")
