@@ -51,7 +51,7 @@ for tissue in "${TISSUES[@]}"; do
         --output "${OUTPUT_DIR}" \
         --combination-index "${CATEGORY_ID}" \
         --sort-by combined \
-        --log-file "${OUTPUT_DIR}/gene_selector_${tissue}_${CATEGORY_ID}.log"
+        --log-file "${OUTPUT_DIR}/${tissue}_Combination_${CATEGORY_ID}.log"
     
     # Check if processing was successful
     if [ $? -eq 0 ]; then
