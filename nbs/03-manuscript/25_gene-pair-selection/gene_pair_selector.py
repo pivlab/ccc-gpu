@@ -36,23 +36,23 @@ warnings.filterwarnings('ignore', category=RuntimeWarning, message='invalid valu
 # Initialize logger (will be configured later)
 logger = None
 
-def setup_logging(log_file: str = None):
+def setup_logging(log_file: str = None, output_dir: str = None):
     """
     Setup logging configuration.
     
     Args:
-        log_file: Path to log file. If None, uses default timestamped name in logs folder.
+        log_file: Path to log file. If None, uses default timestamped name.
+        output_dir: Output directory for log file. If None, uses current directory.
     """
     global logger
     
     if log_file is None:
-        # Create logs directory if it doesn't exist
-        logs_dir = Path('logs')
-        logs_dir.mkdir(exist_ok=True)
-        
         # Generate timestamped log filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        log_file = logs_dir / f'gene_pair_selector_{timestamp}.log'
+        if output_dir:
+            log_file = Path(output_dir) / f'gene_pair_selector_{timestamp}.log'
+        else:
+            log_file = Path(f'gene_pair_selector_{timestamp}.log')
     
     # Ensure parent directory exists
     log_path = Path(log_file)
@@ -72,7 +72,7 @@ def setup_logging(log_file: str = None):
 
 def clean_numeric_data(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
     """
-    Clean numeric data by handling inf, -inf, and extreme values.
+    Clean numeric data by handling inf and NaN values.
     
     Args:
         df: Input DataFrame
@@ -103,29 +103,6 @@ def clean_numeric_data(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
         
         # Replace inf and -inf with NaN
         df[col] = df[col].replace([np.inf, -np.inf], np.nan)
-        
-        # For extreme values, cap them at reasonable bounds
-        if not df[col].isna().all():
-            # Calculate robust statistics (5th and 95th percentiles)
-            q05 = df[col].quantile(0.05)
-            q95 = df[col].quantile(0.95)
-            
-            # Define reasonable bounds (extend beyond quantiles)
-            iqr = q95 - q05
-            lower_bound = q05 - 3 * iqr
-            upper_bound = q95 + 3 * iqr
-            
-            # Cap extreme values
-            extreme_low = (df[col] < lower_bound) & (~df[col].isna())
-            extreme_high = (df[col] > upper_bound) & (~df[col].isna())
-            
-            if extreme_low.sum() > 0:
-                logger.warning(f"Capping {extreme_low.sum()} extremely low values in {col} to {lower_bound}")
-                df.loc[extreme_low, col] = lower_bound
-                
-            if extreme_high.sum() > 0:
-                logger.warning(f"Capping {extreme_high.sum()} extremely high values in {col} to {upper_bound}")
-                df.loc[extreme_high, col] = upper_bound
         
         # Final count of NaN values
         final_nan_count = df[col].isna().sum()
@@ -340,6 +317,53 @@ def convert_combination_format(combination_tuple: Tuple[bool, bool, bool, bool, 
         'Clustermatch (low)': clustermatch_low
     }
 
+def get_combination_name(combination_tuple: Tuple[bool, bool, bool, bool, bool, bool]) -> str:
+    """
+    Convert combination tuple to descriptive name.
+    
+    Args:
+        combination_tuple: Tuple in format [Spearman (low), Pearson (low), Clustermatch (low), 
+                          Spearman (high), Pearson (high), Clustermatch (high)]
+        
+    Returns:
+        Descriptive name like "c-high-p-low-s-low"
+    """
+    spearman_low, pearson_low, clustermatch_low, spearman_high, pearson_high, clustermatch_high = combination_tuple
+    
+    parts = []
+    
+    # Clustermatch
+    if clustermatch_high and not clustermatch_low:
+        parts.append("c-high")
+    elif clustermatch_low and not clustermatch_high:
+        parts.append("c-low")
+    elif clustermatch_high and clustermatch_low:
+        parts.append("c-both")
+    else:
+        parts.append("c-none")
+    
+    # Pearson
+    if pearson_high and not pearson_low:
+        parts.append("p-high")
+    elif pearson_low and not pearson_high:
+        parts.append("p-low")
+    elif pearson_high and pearson_low:
+        parts.append("p-both")
+    else:
+        parts.append("p-none")
+    
+    # Spearman
+    if spearman_high and not spearman_low:
+        parts.append("s-high")
+    elif spearman_low and not spearman_high:
+        parts.append("s-low")
+    elif spearman_high and spearman_low:
+        parts.append("s-both")
+    else:
+        parts.append("s-none")
+    
+    return "-".join(parts)
+
 def filter_data_by_combination(df: pd.DataFrame, combination: Dict[str, bool]) -> pd.DataFrame:
     """
     Filter data based on the chosen combination.
@@ -379,7 +403,7 @@ def filter_data_by_combination(df: pd.DataFrame, combination: Dict[str, bool]) -
 
 def calculate_ccc_distance(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Calculate CCC distance to Pearson and Spearman values with robust handling.
+    Calculate CCC distance to Pearson and Spearman values.
     
     Args:
         df: Input DataFrame with ccc, pearson, spearman columns
@@ -518,7 +542,7 @@ def save_data(df: pd.DataFrame, file_path: str, description: str = "data"):
 
 def print_summary_statistics(df: pd.DataFrame, title: str):
     """
-    Print summary statistics for the dataset with robust handling of problematic values.
+    Print summary statistics for the dataset.
     
     Args:
         df: Input DataFrame
@@ -566,13 +590,14 @@ def display_predefined_combinations():
     combinations = get_predefined_combinations()
     
     logger.info("\nPredefined combinations available:")
-    logger.info("=" * 100)
-    logger.info(f"{'Index':<5} {'Spearman(L)':<11} {'Pearson(L)':<10} {'Clustermatch(L)':<15} {'Spearman(H)':<11} {'Pearson(H)':<10} {'Clustermatch(H)':<15}")
-    logger.info("-" * 100)
+    logger.info("=" * 130)
+    logger.info(f"{'Index':<5} {'Name':<25} {'Spearman(L)':<11} {'Pearson(L)':<10} {'Clustermatch(L)':<15} {'Spearman(H)':<11} {'Pearson(H)':<10} {'Clustermatch(H)':<15}")
+    logger.info("-" * 130)
     
     for idx, combo in enumerate(combinations):
         spearman_low, pearson_low, clustermatch_low, spearman_high, pearson_high, clustermatch_high = combo
-        logger.info(f"{idx:<5} {str(spearman_low):<11} {str(pearson_low):<10} {str(clustermatch_low):<15} {str(spearman_high):<11} {str(pearson_high):<10} {str(clustermatch_high):<15}")
+        combo_name = get_combination_name(combo)
+        logger.info(f"{idx:<5} {combo_name:<25} {str(spearman_low):<11} {str(pearson_low):<10} {str(clustermatch_low):<15} {str(spearman_high):<11} {str(pearson_high):<10} {str(clustermatch_high):<15}")
 
 def get_available_tissues() -> List[str]:
     """
@@ -694,19 +719,16 @@ def main():
     )
     parser.add_argument(
         '--data-dir',
-        required=True,
         help='Directory containing gene pair intersection files'
     )
     parser.add_argument(
         '--tissue',
-        required=True,
         choices=get_available_tissues(),
         help='Tissue to analyze'
     )
     parser.add_argument(
         '--output',
-        required=True,
-        help='Output directory to save results'
+        help='Output directory to save results (combination-specific subdirectory will be created)'
     )
     parser.add_argument(
         '--combination-index',
@@ -736,7 +758,7 @@ def main():
     
     args = parser.parse_args()
     
-    # Setup logging
+    # Setup logging - we'll update this later with the output directory
     global logger
     setup_logging(args.log_file)
     logger = logging.getLogger(__name__)
@@ -752,6 +774,12 @@ def main():
     if args.list_combinations:
         display_predefined_combinations()
         return 0
+    
+    # Check if required arguments are provided when not listing
+    if not args.data_dir or not args.tissue or not args.output:
+        logger.error("--data-dir, --tissue, and --output are required when not using --list-combinations or --list-tissues")
+        parser.print_help()
+        return 1
     
     # Check if combination-index is provided when not listing
     if args.combination_index is None:
@@ -782,8 +810,17 @@ def main():
         # Get chosen combination
         chosen_combination_tuple = predefined_combinations[args.combination_index]
         chosen_combination = convert_combination_format(chosen_combination_tuple)
+        combination_name = get_combination_name(chosen_combination_tuple)
         
-        logger.info(f"Using predefined combination {args.combination_index}:")
+        # Setup logging with proper output directory
+        output_dir = Path(args.output) / combination_name
+        if args.log_file:
+            setup_logging(args.log_file)
+        else:
+            setup_logging(output_dir=str(output_dir))
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Using predefined combination {args.combination_index}: {combination_name}")
         logger.info(f"  [Spearman(L), Pearson(L), Clustermatch(L), Spearman(H), Pearson(H), Clustermatch(H)]")
         logger.info(f"  {chosen_combination_tuple}")
         
@@ -806,7 +843,6 @@ def main():
             return 1
         
         # Save filtered data
-        output_dir = Path(args.output)
         filtered_cache_path = output_dir / 'filtered_data_cache.pkl'
         save_data(filtered_df, filtered_cache_path, "filtered data")
         
@@ -834,6 +870,7 @@ def main():
             'output_dir': str(output_dir),
             'sort_by': args.sort_by,
             'chosen_combination_index': args.combination_index,
+            'chosen_combination_name': combination_name,
             'chosen_combination_tuple': chosen_combination_tuple,
             'chosen_combination': chosen_combination,
             'original_data_count': len(df),
