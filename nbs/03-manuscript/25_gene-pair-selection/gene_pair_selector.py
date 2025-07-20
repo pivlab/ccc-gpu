@@ -36,13 +36,14 @@ warnings.filterwarnings('ignore', category=RuntimeWarning, message='invalid valu
 # Initialize logger (will be configured later)
 logger = None
 
-def setup_logging(log_file: str = None, output_dir: str = None):
+def setup_logging(log_file: str = None, output_dir: str = None, force_reconfig: bool = False):
     """
     Setup logging configuration.
     
     Args:
         log_file: Path to log file. If None, uses default timestamped name.
         output_dir: Output directory for log file. If None, uses current directory.
+        force_reconfig: If True, clear existing handlers and reconfigure logging.
     """
     global logger
     
@@ -58,17 +59,40 @@ def setup_logging(log_file: str = None, output_dir: str = None):
     log_path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
+    # If forcing reconfiguration, clear existing handlers
+    if force_reconfig:
+        # Get the root logger and remove all handlers
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+        
+        # Reset the logging configuration
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler(sys.stdout)
+            ],
+            force=True
+        )
+    else:
+        # Normal setup (only works if logging hasn't been configured yet)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler(sys.stdout)
+            ]
+        )
     
     # Initialize the global logger
     logger = logging.getLogger(__name__)
+    if force_reconfig:
+        logger.info(f"Logging reconfigured - Log file: {log_file}")
+    else:
+        logger.info(f"Logging initialized - Log file: {log_file}")
 
 def clean_numeric_data(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
     """
@@ -728,7 +752,7 @@ def main():
     )
     parser.add_argument(
         '--output',
-        help='Output directory to save results (combination-specific subdirectory will be created)'
+        help='Output directory to save results (tissue_name/combination_name subdirectories will be created)'
     )
     parser.add_argument(
         '--combination-index',
@@ -790,7 +814,7 @@ def main():
     logger.info("Starting Gene Pair Selector (Non-Interactive Mode)")
     logger.info(f"Data directory: {args.data_dir}")
     logger.info(f"Tissue: {args.tissue}")
-    logger.info(f"Output directory: {args.output}")
+    logger.info(f"Base output directory: {args.output}")
     logger.info(f"Combination index: {args.combination_index}")
     logger.info(f"Sort by: {args.sort_by}")
     
@@ -813,13 +837,17 @@ def main():
         combination_name = get_combination_name(chosen_combination_tuple)
         
         # Setup logging with proper output directory
-        output_dir = Path(args.output) / combination_name
+        output_dir = Path(args.output) / args.tissue / combination_name
         if args.log_file:
-            setup_logging(args.log_file)
+            setup_logging(args.log_file, force_reconfig=True)
         else:
-            setup_logging(output_dir=str(output_dir))
+            setup_logging(output_dir=str(output_dir), force_reconfig=True)
         logger = logging.getLogger(__name__)
         
+        logger.info("="*60)
+        logger.info("LOGGING RECONFIGURED - Now saving logs to tissue/combination directory")
+        logger.info("="*60)
+        logger.info(f"Final output directory: {output_dir}")
         logger.info(f"Using predefined combination {args.combination_index}: {combination_name}")
         logger.info(f"  [Spearman(L), Pearson(L), Clustermatch(L), Spearman(H), Pearson(H), Clustermatch(H)]")
         logger.info(f"  {chosen_combination_tuple}")
