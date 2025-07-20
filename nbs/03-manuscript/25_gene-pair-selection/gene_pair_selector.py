@@ -507,9 +507,9 @@ def sort_by_distance(df: pd.DataFrame, sort_by: str = 'combined') -> pd.DataFram
     if nan_count > 0:
         logger.warning(f"Found {nan_count} NaN values in {distance_col}, these will be sorted to the end")
     
-    # Sort by distance (ascending - smallest distance first)
+    # Sort by distance (descending - largest distance first)
     # NaN values will be placed at the end
-    sorted_df = df.sort_values(distance_col, ascending=True, na_position='last')
+    sorted_df = df.sort_values(distance_col, ascending=False, na_position='last')
     
     logger.info(f"Data sorted by {distance_col}")
     
