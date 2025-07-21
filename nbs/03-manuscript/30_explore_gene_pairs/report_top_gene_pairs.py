@@ -6,9 +6,9 @@ This script loads processed gene pair data from the gene_pair_selector output
 and displays the bottom data lines with metadata information.
 
 Usage:
-    python display_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output results.txt
-    python display_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --bottom 100
-    python display_top_gene_pairs.py --data-dir /path/to/results --tissue liver --combination c-low-p-high-s-low
+    python report_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output results.txt
+    python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --bottom 100
+    python report_top_gene_pairs.py --data-dir /path/to/results --tissue liver --combination c-low-p-high-s-low
 
 Author: AI Assistant
 """
@@ -290,16 +290,16 @@ def main():
         epilog="""
 Examples:
   # Direct file input
-  python display_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output results.txt
+  python report_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output results.txt
 
   # Using tissue and combination
-  python display_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --bottom 100
+  python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --bottom 100
 
   # With custom CSV output
-  python display_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --csv my_results.csv
+  python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --csv my_results.csv
 
   # With custom data directory
-  python display_top_gene_pairs.py --data-dir /path/to/results --tissue liver --combination c-low-p-high-s-low
+  python report_top_gene_pairs.py --data-dir /path/to/results --tissue liver --combination c-low-p-high-s-low
         """
     )
     

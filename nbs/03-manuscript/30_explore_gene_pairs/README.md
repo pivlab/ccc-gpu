@@ -4,12 +4,12 @@ This directory contains a simple CLI script to display and export bottom gene pa
 
 ## Files
 
-- `display_top_gene_pairs.py` - Main CLI script to display bottom gene pairs
+- `report_top_gene_pairs.py` - Main CLI script to display bottom gene pairs
 - `README.md` - This documentation file
 
 ## Overview
 
-The `display_top_gene_pairs.py` script loads processed gene pair data from the `gene_pair_selector.py` output and creates human-readable reports with:
+The `report_top_gene_pairs.py` script loads processed gene pair data from the `gene_pair_selector.py` output and creates human-readable reports with:
 
 - Metadata information (tissue, combination, processing details)
 - Data summary statistics
@@ -37,7 +37,7 @@ The script supports two main usage patterns:
 Use this when you know the exact path to the sorted data cache file:
 
 ```bash
-python display_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output results.txt
+python report_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output results.txt
 ```
 
 ### 2. Tissue and Combination Input
@@ -45,7 +45,7 @@ python display_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output
 Use this for easier access when you know the tissue and combination:
 
 ```bash
-python display_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --bottom 100
+python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --bottom 100
 ```
 
 ## Command Line Arguments
@@ -68,7 +68,7 @@ python display_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low
 ### Example 1: Direct File Access
 
 ```bash
-python display_top_gene_pairs.py \
+python report_top_gene_pairs.py \
   --input /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_selection/whole_blood_combination_10/c-high-p-low-s-low/sorted_data_cache.pkl \
   --bottom 30 \
   --output whole_blood_bottom_30.txt \
@@ -82,7 +82,7 @@ python display_top_gene_pairs.py \
 ### Example 2: Tissue and Combination Access
 
 ```bash
-python display_top_gene_pairs.py \
+python report_top_gene_pairs.py \
   --tissue whole_blood \
   --combination c-high-p-low-s-low \
   --bottom 50 \
@@ -94,7 +94,7 @@ python display_top_gene_pairs.py \
 ### Example 3: CSV Export Only
 
 ```bash
-python display_top_gene_pairs.py \
+python report_top_gene_pairs.py \
   --tissue whole_blood \
   --combination c-high-p-low-s-low \
   --bottom 50 \
@@ -106,7 +106,7 @@ python display_top_gene_pairs.py \
 ### Example 4: Quick Preview
 
 ```bash
-python display_top_gene_pairs.py \
+python report_top_gene_pairs.py \
   --tissue whole_blood \
   --combination c-high-p-low-s-low \
   --bottom 10
@@ -119,7 +119,7 @@ python display_top_gene_pairs.py \
 ### Example 5: Different Tissue
 
 ```bash
-python display_top_gene_pairs.py \
+python report_top_gene_pairs.py \
   --tissue liver \
   --combination c-low-p-high-s-both \
   --bottom 100 \
