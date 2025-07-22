@@ -11,4 +11,4 @@
 # Create temporary directory for outputs if it doesn't exist
 mkdir -p _tmp
 
-python 11_00-gtex_whole_blood-general_plots.py
+python 11_00-gtex_general_plots.py
