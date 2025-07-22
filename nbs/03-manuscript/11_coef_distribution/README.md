@@ -1,5 +1,114 @@
 # GTEx Coefficient Distribution Analysis
 
+## 🚀 **NEW: Memory-Efficient Streaming Version**
+
+### **Problem Solved**: OOM Kills with Large Datasets
+
+If you're experiencing out-of-memory (OOM) kills when processing large GTEx datasets, use the **streaming version** (`11_00-gtex_general_plots_streaming.py`) that processes data in chunks to avoid memory issues.
+
+### **Key Benefits of Streaming Version**
+
+- **✅ Memory Efficient**: Processes data in configurable chunks (default: 50K-100K rows)
+- **✅ OOM Prevention**: Avoids loading entire datasets into memory at once
+- **✅ Progress Tracking**: Detailed logging of chunk processing progress
+- **✅ Enhanced Plots**: Improved visualization with positive-only range and better formatting
+- **✅ Same Results**: Produces equivalent plots with identical statistical accuracy
+- **✅ Robust Processing**: Handles datasets of any size within system limits
+
+#### **🎨 Recent Plot Improvements**
+- **Positive Range Only**: Both histograms now show only 0-1.0 range (no negative values)
+- **Better Titles**: Cumulative plot has subtitle showing processed gene pairs count
+- **Threshold Visualization**: Vertical lines at coefficient thresholds + horizontal line at target %
+- **Cleaner Layout**: Improved spacing and consistent formatting across both plot types
+
+### **Quick Start - Streaming Version**
+
+#### For Large Datasets (Recommended)
+```bash
+# Use streaming version for datasets causing OOM kills
+conda activate ccc-gpu
+python 11_00-gtex_general_plots_streaming.py --tissue whole_blood --chunk-size 50000
+```
+
+#### Submit SLURM Jobs (Memory-Optimized)
+```bash
+# Multi-tissue: Process all 53 GTEx tissues in one job
+sbatch run_slurm_streaming.sh
+
+# Single tissue: Process one tissue for testing
+sbatch --export=TISSUE=whole_blood run_single_tissue_streaming.sh
+```
+
+### **When to Use Which Version**
+
+| Dataset Size | Recommended Script | Memory Requirement |
+|--------------|-------------------|-------------------|
+| < 1M rows | `11_00-gtex_general_plots.py` | 16-32GB |
+| > 1M rows | `11_00-gtex_general_plots_streaming.py` | 16GB |
+| OOM kills | `11_00-gtex_general_plots_streaming.py` | 16GB |
+| All 53 tissues | `sbatch run_slurm_streaming.sh` | 32GB total |
+
+### **Streaming Version Features**
+
+#### **1. Multi-Tissue Sequential Processing**
+- **📊 All 53 GTEx Tissues**: Process all tissues with one SLURM job
+- **🔄 Sequential Loop**: Processes tissues one after another within single job
+- **🎯 Optimized Resources**: 32GB memory, 24 hours total runtime
+- **📋 Progress Monitoring**: Real-time progress tracking with detailed logging
+
+#### **2. Chunked Processing**
+- Processes data in configurable chunks (default: 100K rows)
+- Accumulates histograms incrementally across chunks
+- Immediately frees memory after each chunk
+
+#### **3. Memory Monitoring**
+- Logs memory usage and processing progress
+- Reports data cleaning statistics per chunk
+- Provides total processing summary
+
+#### **4. Enhanced Output**
+- **Overlaid Density Plot**: `dist-histograms.svg` 
+  - **✅ NEW**: Smooth density curves for all three coefficients on one plot
+  - **✅ NEW**: Matches original `ccc.plots.plot_histogram` style and output filename
+  - **✅ NEW**: Uses cubic interpolation for smooth curves from histogram data
+  - **✅ NEW**: Clean overlaid visualization like the original non-streaming version
+- **Regular Histograms**: `dist-histograms_streaming.svg` 
+  - **✅ NEW**: Only shows positive range (0 to 1.0), no negative values
+  - **✅ NEW**: Statistics calculated from positive range only
+- **Cumulative Histograms**: `dist-cum_histograms_streaming.svg`
+  - **✅ NEW**: Subtitle shows processed gene pairs count
+  - **✅ NEW**: Vertical threshold lines for each coefficient
+  - **✅ NEW**: Only shows positive range (0 to 1.0)
+- Same statistical accuracy as full-memory processing
+
+#### **5. Custom Parameters**
+```bash
+python 11_00-gtex_general_plots_streaming.py \
+    --tissue adipose_subcutaneous \
+    --chunk-size 75000 \              # Adjust based on available memory
+    --gene-pairs-percent 0.8 \
+    --log-dir ./streaming_analysis
+```
+
+#### **6. Multi-Tissue Job Monitoring**
+```bash
+# Check job status
+squeue -u $USER
+
+# Monitor real-time progress (all tissues in one log)
+tail -f logs/gtex_all_tissues_*.out
+
+# Check completed analyses
+ls -la logs/*_[timestamp]/
+
+# View final job summary
+tail -n 50 logs/gtex_all_tissues_*.out
+```
+
+---
+
+## Standard Version (Original)
+
 This script generates comprehensive plots to compare coefficient values from Pearson, Spearman and CCC (Clustermatch), including their distributions, cumulative histograms, and joint plots.
 
 ## Data Processing
@@ -84,53 +193,4 @@ python 11_00-gtex_general_plots.py \
 
 ### Label Arguments
 - `--ccc-label`: Label for CCC coefficient (default: `CCC`)
-- `--pearson-label`: Label for Pearson coefficient (default: `Pearson`)
-- `--spearman-label`: Label for Spearman coefficient (default: `Spearman`)
-
-## Generated Outputs
-
-### Figure Files (saved to both original and log directories)
-- `dist-histograms.svg`: Distribution histograms for all coefficients
-- `dist-cum_histograms.svg`: Cumulative distribution histograms
-- `dist-pearson_vs_ccc.svg`: Joint plot comparing Pearson and CCC
-- `dist-spearman_vs_ccc.svg`: Joint plot comparing Spearman and CCC
-- `dist-spearman_vs_pearson.svg`: Joint plot comparing Spearman and Pearson
-- `dist-main.svg`: Composite figure combining all plots
-
-### Log Files
-- `coefficient_analysis.log`: Comprehensive analysis log with timestamps and progress tracking
-
-## Output Directory Structure
-
-```
-Original Output Directory:
-/pividori_lab/haoyu_projects/ccc-gpu/figures/coefs_comp/gtex_{tissue}/
-├── dist-histograms.svg
-├── dist-cum_histograms.svg
-├── dist-pearson_vs_ccc.svg
-├── dist-spearman_vs_ccc.svg
-├── dist-spearman_vs_pearson.svg
-└── dist-main.svg
-
-Log Directory:
-./logs/20240101_120000/
-├── coefficient_analysis.log
-├── dist-histograms.svg
-├── dist-cum_histograms.svg
-├── dist-pearson_vs_ccc.svg
-├── dist-spearman_vs_ccc.svg
-├── dist-spearman_vs_pearson.svg
-└── dist-main.svg
-```
-
-## Expected Input Data Structure
-
-The script expects the following directory structure:
-
-```
-{data_dir}/
-├── gene_selection/{top_n_genes}/
-│   └── gtex_v8_data_{tissue}-{gene_sel_strategy}.pkl
-└── similarity_matrices/{top_n_genes}/
-    └── gtex_v8_data_{tissue}-{gene_sel_strategy}-all.pkl
-```
+- `--pearson-label`: Label for Pearson coefficient (default: `
