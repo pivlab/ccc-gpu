@@ -212,8 +212,6 @@ def generate_streaming_cumulative_histogram(histogram_result: Dict, gene_pairs_p
         positive_bins = bins[positive_mask]
         
         # Generate cumulative histograms for each coefficient
-        threshold_values = {}  # Store threshold values for vertical lines
-        
         for col in coefficient_columns:
             # Get histogram counts for full range
             full_counts = histograms[col]
@@ -236,22 +234,6 @@ def generate_streaming_cumulative_histogram(histogram_result: Dict, gene_pairs_p
             # Plot cumulative histogram
             color = colors.get(col, '#333333')
             ax.plot(positive_bin_centers, cumulative_percentages, label=col, linewidth=2, color=color)
-            
-            # Find threshold value for vertical line
-            threshold_idx = np.searchsorted(cumulative_percentages, gene_pairs_percent * 100)
-            if threshold_idx < len(positive_bin_centers):
-                threshold_value = positive_bin_centers[threshold_idx]
-                threshold_values[col] = threshold_value
-                logger.info(f"  {col}: threshold = {threshold_value:.3f} for {gene_pairs_percent*100}% of gene pairs")
-        
-        # Add single horizontal line at the target percentage
-        ax.axhline(gene_pairs_percent * 100, color='gray', linestyle='--', alpha=0.7, 
-                  label=f'{gene_pairs_percent*100}% threshold')
-        
-        # Add vertical lines at threshold values for each coefficient
-        for col, threshold_value in threshold_values.items():
-            color = colors.get(col, '#333333')
-            ax.axvline(threshold_value, color=color, linestyle=':', alpha=0.6, linewidth=1.5)
         
         # Customize plot to match the desired format
         ax.set_xlabel('Coefficient Value', fontsize=12, fontweight='bold')
@@ -347,12 +329,58 @@ def generate_streaming_regular_histogram(histogram_result: Dict, output_dir: Pat
             ax.grid(True, alpha=0.3)
             ax.set_xlim(0.0, 1.0)  # Set range to 0-1.0 only
             
-            # Add statistics (calculated from positive range only)
+            # Calculate quantiles from histogram data
+            def calculate_quantiles_from_histogram(bin_centers, counts, quantiles):
+                """Calculate quantiles from histogram bins and counts."""
+                total = np.sum(counts)
+                if total == 0:
+                    return {q: 0.0 for q in quantiles}
+                
+                # Create cumulative distribution
+                cumulative = np.cumsum(counts)
+                cumulative_normalized = cumulative / total
+                
+                # Find quantile values
+                quantile_values = {}
+                for q in quantiles:
+                    # Find the bin where cumulative probability crosses the quantile
+                    idx = np.searchsorted(cumulative_normalized, q)
+                    if idx >= len(bin_centers):
+                        idx = len(bin_centers) - 1
+                    quantile_values[q] = bin_centers[idx]
+                
+                return quantile_values
+            
+            # Calculate requested quantiles
+            target_quantiles = [0.10, 0.25, 0.30, 0.50, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
+            quantile_values = calculate_quantiles_from_histogram(positive_bin_centers, positive_counts, target_quantiles)
+            
+            # Add statistics (calculated from positive range only) 
             mean_approx = np.sum(positive_bin_centers * positive_counts) / total_count
             ax.axvline(mean_approx, color='red', linestyle='--', alpha=0.8, label=f'Mean: {mean_approx:.3f}')
             ax.legend(fontsize=9)
+            
+            # Add quantile information as text below the plot with better formatting
+            # Format quantiles with proper line breaks for better readability
+            quantile_items = [f"{q:.0%}={v:.3f}" for q, v in quantile_values.items()]
+            
+            # Option 1: Group quantiles: 5 per line for better readability (comment out to use option 2)
+            # quantile_lines = []
+            # for i in range(0, len(quantile_items), 5):
+            #     line_items = quantile_items[i:i+5]
+            #     quantile_lines.append(", ".join(line_items))
+            # quantile_text = "Quantiles:\n" + "\n".join(quantile_lines)
+            
+            # Option 2: One quantile per line (as requested by user)
+            quantile_text = "Quantiles:\n" + "\n".join(quantile_items)
+            
+            # Position text below the subplot with more space for one-quantile-per-line
+            ax.text(0.5, -0.30, quantile_text, transform=ax.transAxes, 
+                   fontsize=7, ha='center', va='top', 
+                   bbox=dict(boxstyle="round,pad=0.4", facecolor='lightgray', alpha=0.5))
         
         plt.tight_layout()
+        plt.subplots_adjust(bottom=0.45)  # Make room for one-quantile-per-line text
         
         # Save to both directories
         output_file = output_dir / 'dist-histograms_streaming.svg'

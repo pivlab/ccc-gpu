@@ -75,10 +75,12 @@ sbatch --export=TISSUE=whole_blood run_single_tissue_streaming.sh
 - **Regular Histograms**: `dist-histograms_streaming.svg` 
   - **✅ NEW**: Only shows positive range (0 to 1.0), no negative values
   - **✅ NEW**: Statistics calculated from positive range only
+  - **✅ NEW**: Quantile information displayed under each subplot
+  - **✅ NEW**: Shows quantiles: 10%, 25%, 30%, 50%, 70%, 75%, 80%, 85%, 90%, 95%
 - **Cumulative Histograms**: `dist-cum_histograms_streaming.svg`
   - **✅ NEW**: Subtitle shows processed gene pairs count
-  - **✅ NEW**: Vertical threshold lines for each coefficient
   - **✅ NEW**: Only shows positive range (0 to 1.0)
+  - **✅ UPDATED**: Clean cumulative curves with NO threshold lines (horizontal or vertical)
 - Same statistical accuracy as full-memory processing
 
 #### **5. Custom Parameters**
