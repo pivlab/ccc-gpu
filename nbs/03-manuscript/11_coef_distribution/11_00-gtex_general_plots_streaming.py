@@ -19,9 +19,13 @@ import logging
 import argparse
 import pickle
 import numpy as np
+import pandas as pd
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
+
+# Define percentiles with 0.01 step length
+PERCENTILES = np.linspace(0, 1, 101)
 
 # Global logger
 logger = None
@@ -109,8 +113,6 @@ def process_data_in_chunks(data, coefficient_columns: List[str], chunk_size: int
     Returns:
         Dict containing accumulated histogram data
     """
-    # Import pandas here to avoid issues if it's not available
-    import pandas as pd
     
     total_rows = len(data)
     num_chunks = (total_rows + chunk_size - 1) // chunk_size
@@ -175,6 +177,117 @@ def process_data_in_chunks(data, coefficient_columns: List[str], chunk_size: int
         'total_nan_removed': total_nan_removed,
         'coefficient_columns': coefficient_columns
     }
+
+
+def compute_percentiles_from_histogram(histogram_result: Dict, output_dir: Path, log_dir: Path, 
+                                     tissue_name: str = "unknown") -> None:
+    """
+    Compute percentiles for each coefficient from histogram data and save to CSV.
+    
+    Args:
+        histogram_result: Result from process_data_in_chunks
+        output_dir: Output directory for CSV files
+        log_dir: Log directory for CSV files
+        tissue_name: Name of the tissue for filename
+    """
+    logger.info(f"📊 Computing percentiles for each coefficient...")
+    
+    try:
+        histograms = histogram_result['histograms']
+        bins = histogram_result['bins']
+        coefficient_columns = histogram_result['coefficient_columns']
+        
+        # Filter to only positive range (0 to 1.0) - same as other plots
+        positive_mask = bins >= 0.0
+        positive_bins = bins[positive_mask]
+        
+        # Initialize results dictionary
+        percentile_results = {}
+        
+        for col in coefficient_columns:
+            logger.info(f"  Computing percentiles for {col}...")
+            
+            # Filter counts to positive range only
+            full_counts = histograms[col]
+            positive_counts = full_counts[positive_mask[:-1]]  # bins has n+1 elements, counts has n
+            positive_bin_centers = (positive_bins[:-1] + positive_bins[1:]) / 2
+            
+            total_count = np.sum(positive_counts)
+            if total_count == 0:
+                logger.warning(f"⚠️  No positive data found for {col}")
+                percentile_results[col] = [0.0] * len(PERCENTILES)
+                continue
+            
+            # Create cumulative distribution
+            cumulative = np.cumsum(positive_counts)
+            cumulative_normalized = cumulative / total_count
+            
+            # Compute percentiles using interpolation
+            percentile_values = []
+            for percentile in PERCENTILES:
+                if percentile == 0.0:
+                    # For 0th percentile, use the minimum value
+                    percentile_values.append(positive_bin_centers[0])
+                elif percentile == 1.0:
+                    # For 100th percentile, use the maximum value
+                    percentile_values.append(positive_bin_centers[-1])
+                else:
+                    # Find the bin where cumulative probability crosses the percentile
+                    idx = np.searchsorted(cumulative_normalized, percentile, side='left')
+                    
+                    if idx == 0:
+                        percentile_values.append(positive_bin_centers[0])
+                    elif idx >= len(positive_bin_centers):
+                        percentile_values.append(positive_bin_centers[-1])
+                    else:
+                        # Linear interpolation between bins
+                        if idx > 0:
+                            lower_prob = cumulative_normalized[idx-1]
+                            upper_prob = cumulative_normalized[idx]
+                            lower_val = positive_bin_centers[idx-1]
+                            upper_val = positive_bin_centers[idx]
+                            
+                            # Interpolate
+                            if upper_prob > lower_prob:
+                                weight = (percentile - lower_prob) / (upper_prob - lower_prob)
+                                interpolated_val = lower_val + weight * (upper_val - lower_val)
+                            else:
+                                interpolated_val = lower_val
+                            
+                            percentile_values.append(interpolated_val)
+                        else:
+                            percentile_values.append(positive_bin_centers[idx])
+            
+            percentile_results[col] = percentile_values
+        
+        # Create DataFrame with percentiles as index
+        df = pd.DataFrame(percentile_results, index=PERCENTILES)
+        df.index.name = 'percentile'
+        
+        # Generate filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'percentiles_summary_{tissue_name}_{timestamp}.csv'
+        
+        # Save to both directories
+        output_file = output_dir / filename
+        log_file = log_dir / filename
+        
+        df.to_csv(output_file, float_format='%.6f')
+        df.to_csv(log_file, float_format='%.6f')
+        
+        logger.info(f"✅ Percentiles computed and saved successfully")
+        logger.info(f"   Original: {output_file}")
+        logger.info(f"   Log copy: {log_file}")
+        logger.info(f"   Shape: {df.shape}")
+        
+        # Log sample of results (last 51 rows as shown in example)
+        logger.info("📊 Sample percentiles (0.50-1.00):")
+        sample_df = df.tail(51)
+        logger.info(f"\n{sample_df.to_string()}")
+        
+    except Exception as e:
+        logger.error(f"Failed to compute percentiles: {str(e)}")
+        raise
 
 
 def generate_streaming_cumulative_histogram(histogram_result: Dict, gene_pairs_percent: float, 
@@ -630,6 +743,10 @@ def main() -> int:
         del data
         logger.info("💾 Original data cleared from memory")
         
+        # Compute and save percentiles summary
+        logger.info("📊 Computing percentiles summary...")
+        compute_percentiles_from_histogram(histogram_result, original_output_dir, log_dir, args.tissue)
+        
         # Generate plots using streaming approach
         logger.info("📊 Starting plot generation...")
         
@@ -656,11 +773,14 @@ def main() -> int:
             if output_path.exists():
                 for file_path in sorted(output_path.glob("*.svg")):
                     logger.info(f"  📊 {file_path.name}")
+                for file_path in sorted(output_path.glob("*.csv")):
+                    logger.info(f"  📈 {file_path.name}")
         
-        logger.info(f"\n✅ All streaming plots generated successfully!")
+        logger.info(f"\n✅ All streaming plots and percentiles summary generated successfully!")
         logger.info(f"📁 Log directory: {log_dir}")
         logger.info(f"📁 Original directory: {original_output_dir}")
         logger.info(f"💾 Memory-efficient processing completed with {args.chunk_size:,} rows per chunk")
+        logger.info(f"📈 Percentiles computed with 0.01 step length (101 percentiles)")
         
         return 0
         
