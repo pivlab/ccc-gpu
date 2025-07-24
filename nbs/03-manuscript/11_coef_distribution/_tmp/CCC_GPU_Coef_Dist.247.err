@@ -1,6 +1,0 @@
-/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:1496: RuntimeWarning: overflow encountered in cast
-  return count.astype(dtype, copy=False)
-/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/numpy/core/_methods.py:49: RuntimeWarning: overflow encountered in reduce
-  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
-/var/spool/slurm/d/job00247/slurm_script: line 14: 2762290 Killed                  python 11_00-gtex_whole_blood-general_plots.py
-slurmstepd-localhost: error: Detected 1 oom_kill event in StepId=247.batch. Some of the step tasks have been OOM Killed.
