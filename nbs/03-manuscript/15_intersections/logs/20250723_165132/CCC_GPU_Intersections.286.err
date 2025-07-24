@@ -1,0 +1,253 @@
+[2025-07-23 16:51:33,398 - __main__] INFO: Starting compute_intersections.py for tissue: whole_blood
+[2025-07-23 16:51:33,398 - __main__] INFO: Log directory: logs/20250723_165132
+[2025-07-23 16:51:33,398 - __main__] INFO: Configuration:
+[2025-07-23 16:51:33,398 - __main__] INFO:   GTEX_TISSUE: whole_blood
+[2025-07-23 16:51:33,398 - __main__] INFO:   GENE_SEL_STRATEGY: var_pc_log2
+[2025-07-23 16:51:33,398 - __main__] INFO:   TOP_N_GENES: all
+[2025-07-23 16:51:33,398 - __main__] INFO:   Q_DIFF: 0.3
+[2025-07-23 16:51:33,399 - __main__] INFO:   OUTPUT_DIR: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections
+[2025-07-23 16:51:33,399 - __main__] INFO:   USE_EXISTING: False
+[2025-07-23 16:51:33,399 - __main__] INFO:   LOG_DIR: logs/20250723_165132
+[2025-07-23 16:51:33,399 - __main__] INFO:   CUSTOM_LOW_QUANTILE: 0.8
+[2025-07-23 16:51:33,399 - __main__] INFO:   CUSTOM_HIGH_QUANTILE: 0.95
+[2025-07-23 16:51:33,399 - __main__] INFO: Input correlation file template: /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/similarity_matrices/all/gtex_v8_data_{tissue}-{gene_sel_strategy}-{corr_method}.pkl
+[2025-07-23 16:51:33,399 - __main__] INFO: Input correlation file: /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all.pkl
+[2025-07-23 16:51:33,399 - __main__] INFO: Loading correlation data...
+[2025-07-23 16:51:42,923 - __main__] INFO: Dataframe shape: (1420258456, 3)
+[2025-07-23 16:51:42,923 - __main__] INFO: Dataframe head (first 15 rows):
+[2025-07-23 16:51:42,928 - __main__] INFO: 
+                                            ccc   pearson  spearman
+ENSG00000135245.9  ENSG00000169429.10  0.780273  0.571777  0.854004
+ENSG00000163631.16 ENSG00000169429.10  0.401611  0.126953  0.709473
+                   ENSG00000135245.9   0.429199  0.110596  0.675781
+ENSG00000277632.1  ENSG00000169429.10  0.789551  0.456543  0.850586
+                   ENSG00000135245.9   0.780273  0.438965  0.834473
+                   ENSG00000163631.16  0.408447  0.129272  0.683105
+ENSG00000239839.6  ENSG00000169429.10  0.139404  0.127197  0.379883
+                   ENSG00000135245.9   0.159912  0.209106  0.422607
+                   ENSG00000163631.16  0.127686  0.021088  0.388916
+                   ENSG00000277632.1   0.151489  0.199707  0.402832
+ENSG00000186652.9  ENSG00000169429.10  0.524414  0.256348  0.760254
+                   ENSG00000135245.9   0.516602  0.223633  0.735840
+                   ENSG00000163631.16  0.401611  0.054565  0.730957
+                   ENSG00000277632.1   0.547363  0.238403  0.756348
+                   ENSG00000239839.6   0.272705  0.229248  0.626465
+[2025-07-23 16:51:42,928 - __main__] INFO: Dataframe statistics:
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:1487: RuntimeWarning: overflow encountered in cast
+  return dtype.type(n)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/numpy/core/_methods.py:49: RuntimeWarning: overflow encountered in reduce
+  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:731: RuntimeWarning: invalid value encountered in scalar divide
+  the_mean = the_sum / count if count > 0 else np.nan
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:1487: RuntimeWarning: overflow encountered in cast
+  return dtype.type(n)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/numpy/core/_methods.py:49: RuntimeWarning: overflow encountered in reduce
+  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:731: RuntimeWarning: invalid value encountered in scalar divide
+  the_mean = the_sum / count if count > 0 else np.nan
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:1487: RuntimeWarning: overflow encountered in cast
+  return dtype.type(n)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/numpy/core/_methods.py:49: RuntimeWarning: overflow encountered in reduce
+  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:731: RuntimeWarning: invalid value encountered in scalar divide
+  the_mean = the_sum / count if count > 0 else np.nan
+[2025-07-23 16:56:18,905 - __main__] INFO: 
+                ccc       pearson      spearman
+count  1.420258e+09  1.420258e+09  1.420258e+09
+mean            NaN           NaN           NaN
+std    0.000000e+00  0.000000e+00  0.000000e+00
+min    0.000000e+00  0.000000e+00  0.000000e+00
+25%    9.417534e-06  1.380920e-02  1.846313e-02
+50%    1.724243e-03  3.686523e-02  4.556274e-02
+75%    1.770020e-02  1.121826e-01  1.149902e-01
+max    1.000000e+00  1.000000e+00  1.000000e+00
+[2025-07-23 16:57:54,664 - __main__] INFO: Quantiles from 20% to 100% in 20 steps:
+[2025-07-23 16:57:54,668 - __main__] INFO: 
+               ccc   pearson  spearman
+0.200000  0.000000  0.010834  0.014435
+0.242105  0.000007  0.013321  0.017822
+0.284211  0.000028  0.016022  0.021423
+0.326316  0.000072  0.019012  0.025314
+0.368421  0.000173  0.022354  0.029541
+0.410526  0.000395  0.026199  0.034149
+0.452632  0.000836  0.030685  0.039215
+0.494737  0.001602  0.036102  0.044800
+0.536842  0.002752  0.042816  0.051086
+0.578947  0.004311  0.051239  0.058258
+0.621053  0.006351  0.061798  0.066895
+0.663158  0.009033  0.074829  0.078125
+0.705263  0.012596  0.090820  0.092896
+0.747368  0.017319  0.110779  0.113464
+0.789474  0.023804  0.136475  0.143066
+0.831579  0.032898  0.171631  0.186523
+0.873684  0.046875  0.222534  0.251465
+0.915789  0.071655  0.303223  0.351074
+0.957895  0.135376  0.446289  0.509766
+1.000000  1.000000  1.000000  1.000000
+[2025-07-23 16:58:11,618 - __main__] INFO: CCC quantiles test (0.20):
+[2025-07-23 16:58:11,619 - __main__] INFO: 0.2    0.000000
+0.8    0.025803
+Name: ccc, dtype: float64
+[2025-07-23 16:58:11,619 - __main__] INFO: CCC lower quantile: 0.0, upper quantile: 0.0258026123046875
+[2025-07-23 16:58:11,619 - __main__] INFO: Using custom quantiles for tissue 'whole_blood':
+[2025-07-23 16:58:11,619 - __main__] INFO:   Custom low quantile: 0.8 (80.0th percentile)
+[2025-07-23 16:58:11,619 - __main__] INFO:   Custom high quantile: 0.95 (95.0th percentile)
+[2025-07-23 16:58:56,399 - __main__] INFO: Clustermatch quantiles: lower=0.025803, upper=0.116516
+[2025-07-23 16:58:56,400 - __main__] INFO: Pearson quantiles: lower=0.144287, upper=0.411865
+[2025-07-23 16:58:56,400 - __main__] INFO: Spearman quantiles: lower=0.152466, upper=0.473633
+[2025-07-23 16:59:00,370 - __main__] INFO: Pearson higher count: 71050563
+[2025-07-23 16:59:03,563 - __main__] INFO: Pearson lower count: 1136419155
+[2025-07-23 16:59:07,142 - __main__] INFO: Spearman higher count: 71062327
+[2025-07-23 16:59:10,351 - __main__] INFO: Spearman lower count: 1136355168
+[2025-07-23 16:59:14,835 - __main__] INFO: Clustermatch higher count: 72272433
+[2025-07-23 16:59:18,039 - __main__] INFO: Clustermatch lower count: 1136251953
+[2025-07-23 16:59:22,557 - __main__] INFO: Plot dataframe shape: (1420258456, 9)
+[2025-07-23 16:59:22,558 - __main__] INFO: Plot dataframe columns: ['pearson_higher', 'pearson_lower', 'spearman_higher', 'spearman_lower', 'clustermatch_higher', 'clustermatch_lower', 'ccc', 'pearson', 'spearman']
+[2025-07-23 16:59:31,842 - __main__] INFO: Categories for upset plot: ['Spearman (low)', 'Pearson (low)', 'Clustermatch (low)', 'Spearman (high)', 'Pearson (high)', 'Clustermatch (high)']
+[2025-07-23 16:59:31,842 - __main__] INFO: Creating full upset plot...
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:795: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["linewidth"].fillna(1, inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:796: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["facecolor"].fillna(self._facecolor, inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:797: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["edgecolor"].fillna(styles["facecolor"], inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:798: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["linestyle"].fillna("solid", inplace=True)
+[2025-07-23 17:12:01,291 - __main__] INFO: Saved full upset plot to: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/upsetplot_gtex_whole_blood_full.svg
+[2025-07-23 17:12:01,292 - __main__] INFO: Copied full upset plot to log directory: logs/20250723_165132/upsetplot_gtex_whole_blood_full.svg
+[2025-07-23 17:12:01,292 - __main__] INFO: Creating trimmed upset plot...
+[2025-07-23 17:19:03,614 - __main__] INFO: Unique index combinations:
+[2025-07-23 17:19:03,620 - __main__] INFO: 
+    Spearman (low)  Pearson (low)  ...  Pearson (high)  Clustermatch (high)
+0            False          False  ...           False                False
+1            False          False  ...           False                 True
+2            False          False  ...            True                False
+3            False          False  ...            True                 True
+4            False          False  ...           False                False
+5            False          False  ...           False                 True
+6            False          False  ...            True                False
+7            False          False  ...            True                 True
+8            False          False  ...           False                False
+9            False          False  ...            True                False
+10           False           True  ...           False                False
+11           False           True  ...           False                 True
+12           False           True  ...           False                False
+13           False           True  ...           False                 True
+14           False           True  ...           False                False
+15            True          False  ...           False                False
+16            True          False  ...           False                 True
+17            True          False  ...            True                False
+18            True          False  ...            True                 True
+19            True          False  ...           False                False
+20            True          False  ...            True                False
+21            True           True  ...           False                False
+22            True           True  ...           False                 True
+23            True           True  ...           False                False
+
+[24 rows x 6 columns]
+[2025-07-23 17:19:03,621 - __main__] INFO: Combinations with exactly 3 True values:
+[2025-07-23 17:19:03,624 - __main__] INFO: 
+    Spearman (low)  Pearson (low)  ...  Pearson (high)  Clustermatch (high)
+7            False          False  ...            True                 True
+13           False           True  ...           False                 True
+18            True          False  ...            True                 True
+20            True          False  ...            True                False
+22            True           True  ...           False                 True
+23            True           True  ...           False                False
+
+[6 rows x 6 columns]
+[2025-07-23 17:19:03,625 - __main__] INFO: Number of combinations where first 3 are all False: 8
+[2025-07-23 17:19:03,628 - __main__] INFO: Agreements on top: [(False, False, False, False, True, True)
+ (False, False, False, True, False, True)
+ (False, False, False, True, True, False)]
+[2025-07-23 17:19:03,630 - __main__] INFO: Agreements on bottom: [(False, True, True, False, False, False)
+ (True, False, True, False, False, False)
+ (True, True, False, False, False, False)]
+[2025-07-23 17:19:03,632 - __main__] INFO: Disagreements: [(False, False, True, False, True, False)
+ (False, True, False, False, False, True)
+ (False, True, False, True, False, False)
+ (False, True, False, True, False, True)
+ (True, False, False, False, False, True)
+ (True, False, False, False, True, False)
+ (True, False, False, False, True, True)
+ (True, False, True, False, True, False)
+ (True, True, False, False, False, True)]
+[2025-07-23 17:19:03,636 - __main__] INFO: Desired order indices: 20, existing indices: 17
+[2025-07-23 17:19:03,640 - __main__] INFO: Missing indices (will be skipped): [(False, False, True, True, True, False), (False, False, True, True, False, False), (False, True, True, True, False, False)]
+[2025-07-23 17:37:17,143 - __main__] INFO: Gene pairs by categories after reordering:
+[2025-07-23 17:37:17,152 - __main__] INFO: 
+                                                                                                    Pearson (high)  ...  spearman
+Spearman (low) Pearson (low) Clustermatch (low) Spearman (high) Pearson (high) Clustermatch (high)                  ...          
+False          False         False              True            True           True                           True  ...  0.854004
+                                                                               True                           True  ...  0.850586
+                                                                               True                           True  ...  0.834473
+                                                                               True                           True  ...  0.866211
+                                                                               True                           True  ...  0.827148
+
+[5 rows x 9 columns]
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:795: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["linewidth"].fillna(1, inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:796: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["facecolor"].fillna(self._facecolor, inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:797: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["edgecolor"].fillna(styles["facecolor"], inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:798: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["linestyle"].fillna("solid", inplace=True)
+[2025-07-23 17:39:05,887 - __main__] INFO: Saved trimmed upset plot to: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/upsetplot_gtex_whole_blood_trimmed.svg
+[2025-07-23 17:39:05,888 - __main__] INFO: Copied trimmed upset plot to log directory: logs/20250723_165132/upsetplot_gtex_whole_blood_trimmed.svg
+[2025-07-23 17:39:05,970 - __main__] INFO: Final dataframe shape: (1420258456, 9)
+[2025-07-23 17:39:05,970 - __main__] INFO: Final dataframe head:
+[2025-07-23 17:39:05,977 - __main__] INFO: 
+                                       Pearson (high)  ...  spearman
+ENSG00000135245.9  ENSG00000169429.10            True  ...  0.854004
+ENSG00000163631.16 ENSG00000169429.10           False  ...  0.709473
+                   ENSG00000135245.9            False  ...  0.675781
+ENSG00000277632.1  ENSG00000169429.10            True  ...  0.850586
+                   ENSG00000135245.9             True  ...  0.834473
+
+[5 rows x 9 columns]
+[2025-07-23 17:39:05,977 - __main__] INFO: Output file for gene pair intersections: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+[2025-07-23 17:39:05,977 - __main__] INFO: Saving gene pair intersections data...
+[2025-07-23 17:39:10,462 - __main__] INFO: Saved gene pair intersections to: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+[2025-07-23 17:39:10,462 - __main__] INFO: Script completed successfully!
+[2025-07-23 17:39:10,462 - __main__] INFO: All outputs saved to log directory: logs/20250723_165132

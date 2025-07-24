@@ -57,6 +57,18 @@ def parse_arguments():
     )
     
     parser.add_argument(
+        "--custom-low-quantile",
+        type=float,
+        help="Custom low quantile threshold (e.g., 0.80 for 80th percentile)"
+    )
+    
+    parser.add_argument(
+        "--custom-high-quantile",
+        type=float,
+        help="Custom high quantile threshold (e.g., 0.95 for 95th percentile)"
+    )
+    
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("/pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections"),
@@ -250,6 +262,22 @@ def main():
     """Main function to run the gene pair intersection analysis."""
     args = parse_arguments()
     
+    # Validate custom quantiles arguments
+    custom_args = [args.custom_low_quantile, args.custom_high_quantile]
+    if any(arg is not None for arg in custom_args):
+        if not all(arg is not None for arg in custom_args):
+            raise ValueError("If using custom quantiles, both arguments must be provided: "
+                           "--custom-low-quantile, --custom-high-quantile")
+        
+        # Validate quantile ranges
+        if not (0 < args.custom_low_quantile < 1):
+            raise ValueError(f"custom-low-quantile must be between 0 and 1, got: {args.custom_low_quantile}")
+        if not (0 < args.custom_high_quantile < 1):
+            raise ValueError(f"custom-high-quantile must be between 0 and 1, got: {args.custom_high_quantile}")
+        if args.custom_low_quantile >= args.custom_high_quantile:
+            raise ValueError(f"custom-low-quantile ({args.custom_low_quantile}) must be less than "
+                           f"custom-high-quantile ({args.custom_high_quantile})")
+    
     # Set up derived paths and names
     SIMILARITY_MATRICES_DIR = args.data_dir / "similarity_matrices" / args.top_n_genes
     OUTPUT_FIGURE_NAME = f"upsetplot_gtex_{args.gtex_tissue}"
@@ -347,6 +375,11 @@ def main():
     logger.info(f"  OUTPUT_DIR: {args.output_dir}")
     logger.info(f"  USE_EXISTING: {args.use_existing}")
     logger.info(f"  LOG_DIR: {args.log_dir}")
+    if args.custom_low_quantile is not None and args.custom_high_quantile is not None:
+        logger.info(f"  CUSTOM_LOW_QUANTILE: {args.custom_low_quantile}")
+        logger.info(f"  CUSTOM_HIGH_QUANTILE: {args.custom_high_quantile}")
+    else:
+        logger.info(f"  CUSTOM_QUANTILES: Not specified (using default q_diff)")
 
     assert args.output_dir.exists()
     assert SIMILARITY_MATRICES_DIR.exists()
@@ -384,7 +417,7 @@ def main():
     logger.info("Quantiles from 20% to 100% in 20 steps:")
     logger.info(f"\n{quantiles_result}")
 
-    def get_lower_upper_quantile(method_name, q):
+    def get_lower_upper_quantile(method_name, q, use_custom=False, custom_low=None, custom_high=None):
         """Get the lower and upper quantile bounds for a correlation method.
         
         This function calculates the quantile thresholds that will be used to
@@ -395,11 +428,17 @@ def main():
         Args:
             method_name (str): Name of the correlation method column ('ccc', 'pearson', 'spearman')
             q (float): Quantile difference from extremes (e.g., 0.30 means use 30% and 70% quantiles)
+            use_custom (bool): Whether to use custom quantiles instead of q-based quantiles
+            custom_low (float): Custom low quantile (e.g., 0.80 for 80th percentile)
+            custom_high (float): Custom high quantile (e.g., 0.95 for 95th percentile)
         
         Returns:
             pandas.Series: Series with two values [lower_quantile, upper_quantile]
         """
-        return df[method_name].quantile([q, 1 - q])
+        if use_custom:
+            return df[method_name].quantile([custom_low, custom_high])
+        else:
+            return df[method_name].quantile([q, 1 - q])
 
     # Test the get_lower_upper_quantile function with CCC method
     # Using 0.20 quantile difference (20% and 80% quantiles)
@@ -418,14 +457,41 @@ def main():
     # Clean up variables after assertions
     del ccc_quantiles, ccc_lower_quantile, ccc_upper_quantile
 
-    clustermatch_lq, clustermatch_hq = get_lower_upper_quantile("ccc", args.q_diff)
-    logger.info(f"Clustermatch quantiles: lower={clustermatch_lq}, upper={clustermatch_hq}")
+    # Determine whether to use custom quantiles
+    use_custom_quantiles = (
+        args.custom_low_quantile is not None and 
+        args.custom_high_quantile is not None
+    )
+    
+    if use_custom_quantiles:
+        logger.info(f"Using custom quantiles for tissue '{args.gtex_tissue}':")
+        logger.info(f"  Custom low quantile: {args.custom_low_quantile} ({args.custom_low_quantile*100:.1f}th percentile)")
+        logger.info(f"  Custom high quantile: {args.custom_high_quantile} ({args.custom_high_quantile*100:.1f}th percentile)")
+        
+        clustermatch_lq, clustermatch_hq = get_lower_upper_quantile(
+            "ccc", args.q_diff, use_custom=True, 
+            custom_low=args.custom_low_quantile, custom_high=args.custom_high_quantile
+        )
+        pearson_lq, pearson_hq = get_lower_upper_quantile(
+            "pearson", args.q_diff, use_custom=True, 
+            custom_low=args.custom_low_quantile, custom_high=args.custom_high_quantile
+        )
+        spearman_lq, spearman_hq = get_lower_upper_quantile(
+            "spearman", args.q_diff, use_custom=True, 
+            custom_low=args.custom_low_quantile, custom_high=args.custom_high_quantile
+        )
+    else:
+        logger.info(f"Using default quantiles with q_diff={args.q_diff}:")
+        logger.info(f"  Lower quantile: {args.q_diff} ({args.q_diff*100:.1f}th percentile)")
+        logger.info(f"  Upper quantile: {1-args.q_diff} ({(1-args.q_diff)*100:.1f}th percentile)")
+        
+        clustermatch_lq, clustermatch_hq = get_lower_upper_quantile("ccc", args.q_diff)
+        pearson_lq, pearson_hq = get_lower_upper_quantile("pearson", args.q_diff)
+        spearman_lq, spearman_hq = get_lower_upper_quantile("spearman", args.q_diff)
 
-    pearson_lq, pearson_hq = get_lower_upper_quantile("pearson", args.q_diff)
-    logger.info(f"Pearson quantiles: lower={pearson_lq}, upper={pearson_hq}")
-
-    spearman_lq, spearman_hq = get_lower_upper_quantile("spearman", args.q_diff)
-    logger.info(f"Spearman quantiles: lower={spearman_lq}, upper={spearman_hq}")
+    logger.info(f"Clustermatch quantiles: lower={clustermatch_lq:.6f}, upper={clustermatch_hq:.6f}")
+    logger.info(f"Pearson quantiles: lower={pearson_lq:.6f}, upper={pearson_hq:.6f}")
+    logger.info(f"Spearman quantiles: lower={spearman_lq:.6f}, upper={spearman_hq:.6f}")
 
     pearson_higher = df["pearson"] >= pearson_hq
     logger.info(f"Pearson higher count: {pearson_higher.sum()}")
