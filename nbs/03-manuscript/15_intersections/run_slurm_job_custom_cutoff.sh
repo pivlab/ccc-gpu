@@ -76,7 +76,7 @@ TISSUES=(
     # "thyroid"
     # "uterus"
     # "vagina"
-    "whole_blood"
+    "whole_blood",
 )
 
 # Get total number of tissues
