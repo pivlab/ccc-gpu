@@ -499,7 +499,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         print_cuda_memory_info();
     } else {
         // Disable debug logging by default
-        spdlog::set_level(spdlog::level::error);
+        spdlog::set_level(spdlog::level::err);
     }
 
     /*
