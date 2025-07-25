@@ -410,11 +410,11 @@ def main():
     logger.info("Dataframe statistics:")
     logger.info(f"\n{df.describe()}")
 
-    # Calculate quantiles from 20% to 100% in 20 steps for each correlation method
+    # Calculate quantiles from 70% to 100% in 0.01 steps for each correlation method
     # This helps understand the distribution of correlation values and identify
     # appropriate thresholds for high/low correlation gene pairs
-    quantiles_result = df.apply(lambda x: x.quantile(np.linspace(0.20, 1.0, 20)))
-    logger.info("Quantiles from 20% to 100% in 20 steps:")
+    quantiles_result = df.apply(lambda x: x.quantile(np.linspace(0.70, 1.0, 31)))
+    logger.info("Quantiles from 70% to 100% in 0.01 steps (31 points):")
     logger.info(f"\n{quantiles_result}")
 
     def get_lower_upper_quantile(method_name, q, use_custom=False, custom_low=None, custom_high=None):
@@ -492,6 +492,32 @@ def main():
     logger.info(f"Clustermatch quantiles: lower={clustermatch_lq:.6f}, upper={clustermatch_hq:.6f}")
     logger.info(f"Pearson quantiles: lower={pearson_lq:.6f}, upper={pearson_hq:.6f}")
     logger.info(f"Spearman quantiles: lower={spearman_lq:.6f}, upper={spearman_hq:.6f}")
+    
+    # Log detailed threshold information with percentile values
+    logger.info("\n" + "="*60)
+    logger.info("DETAILED THRESHOLD INFORMATION")
+    logger.info("="*60)
+    
+    if use_custom_quantiles:
+        logger.info(f"Using CUSTOM quantiles:")
+        logger.info(f"  Low threshold percentile:  {args.custom_low_quantile*100:.1f}th percentile")
+        logger.info(f"  High threshold percentile: {args.custom_high_quantile*100:.1f}th percentile")
+    else:
+        logger.info(f"Using DEFAULT quantiles with q_diff={args.q_diff}:")
+        logger.info(f"  Low threshold percentile:  {args.q_diff*100:.1f}th percentile")
+        logger.info(f"  High threshold percentile: {(1-args.q_diff)*100:.1f}th percentile")
+    
+    logger.info(f"\nActual threshold values:")
+    logger.info(f"  CCC (Clustermatch):")
+    logger.info(f"    Low threshold:  {clustermatch_lq:.6f}")
+    logger.info(f"    High threshold: {clustermatch_hq:.6f}")
+    logger.info(f"  Pearson:")
+    logger.info(f"    Low threshold:  {pearson_lq:.6f}")
+    logger.info(f"    High threshold: {pearson_hq:.6f}")
+    logger.info(f"  Spearman:")
+    logger.info(f"    Low threshold:  {spearman_lq:.6f}")
+    logger.info(f"    High threshold: {spearman_hq:.6f}")
+    logger.info("="*60)
 
     pearson_higher = df["pearson"] >= pearson_hq
     logger.info(f"Pearson higher count: {pearson_higher.sum()}")
