@@ -48,7 +48,7 @@ def setup_logging(log_dir: str) -> logging.Logger:
     log_path.mkdir(parents=True, exist_ok=True)
     
     # Setup logging configuration
-    log_file = log_path / 'coefficient_analysis_streaming.log'
+    log_file = log_path / 'coefficient_analysis.log'
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
@@ -59,9 +59,9 @@ def setup_logging(log_dir: str) -> logging.Logger:
     )
     
     logger = logging.getLogger(__name__)
-    logger.info(f"Streaming Analysis Logging initialized - Log file: {log_file}")
+    logger.info(f"Coefficient Analysis Logging initialized - Log file: {log_file}")
     logger.info("="*80)
-    logger.info("GTEx COEFFICIENT DISTRIBUTION ANALYSIS (STREAMING)")
+    logger.info("GTEx COEFFICIENT DISTRIBUTION ANALYSIS")
     logger.info("="*80)
     
     return logger
@@ -265,8 +265,7 @@ def compute_percentiles_from_histogram(histogram_result: Dict, output_dir: Path,
         df.index.name = 'percentile'
         
         # Generate filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'percentiles_summary_{tissue_name}_{timestamp}.csv'
+        filename = f'percentiles_summary_{tissue_name}.csv'
         
         # Save to both directories
         output_file = output_dir / filename
@@ -306,7 +305,7 @@ def generate_streaming_cumulative_histogram(histogram_result: Dict, gene_pairs_p
     # Use non-interactive backend to avoid memory issues
     matplotlib.use('Agg')
     
-    logger.info(f"📊 Generating streaming cumulative histogram (target: {gene_pairs_percent*100}% of gene pairs)...")
+    logger.info(f"📊 Generating cumulative histogram (target: {gene_pairs_percent*100}% of gene pairs)...")
     
     try:
         histograms = histogram_result['histograms']
@@ -364,23 +363,76 @@ def generate_streaming_cumulative_histogram(histogram_result: Dict, gene_pairs_p
         ax.set_xlim(0.0, 1.0)
         ax.set_ylim(0, 100)
         
+        # Calculate and display quantiles for all coefficients in merged format
+        def calculate_quantiles_from_histogram(bin_centers, counts, quantiles):
+            """Calculate quantiles from histogram bins and counts."""
+            total = np.sum(counts)
+            if total == 0:
+                return {q: 0.0 for q in quantiles}
+            
+            # Create cumulative distribution
+            cumulative = np.cumsum(counts)
+            cumulative_normalized = cumulative / total
+            
+            # Find quantile values
+            quantile_values = {}
+            for q in quantiles:
+                # Find the bin where cumulative probability crosses the quantile
+                idx = np.searchsorted(cumulative_normalized, q)
+                if idx >= len(bin_centers):
+                    idx = len(bin_centers) - 1
+                quantile_values[q] = bin_centers[idx]
+            
+            return quantile_values
+        
+        # Calculate quantiles for all coefficients
+        target_quantiles = [0.10, 0.25, 0.30, 0.50, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
+        all_quantile_values = {}
+        
+        for col in coefficient_columns:
+            # Get histogram counts for this coefficient (same logic as in regular histogram)
+            full_counts = histograms[col]
+            positive_counts = full_counts[positive_mask[:-1]]  # bins has n+1 elements, counts has n
+            positive_bin_centers = (positive_bins[:-1] + positive_bins[1:]) / 2
+            
+            total_count = np.sum(positive_counts)
+            if total_count > 0:
+                all_quantile_values[col] = calculate_quantiles_from_histogram(positive_bin_centers, positive_counts, target_quantiles)
+            else:
+                all_quantile_values[col] = {q: 0.0 for q in target_quantiles}
+        
+        # Format quantiles in merged format: "95% = 0.115 / 0.415 / 0.475"
+        quantile_text_lines = ["Quantiles (CCC / Pearson / Spearman):"]
+        for q in target_quantiles:
+            values = [all_quantile_values[col][q] for col in coefficient_columns]
+            value_str = " / ".join([f"{v:.3f}" for v in values])
+            quantile_text_lines.append(f"{q:.0%} = {value_str}")
+        
+        quantile_text = "\n".join(quantile_text_lines)
+        
+        # Position quantiles text below the plot
+        ax.text(0.5, -0.25, quantile_text, transform=ax.transAxes, 
+               fontsize=8, ha='center', va='top', 
+               bbox=dict(boxstyle="round,pad=0.4", facecolor='lightgray', alpha=0.5))
+        
         plt.tight_layout()
+        plt.subplots_adjust(bottom=0.35)  # Make room for quantile text
         
         # Save to both directories
-        output_file = output_dir / 'dist-cum_histograms_streaming.svg'
-        log_file = log_dir / 'dist-cum_histograms_streaming.svg'
+        output_file = output_dir / 'dist-cumulative_histograms.svg'
+        log_file = log_dir / 'dist-cumulative_histograms.svg'
         
         fig.savefig(output_file, bbox_inches='tight', dpi=300, facecolor='white')
         fig.savefig(log_file, bbox_inches='tight', dpi=300, facecolor='white')
         
         plt.close(fig)  # Free memory
         
-        logger.info(f"✅ Streaming cumulative histogram generated successfully")
+        logger.info(f"✅ Cumulative histogram generated successfully")
         logger.info(f"   Original: {output_file}")
         logger.info(f"   Log copy: {log_file}")
         
     except Exception as e:
-        logger.error(f"Failed to generate streaming cumulative histogram: {str(e)}")
+        logger.error(f"Failed to generate cumulative histogram: {str(e)}")
         raise
 
 
@@ -397,7 +449,7 @@ def generate_streaming_regular_histogram(histogram_result: Dict, output_dir: Pat
     import matplotlib
     matplotlib.use('Agg')
     
-    logger.info("📊 Generating streaming regular histograms...")
+    logger.info("📊 Generating regular histograms...")
     
     try:
         histograms = histogram_result['histograms']
@@ -442,74 +494,28 @@ def generate_streaming_regular_histogram(histogram_result: Dict, output_dir: Pat
             ax.grid(True, alpha=0.3)
             ax.set_xlim(0.0, 1.0)  # Set range to 0-1.0 only
             
-            # Calculate quantiles from histogram data
-            def calculate_quantiles_from_histogram(bin_centers, counts, quantiles):
-                """Calculate quantiles from histogram bins and counts."""
-                total = np.sum(counts)
-                if total == 0:
-                    return {q: 0.0 for q in quantiles}
-                
-                # Create cumulative distribution
-                cumulative = np.cumsum(counts)
-                cumulative_normalized = cumulative / total
-                
-                # Find quantile values
-                quantile_values = {}
-                for q in quantiles:
-                    # Find the bin where cumulative probability crosses the quantile
-                    idx = np.searchsorted(cumulative_normalized, q)
-                    if idx >= len(bin_centers):
-                        idx = len(bin_centers) - 1
-                    quantile_values[q] = bin_centers[idx]
-                
-                return quantile_values
-            
-            # Calculate requested quantiles
-            target_quantiles = [0.10, 0.25, 0.30, 0.50, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
-            quantile_values = calculate_quantiles_from_histogram(positive_bin_centers, positive_counts, target_quantiles)
-            
             # Add statistics (calculated from positive range only) 
             mean_approx = np.sum(positive_bin_centers * positive_counts) / total_count
             ax.axvline(mean_approx, color='red', linestyle='--', alpha=0.8, label=f'Mean: {mean_approx:.3f}')
             ax.legend(fontsize=9)
-            
-            # Add quantile information as text below the plot with better formatting
-            # Format quantiles with proper line breaks for better readability
-            quantile_items = [f"{q:.0%}={v:.3f}" for q, v in quantile_values.items()]
-            
-            # Option 1: Group quantiles: 5 per line for better readability (comment out to use option 2)
-            # quantile_lines = []
-            # for i in range(0, len(quantile_items), 5):
-            #     line_items = quantile_items[i:i+5]
-            #     quantile_lines.append(", ".join(line_items))
-            # quantile_text = "Quantiles:\n" + "\n".join(quantile_lines)
-            
-            # Option 2: One quantile per line (as requested by user)
-            quantile_text = "Quantiles:\n" + "\n".join(quantile_items)
-            
-            # Position text below the subplot with more space for one-quantile-per-line
-            ax.text(0.5, -0.30, quantile_text, transform=ax.transAxes, 
-                   fontsize=7, ha='center', va='top', 
-                   bbox=dict(boxstyle="round,pad=0.4", facecolor='lightgray', alpha=0.5))
         
         plt.tight_layout()
-        plt.subplots_adjust(bottom=0.45)  # Make room for one-quantile-per-line text
         
         # Save to both directories
-        output_file = output_dir / 'dist-histograms_streaming.svg'
-        log_file = log_dir / 'dist-histograms_streaming.svg'
+        output_file = output_dir / 'dist-histograms.svg'
+        log_file = log_dir / 'dist-histograms.svg'
         
         fig.savefig(output_file, bbox_inches='tight', dpi=300, facecolor='white')
         fig.savefig(log_file, bbox_inches='tight', dpi=300, facecolor='white')
         
         plt.close(fig)  # Free memory
         
-        logger.info(f"✅ Streaming regular histograms generated successfully")
+        logger.info(f"✅ Regular histograms generated successfully")
         logger.info(f"   Original: {output_file}")
         logger.info(f"   Log copy: {log_file}")
         
     except Exception as e:
-        logger.error(f"Failed to generate streaming regular histograms: {str(e)}")
+        logger.error(f"Failed to generate regular histograms: {str(e)}")
         raise
 
 
@@ -528,7 +534,7 @@ def generate_streaming_density_plot(histogram_result: Dict, output_dir: Path, lo
     from scipy.interpolate import interp1d
     matplotlib.use('Agg')
     
-    logger.info("📊 Generating streaming density plot (overlaid coefficients)...")
+    logger.info("📊 Generating density plot (overlaid coefficients)...")
     
     try:
         histograms = histogram_result['histograms']
@@ -615,20 +621,20 @@ def generate_streaming_density_plot(histogram_result: Dict, output_dir: Path, lo
         plt.tight_layout()
         
         # Save to both directories
-        output_file = output_dir / 'dist-histograms.svg'  # Match original filename
-        log_file = log_dir / 'dist-histograms.svg'
+        output_file = output_dir / 'dist-density.svg'  # Renamed from dist-histograms.svg
+        log_file = log_dir / 'dist-density.svg'
         
         fig.savefig(output_file, bbox_inches='tight', dpi=300, facecolor='white')
         fig.savefig(log_file, bbox_inches='tight', dpi=300, facecolor='white')
         
         plt.close(fig)  # Free memory
         
-        logger.info(f"✅ Streaming density plot generated successfully")
+        logger.info(f"✅ Density plot generated successfully")
         logger.info(f"   Original: {output_file}")
         logger.info(f"   Log copy: {log_file}")
         
     except Exception as e:
-        logger.error(f"Failed to generate streaming density plot: {str(e)}")
+        logger.error(f"Failed to generate density plot: {str(e)}")
         raise
 
 
@@ -776,7 +782,7 @@ def main() -> int:
                 for file_path in sorted(output_path.glob("*.csv")):
                     logger.info(f"  📈 {file_path.name}")
         
-        logger.info(f"\n✅ All streaming plots and percentiles summary generated successfully!")
+        logger.info(f"\n✅ All plots and percentiles summary generated successfully!")
         logger.info(f"📁 Log directory: {log_dir}")
         logger.info(f"📁 Original directory: {original_output_dir}")
         logger.info(f"💾 Memory-efficient processing completed with {args.chunk_size:,} rows per chunk")
