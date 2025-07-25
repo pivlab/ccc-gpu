@@ -138,6 +138,28 @@ correlation = ccc(x, y)
 print(f"CCC coefficient: {correlation:.3f}")
 ```
 
+### Controlling Debug Logging
+
+By default, CCC-GPU runs silently without debug output. You can enable detailed logging (including CUDA device information, memory usage, and processing details) using the `CCC_GPU_LOGGING` environment variable:
+
+```bash
+# Run with default behavior (no debug output)
+python your_script.py
+
+# Enable debug logging for troubleshooting
+CCC_GPU_LOGGING=1 python your_script.py
+
+# Or set it for the session
+export CCC_GPU_LOGGING=1
+python your_script.py
+```
+
+This is particularly useful for:
+- Debugging GPU memory issues
+- Understanding CUDA device utilization
+- Monitoring batch processing performance
+- Troubleshooting installation problems
+
 ### Working with Gene Expression Data
 
 CCC-GPU is particularly useful for genomics applications:
