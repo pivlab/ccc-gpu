@@ -13,6 +13,7 @@
 #include <optional>
 #include <vector>
 #include <algorithm>
+#include <cstdlib>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -487,12 +488,19 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                   const bool return_parts,
                   std::optional<uint32_t> pvalue_n_perms) -> py::object
 {
-    spdlog::set_level(spdlog::level::debug);
-    // Check CUDA info
-    spdlog::debug("CUDA Device Info:");
-    print_cuda_device_info();
-    spdlog::debug("CUDA Memory Info:");
-    print_cuda_memory_info();
+    // Check for CCC_GPU_LOGGING environment variable to enable debug logging
+    const char* logging_env = std::getenv("CCC_GPU_LOGGING");
+    if (logging_env != nullptr) {
+        spdlog::set_level(spdlog::level::debug);
+        // Check CUDA info
+        spdlog::debug("CUDA Device Info:");
+        print_cuda_device_info();
+        spdlog::debug("CUDA Memory Info:");
+        print_cuda_memory_info();
+    } else {
+        // Disable debug logging by default
+        spdlog::set_level(spdlog::level::error);
+    }
 
     /*
      * Configuration and Constants
