@@ -351,13 +351,14 @@ def format_number_with_units(number: int) -> str:
         # Less than 1000, no unit needed
         return str(number)
 
-def create_bar_plot(results_df: pd.DataFrame, output_path: str) -> Optional[str]:
+def create_bar_plot(results_df: pd.DataFrame, output_path: str, tissue_name: str = None) -> Optional[str]:
     """
     Create a bar plot of gene pair counts by indicator combinations with upset plot-style indicators.
     
     Args:
         results_df: DataFrame with counting results
         output_path: Path to save the plot
+        tissue_name: Optional tissue name for plot title
         
     Returns:
         Path to saved plot or None if no plot was created
@@ -483,7 +484,11 @@ def create_bar_plot(results_df: pd.DataFrame, output_path: str) -> Optional[str]
     bars = plt.bar(range(len(plot_data)), plot_data, color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
     
     # Customize the plot
-    plt.title('Gene Pair Counts by Indicator Combinations', fontsize=16, fontweight='bold', pad=20)
+    if tissue_name:
+        title = f'Gene Pair Counts by Indicator Combinations - {tissue_name.replace("_", " ").title()}'
+    else:
+        title = 'Gene Pair Counts by Indicator Combinations'
+    plt.title(title, fontsize=16, fontweight='bold', pad=20)
     plt.xlabel('Indicator Combinations', fontsize=12, fontweight='bold')
     plt.ylabel('Number of Gene Pairs', fontsize=12, fontweight='bold')
     
@@ -562,6 +567,7 @@ Examples:
     python gene_pair_counter.py --data-dir /data/intersections results.pkl --log-file analysis.log
     python gene_pair_counter.py --data-dir /data/intersections results.pkl --plot
     python gene_pair_counter.py --data-dir /data/intersections results.pkl --threads 8
+    python gene_pair_counter.py --data-dir /data/intersections --tissue whole_blood results.pkl --plot
         """
     )
     
@@ -570,6 +576,12 @@ Examples:
         type=str,
         required=True,
         help='Path to directory containing gene_pair_intersections*.pkl files'
+    )
+    
+    parser.add_argument(
+        '--tissue',
+        type=str,
+        help='Process only a specific tissue (must be used with --data-dir)'
     )
     
     parser.add_argument(
@@ -613,12 +625,82 @@ Examples:
     
     return parser.parse_args()
 
-def find_intersection_files(data_dir: str) -> List[Path]:
+def validate_tissue(tissue: str) -> bool:
     """
-    Find all gene_pair_intersections*.pkl files in the specified directory.
+    Validate that the tissue name is in the allowed list.
+    
+    Args:
+        tissue: Tissue name to validate
+        
+    Returns:
+        True if tissue is valid
+    """
+    VALID_TISSUES = {
+        "adipose_subcutaneous",
+        "adipose_visceral_omentum",
+        "adrenal_gland",
+        "artery_aorta",
+        "artery_coronary",
+        "artery_tibial",
+        "bladder",
+        "brain_amygdala",
+        "brain_anterior_cingulate_cortex_ba24",
+        "brain_caudate_basal_ganglia",
+        "brain_cerebellar_hemisphere",
+        "brain_cerebellum",
+        "brain_cortex",
+        "brain_frontal_cortex_ba9",
+        "brain_hippocampus",
+        "brain_hypothalamus",
+        "brain_nucleus_accumbens_basal_ganglia",
+        "brain_putamen_basal_ganglia",
+        "brain_spinal_cord_cervical_c1",
+        "brain_substantia_nigra",
+        "breast_mammary_tissue",
+        "cells_cultured_fibroblasts",
+        "cells_ebvtransformed_lymphocytes",
+        "cervix_ectocervix",
+        "cervix_endocervix",
+        "colon_sigmoid",
+        "colon_transverse",
+        "esophagus_gastroesophageal_junction",
+        "esophagus_mucosa",
+        "esophagus_muscularis",
+        "fallopian_tube",
+        "heart_atrial_appendage",
+        "heart_left_ventricle",
+        "kidney_cortex",
+        "kidney_medulla",
+        "liver",
+        "lung",
+        "minor_salivary_gland",
+        "muscle_skeletal",
+        "nerve_tibial",
+        "ovary",
+        "pancreas",
+        "pituitary",
+        "prostate",
+        "skin_not_sun_exposed_suprapubic",
+        "skin_sun_exposed_lower_leg",
+        "small_intestine_terminal_ileum",
+        "spleen",
+        "stomach",
+        "testis",
+        "thyroid",
+        "uterus",
+        "vagina",
+        "whole_blood"
+    }
+    
+    return tissue in VALID_TISSUES
+
+def find_intersection_files(data_dir: str, tissue: str = None) -> List[Path]:
+    """
+    Find gene_pair_intersections*.pkl files in the specified directory.
     
     Args:
         data_dir: Path to directory containing intersection files
+        tissue: If specified, only find files for this specific tissue
         
     Returns:
         List of Path objects for found files, sorted by name
@@ -631,12 +713,31 @@ def find_intersection_files(data_dir: str) -> List[Path]:
     if not data_path.is_dir():
         raise NotADirectoryError(f"Data directory is not a directory: {data_dir}")
     
-    # Find all matching files
-    pattern = "gene_pair_intersections*.pkl"
-    intersection_files = list(data_path.glob(pattern))
-    
-    if not intersection_files:
-        raise FileNotFoundError(f"No files matching pattern '{pattern}' found in {data_dir}")
+    if tissue:
+        # Find specific tissue file
+        # Expected format: gene_pair_intersections-gtex_v8-{tissue}-var_pc_log2.pkl
+        specific_pattern = f"gene_pair_intersections-gtex_v8-{tissue}-var_pc_log2.pkl"
+        intersection_files = list(data_path.glob(specific_pattern))
+        
+        if not intersection_files:
+            # Try more flexible pattern in case format differs
+            flexible_pattern = f"*{tissue}*.pkl"
+            intersection_files = list(data_path.glob(flexible_pattern))
+            
+            # Filter to only include files that match the expected format
+            intersection_files = [f for f in intersection_files if "gene_pair_intersections" in f.name]
+        
+        if not intersection_files:
+            raise FileNotFoundError(f"No intersection file found for tissue '{tissue}' in {data_dir}")
+        
+        logger.info(f"Found tissue-specific file: {intersection_files[0].name}")
+    else:
+        # Find all matching files
+        pattern = "gene_pair_intersections*.pkl"
+        intersection_files = list(data_path.glob(pattern))
+        
+        if not intersection_files:
+            raise FileNotFoundError(f"No files matching pattern '{pattern}' found in {data_dir}")
     
     # Sort files by name for consistent processing order
     intersection_files.sort()
@@ -703,10 +804,10 @@ def extract_tissue_name(file_path: Path) -> str:
     # Fallback: use filename without extension
     return filename.replace('.pkl', '')
 
-def process_multiple_files(data_dir: str, output_folder: Path, output_file: str, 
-                          args) -> pd.DataFrame:
+def process_intersection_files(data_dir: str, output_folder: Path, output_file: str, 
+                              args) -> pd.DataFrame:
     """
-    Process multiple intersection files and accumulate results.
+    Process intersection files (single tissue or multiple) and accumulate results.
     
     Args:
         data_dir: Directory containing intersection files
@@ -717,13 +818,17 @@ def process_multiple_files(data_dir: str, output_folder: Path, output_file: str,
     Returns:
         DataFrame with accumulated results
     """
-    # Find all intersection files
-    intersection_files = find_intersection_files(data_dir)
+    # Find intersection files (either specific tissue or all)
+    intersection_files = find_intersection_files(data_dir, args.tissue)
     
-    logger.info(f"Found {len(intersection_files)} intersection files to process")
-    logger.info("Files to process:")
-    for i, file_path in enumerate(intersection_files, 1):
-        logger.info(f"  {i:2d}. {file_path.name}")
+    if args.tissue:
+        logger.info(f"Processing single tissue: {args.tissue}")
+        logger.info(f"Found tissue file: {intersection_files[0].name}")
+    else:
+        logger.info(f"Found {len(intersection_files)} intersection files to process")
+        logger.info("Files to process:")
+        for i, file_path in enumerate(intersection_files, 1):
+            logger.info(f"  {i:2d}. {file_path.name}")
     
     # Initialize accumulator
     accumulated_counts = None
@@ -762,7 +867,7 @@ def process_multiple_files(data_dir: str, output_folder: Path, output_file: str,
                 continue
             
             # Extract tissue name and save individual tissue counts
-            tissue_name = extract_tissue_name(file_path)
+            tissue_name = extract_tissue_name(file_path) if args.tissue is None else args.tissue
             tissue_count_file = output_folder / f"{tissue_name}_counts.pkl"
             logger.info(f"Saving tissue-specific counts to {tissue_count_file}")
             with open(tissue_count_file, 'wb') as f:
@@ -782,21 +887,23 @@ def process_multiple_files(data_dir: str, output_folder: Path, output_file: str,
             logger.info(f"Total gene pairs processed: {total_gene_pairs:,}")
             logger.info(f"Tissue-specific counts saved to {tissue_count_file}")
             
-            # Save intermediate results for plotting
-            intermediate_file = output_folder / f"intermediate_counts_after_{i:02d}_files.pkl"
-            logger.info(f"Saving intermediate results to {intermediate_file}")
-            with open(intermediate_file, 'wb') as f:
-                pickle.dump(accumulated_counts, f)
-            
-            # Generate intermediate plot if requested
-            if args.plot:
-                logger.info("Generating intermediate plot...")
-                intermediate_plot_file = str(output_folder / f"intermediate_plot_after_{i:02d}_files.pkl")
-                plot_path = create_bar_plot(accumulated_counts, intermediate_plot_file)
-                if plot_path:
-                    logger.info(f"Intermediate plot saved to {plot_path}")
-                else:
-                    logger.warning("Failed to generate intermediate plot")
+            # For single tissue mode, skip intermediate files
+            if args.tissue is None:
+                # Save intermediate results for plotting (only in multi-tissue mode)
+                intermediate_file = output_folder / f"intermediate_counts_after_{i:02d}_files.pkl"
+                logger.info(f"Saving intermediate results to {intermediate_file}")
+                with open(intermediate_file, 'wb') as f:
+                    pickle.dump(accumulated_counts, f)
+                
+                # Generate intermediate plot if requested (only in multi-tissue mode)
+                if args.plot:
+                    logger.info("Generating intermediate plot...")
+                    intermediate_plot_file = str(output_folder / f"intermediate_plot_after_{i:02d}_files.pkl")
+                    plot_path = create_bar_plot(accumulated_counts, intermediate_plot_file)
+                    if plot_path:
+                        logger.info(f"Intermediate plot saved to {plot_path}")
+                    else:
+                        logger.warning("Failed to generate intermediate plot")
             
             # Display current top combinations
             if not args.no_display:
@@ -818,7 +925,11 @@ def process_multiple_files(data_dir: str, output_folder: Path, output_file: str,
     logger.info(f"Successfully processed {processed_files}/{len(intersection_files)} files")
     logger.info(f"Total gene pairs processed: {total_gene_pairs:,}")
     logger.info(f"Total unique combinations: {len(accumulated_counts)}")
-    logger.info(f"Individual tissue count files saved in {output_folder}")
+    
+    if args.tissue:
+        logger.info(f"Single tissue ({args.tissue}) count file saved in {output_folder}")
+    else:
+        logger.info(f"Individual tissue count files saved in {output_folder}")
     
     return accumulated_counts
 
@@ -834,6 +945,11 @@ def main():
     
     # Setup output paths in the timestamped folder
     output_filename = Path(args.output_file).name
+    if args.tissue:
+        # For single tissue, include tissue name in output filename
+        base_name = Path(args.output_file).stem
+        extension = Path(args.output_file).suffix
+        output_filename = f"{base_name}_{args.tissue}{extension}"
     output_file_path = output_folder / output_filename
     
     # Setup logging
@@ -851,7 +967,12 @@ def main():
     global logger
     logger = logging.getLogger(__name__)
     
-    logger.info("Starting Gene Pair Counter CLI Script - Multiple Files Mode")
+    if args.tissue:
+        logger.info("Starting Gene Pair Counter CLI Script - Single Tissue Mode")
+        logger.info(f"Target tissue: {args.tissue}")
+    else:
+        logger.info("Starting Gene Pair Counter CLI Script - Multiple Files Mode")
+    
     logger.info(f"Data directory: {args.data_dir}")
     logger.info(f"Output folder: {output_folder}")
     logger.info(f"Plot base name: {output_file_path}")
@@ -861,13 +982,21 @@ def main():
     logger.info(f"Top N results: {args.top_n}")
     
     try:
+        # Validate tissue if specified
+        if args.tissue:
+            if not validate_tissue(args.tissue):
+                logger.error(f"Invalid tissue name: {args.tissue}")
+                logger.error("Valid tissues include: adipose_subcutaneous, whole_blood, liver, etc.")
+                sys.exit(1)
+            logger.info(f"Tissue '{args.tissue}' validated successfully")
+        
         # Validate data directory exists
         if not Path(args.data_dir).exists():
             logger.error(f"Data directory does not exist: {args.data_dir}")
             sys.exit(1)
         
-        # Process multiple files and accumulate results
-        results = process_multiple_files(args.data_dir, output_folder, str(output_file_path), args)
+        # Process intersection files and accumulate results
+        results = process_intersection_files(args.data_dir, output_folder, str(output_file_path), args)
         
         if results is None or results.empty:
             logger.error("No valid results obtained from any files. Exiting.")
@@ -884,17 +1013,22 @@ def main():
         final_plot_path = None
         if args.plot:
             logger.info("Generating final comprehensive plot...")
-            final_plot_path = create_bar_plot(results, str(output_file_path))
+            final_plot_path = create_bar_plot(results, str(output_file_path), args.tissue)
             if final_plot_path:
                 logger.info(f"Final plot saved to {final_plot_path}")
         
-        logger.info("Gene pair counting from multiple files completed successfully!")
+        if args.tissue:
+            logger.info(f"Gene pair counting for tissue '{args.tissue}' completed successfully!")
+        else:
+            logger.info("Gene pair counting from multiple files completed successfully!")
         
         # Print comprehensive summary
         print(f"\n{'='*80}")
         print("COMPREHENSIVE SUMMARY")
         print(f"{'='*80}")
         print(f"Data directory: {args.data_dir}")
+        if args.tissue:
+            print(f"Target tissue: {args.tissue}")
         print(f"Output folder: {output_folder}")
         print(f"Log file: {log_file}")
         if final_plot_path:
@@ -905,15 +1039,22 @@ def main():
         intermediate_files = list(output_folder.glob("intermediate_*.pkl"))
         intermediate_plots = list(output_folder.glob("intermediate_*.svg"))
         
-        print(f"Tissue-specific count files: {len(tissue_count_files)}")
-        print(f"Intermediate count files: {len(intermediate_files)}")
-        print(f"Intermediate plots: {len(intermediate_plots)}")
+        if args.tissue:
+            print(f"Single tissue count file: {len(tissue_count_files)}")
+        else:
+            print(f"Tissue-specific count files: {len(tissue_count_files)}")
+            print(f"Intermediate count files: {len(intermediate_files)}")
+            print(f"Intermediate plots: {len(intermediate_plots)}")
+        
         print(f"Unique indicator combinations: {len(results)}")
         print(f"Processing completed with timestamped outputs!")
         
         # List tissue-specific files
         if tissue_count_files:
-            print(f"\nTissue-specific count files created:")
+            if args.tissue:
+                print(f"\nTissue count file created:")
+            else:
+                print(f"\nTissue-specific count files created:")
             for tissue_file in sorted(tissue_count_files):
                 print(f"  - {tissue_file.name}")
         
