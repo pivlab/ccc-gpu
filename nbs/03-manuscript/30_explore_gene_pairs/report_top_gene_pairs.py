@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Display Bottom Gene Pairs CLI Script
+Display Top Gene Pairs CLI Script
 
 This script loads processed gene pair data from the gene_pair_selector output
-and displays the bottom data lines with metadata information.
+and displays the top data lines with metadata information.
 
 Usage:
     python report_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output results.txt
-    python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --bottom 100
+    python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --top 100
     python report_top_gene_pairs.py --data-dir /path/to/results --tissue liver --combination c-low-p-high-s-low
 
 Author: AI Assistant
@@ -126,21 +126,21 @@ def find_data_file(data_dir: str, tissue: str, combination: str) -> str:
     available_dirs = [d.name for d in base_path.iterdir() if d.is_dir()]
     raise FileNotFoundError(f"Could not find sorted data cache for tissue '{tissue}' and combination '{combination}' in {data_dir}. Available directories: {available_dirs}")
 
-def format_gene_pair_output(df: pd.DataFrame, bottom_n: int = 30) -> str:
+def format_gene_pair_output(df: pd.DataFrame, top_n: int = 30) -> str:
     """
-    Format the bottom gene pairs for text output.
+    Format the top gene pairs for text output.
     
     Args:
         df: DataFrame with gene pair data
-        bottom_n: Number of bottom rows to display
+        top_n: Number of top rows to display
         
     Returns:
         Formatted string representation
     """
-    bottom_df = df.tail(bottom_n)
+    top_df = df.head(top_n)
     
     output_lines = []
-    output_lines.append(f"Bottom {bottom_n} Gene Pairs (from original sorted data)")
+    output_lines.append(f"Top {top_n} Gene Pairs (from original sorted data)")
     output_lines.append("=" * 60)
     output_lines.append("")
     
@@ -161,7 +161,7 @@ def format_gene_pair_output(df: pd.DataFrame, bottom_n: int = 30) -> str:
     output_lines.append("-" * len(header_line))
     
     # Format data rows
-    for i, (idx, row) in enumerate(bottom_df.iterrows()):
+    for i, (idx, row) in enumerate(top_df.iterrows()):
         if hasattr(df.index, 'names') and df.index.names == ['gene1', 'gene2']:
             gene1, gene2 = idx
             line = f"{gene1:<12} {gene2:<12}"
@@ -193,26 +193,26 @@ def format_gene_pair_output(df: pd.DataFrame, bottom_n: int = 30) -> str:
     
     return "\n".join(output_lines)
 
-def export_to_csv(df: pd.DataFrame, bottom_n: int, output_path: str) -> None:
+def export_to_csv(df: pd.DataFrame, top_n: int, output_path: str) -> None:
     """
-    Export the bottom gene pairs to a CSV file.
+    Export the top gene pairs to a CSV file.
     
     Args:
         df: DataFrame with gene pair data
-        bottom_n: Number of bottom rows to export
+        top_n: Number of top rows to export
         output_path: Path to save the CSV file
     """
-    bottom_df = df.tail(bottom_n)
+    top_df = df.head(top_n)
     
     # Reset index to make gene pairs into columns if they're multi-index
     if hasattr(df.index, 'names') and df.index.names == ['gene1', 'gene2']:
-        bottom_df = bottom_df.reset_index()
+        top_df = top_df.reset_index()
     else:
-        bottom_df = bottom_df.reset_index()
-        bottom_df.rename(columns={'index': 'gene_pair_index'}, inplace=True)
+        top_df = top_df.reset_index()
+        top_df.rename(columns={'index': 'gene_pair_index'}, inplace=True)
     
     # Save to CSV
-    bottom_df.to_csv(output_path, index=False)
+    top_df.to_csv(output_path, index=False)
     logger.info(f"CSV exported to: {output_path}")
 
 def create_output_report(df: pd.DataFrame, metadata: dict, args: argparse.Namespace) -> str:
@@ -273,10 +273,10 @@ def create_output_report(df: pd.DataFrame, metadata: dict, args: argparse.Namesp
         report_lines.append(stats.to_string())
         report_lines.append("")
     
-    # Bottom gene pairs
+    # Top gene pairs
     report_lines.append("")
-    bottom_output = format_gene_pair_output(df, args.bottom)
-    report_lines.append(bottom_output)
+    top_output = format_gene_pair_output(df, args.top)
+    report_lines.append(top_output)
     
     return "\n".join(report_lines)
 
@@ -285,7 +285,7 @@ def main():
     logger = setup_logging()
     
     parser = argparse.ArgumentParser(
-        description="Display bottom gene pairs from processed data",
+        description="Display top gene pairs from processed data",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -293,7 +293,7 @@ Examples:
   python report_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output results.txt
 
   # Using tissue and combination
-  python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --bottom 100
+  python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --top 100
 
   # With custom CSV output
   python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --csv my_results.csv
@@ -323,10 +323,10 @@ Examples:
     parser.add_argument('--csv', 
                         help='Output CSV file path (default: auto-generated based on tissue/combination)')
     
-    parser.add_argument('--bottom', 
+    parser.add_argument('--top', 
                         type=int, 
                         default=30,
-                        help='Number of bottom gene pairs to display (default: %(default)s)')
+                        help='Number of top gene pairs to display (default: %(default)s)')
     
     args = parser.parse_args()
     
@@ -350,18 +350,18 @@ Examples:
         # Generate output file names if not provided
         if not args.output:
             if args.tissue and args.combination:
-                output_name = f"{args.tissue}_{args.combination}_bottom_{args.bottom}_gene_pairs.txt"
+                output_name = f"{args.tissue}_{args.combination}_top_{args.top}_gene_pairs.txt"
             else:
                 input_path = Path(args.input)
-                output_name = f"{input_path.stem}_bottom_{args.bottom}_gene_pairs.txt"
+                output_name = f"{input_path.stem}_top_{args.top}_gene_pairs.txt"
             args.output = output_name
         
         if not args.csv:
             if args.tissue and args.combination:
-                csv_name = f"{args.tissue}_{args.combination}_bottom_{args.bottom}_gene_pairs.csv"
+                csv_name = f"{args.tissue}_{args.combination}_top_{args.top}_gene_pairs.csv"
             else:
                 input_path = Path(args.input)
-                csv_name = f"{input_path.stem}_bottom_{args.bottom}_gene_pairs.csv"
+                csv_name = f"{input_path.stem}_top_{args.top}_gene_pairs.csv"
             args.csv = csv_name
         
         # Create report
@@ -374,16 +374,16 @@ Examples:
         logger.info(f"Report saved to: {args.output}")
         
         # Export to CSV
-        export_to_csv(df, args.bottom, args.csv)
+        export_to_csv(df, args.top, args.csv)
         
         # Also display summary to console
-        print("\nBottom Gene Pairs Summary:")
+        print("\nTop Gene Pairs Summary:")
         print(f"Input file: {input_file}")
         print(f"Total gene pairs: {len(df):,}")
         print(f"Text output file: {args.output}")
         print(f"CSV output file: {args.csv}")
-        print(f"\nLast {min(5, args.bottom)} gene pairs:")
-        print(format_gene_pair_output(df, min(5, args.bottom)))
+        print(f"\nFirst {min(5, args.top)} gene pairs:")
+        print(format_gene_pair_output(df, min(5, args.top)))
         
     except Exception as e:
         logger.error(f"Error: {e}")
