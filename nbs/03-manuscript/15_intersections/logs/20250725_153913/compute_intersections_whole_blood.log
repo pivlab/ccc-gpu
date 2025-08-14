@@ -1,0 +1,303 @@
+[2025-07-25 15:39:14,370 - __main__] INFO: Loading thresholds for tissue: 'whole_blood'
+[2025-07-25 15:39:14,371 - __main__] INFO: Loaded pickle threshold file: /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/tissue_thresholds/whole_blood-null_coefs_percentiles.pkl
+[2025-07-25 15:39:14,371 - __main__] INFO: Threshold file shape: (101, 3)
+[2025-07-25 15:39:14,371 - __main__] INFO: Available columns: ['ccc', 'pearson', 'spearman']
+[2025-07-25 15:39:14,371 - __main__] INFO: Index (percentiles): [0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35000000000000003, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41000000000000003, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47000000000000003, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.5700000000000001, 0.58, 0.59, 0.6, 0.61, 0.62, 0.63, 0.64, 0.65, 0.66, 0.67, 0.68, 0.6900000000000001, 0.7000000000000001, 0.71, 0.72, 0.73, 0.74, 0.75, 0.76, 0.77, 0.78, 0.79, 0.8, 0.81, 0.8200000000000001, 0.8300000000000001, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.9, 0.91, 0.92, 0.93, 0.9400000000000001, 0.9500000000000001, 0.96, 0.97, 0.98, 0.99, 1.0]
+[2025-07-25 15:39:14,371 - __main__] INFO: Using closest percentiles for ccc: 0.80 (low, requested 0.80), 0.95 (high, requested 0.95)
+[2025-07-25 15:39:14,371 - __main__] INFO: Found ccc thresholds using column 'ccc': low=0.016572, high=0.030472
+[2025-07-25 15:39:14,371 - __main__] INFO: Using closest percentiles for pearson: 0.80 (low, requested 0.80), 0.95 (high, requested 0.95)
+[2025-07-25 15:39:14,371 - __main__] INFO: Found pearson thresholds using column 'pearson': low=0.013898, high=0.036846
+[2025-07-25 15:39:14,371 - __main__] INFO: Using closest percentiles for spearman: 0.80 (low, requested 0.80), 0.95 (high, requested 0.95)
+[2025-07-25 15:39:14,371 - __main__] INFO: Found spearman thresholds using column 'spearman': low=0.047449, high=0.072560
+[2025-07-25 15:39:14,371 - __main__] INFO: Loaded thresholds: {'ccc_low': 0.016571665182709694, 'ccc_high': 0.03047236055135727, 'pearson_low': 0.013898277759182422, 'pearson_high': 0.03684560587870747, 'spearman_low': 0.047449240730831815, 'spearman_high': 0.07256025342517611}
+[2025-07-25 15:39:14,371 - __main__] INFO: Using tissue-specific thresholds from: /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/tissue_thresholds
+[2025-07-25 15:39:14,371 - __main__] INFO:   Low percentile: 0.8 (80.0th percentile)
+[2025-07-25 15:39:14,371 - __main__] INFO:   High percentile: 0.95 (95.0th percentile)
+[2025-07-25 15:39:14,372 - __main__] INFO: Starting compute_intersections.py for tissue: whole_blood
+[2025-07-25 15:39:14,372 - __main__] INFO: Log directory: logs/20250725_153913
+[2025-07-25 15:39:14,372 - __main__] INFO: Configuration:
+[2025-07-25 15:39:14,372 - __main__] INFO:   GTEX_TISSUE: whole_blood
+[2025-07-25 15:39:14,372 - __main__] INFO:   GENE_SEL_STRATEGY: var_pc_log2
+[2025-07-25 15:39:14,372 - __main__] INFO:   TOP_N_GENES: all
+[2025-07-25 15:39:14,372 - __main__] INFO:   Q_DIFF: 0.3
+[2025-07-25 15:39:14,372 - __main__] INFO:   OUTPUT_DIR: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections
+[2025-07-25 15:39:14,372 - __main__] INFO:   USE_EXISTING: False
+[2025-07-25 15:39:14,372 - __main__] INFO:   LOG_DIR: logs/20250725_153913
+[2025-07-25 15:39:14,372 - __main__] INFO:   TISSUE_THRESHOLD_DIR: /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/tissue_thresholds
+[2025-07-25 15:39:14,372 - __main__] INFO:   LOW_PERCENTILE: 0.8
+[2025-07-25 15:39:14,372 - __main__] INFO:   HIGH_PERCENTILE: 0.95
+[2025-07-25 15:39:14,372 - __main__] INFO: Input correlation file template: /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/similarity_matrices/all/gtex_v8_data_{tissue}-{gene_sel_strategy}-{corr_method}.pkl
+[2025-07-25 15:39:14,372 - __main__] INFO: Input correlation file: /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/similarity_matrices/all/gtex_v8_data_whole_blood-var_pc_log2-all.pkl
+[2025-07-25 15:39:14,372 - __main__] INFO: Loading correlation data...
+[2025-07-25 15:39:22,523 - __main__] INFO: Dataframe shape: (1420258456, 3)
+[2025-07-25 15:39:22,523 - __main__] INFO: Dataframe head (first 15 rows):
+[2025-07-25 15:39:22,527 - __main__] INFO: 
+                                            ccc   pearson  spearman
+ENSG00000135245.9  ENSG00000169429.10  0.780273  0.571777  0.854004
+ENSG00000163631.16 ENSG00000169429.10  0.401611  0.126953  0.709473
+                   ENSG00000135245.9   0.429199  0.110596  0.675781
+ENSG00000277632.1  ENSG00000169429.10  0.789551  0.456543  0.850586
+                   ENSG00000135245.9   0.780273  0.438965  0.834473
+                   ENSG00000163631.16  0.408447  0.129272  0.683105
+ENSG00000239839.6  ENSG00000169429.10  0.139404  0.127197  0.379883
+                   ENSG00000135245.9   0.159912  0.209106  0.422607
+                   ENSG00000163631.16  0.127686  0.021088  0.388916
+                   ENSG00000277632.1   0.151489  0.199707  0.402832
+ENSG00000186652.9  ENSG00000169429.10  0.524414  0.256348  0.760254
+                   ENSG00000135245.9   0.516602  0.223633  0.735840
+                   ENSG00000163631.16  0.401611  0.054565  0.730957
+                   ENSG00000277632.1   0.547363  0.238403  0.756348
+                   ENSG00000239839.6   0.272705  0.229248  0.626465
+[2025-07-25 15:39:22,528 - __main__] INFO: Dataframe statistics:
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:1487: RuntimeWarning: overflow encountered in cast
+  return dtype.type(n)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/numpy/core/_methods.py:49: RuntimeWarning: overflow encountered in reduce
+  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:731: RuntimeWarning: invalid value encountered in scalar divide
+  the_mean = the_sum / count if count > 0 else np.nan
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:1487: RuntimeWarning: overflow encountered in cast
+  return dtype.type(n)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/numpy/core/_methods.py:49: RuntimeWarning: overflow encountered in reduce
+  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:731: RuntimeWarning: invalid value encountered in scalar divide
+  the_mean = the_sum / count if count > 0 else np.nan
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:1487: RuntimeWarning: overflow encountered in cast
+  return dtype.type(n)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/numpy/core/_methods.py:49: RuntimeWarning: overflow encountered in reduce
+  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/pandas/core/nanops.py:731: RuntimeWarning: invalid value encountered in scalar divide
+  the_mean = the_sum / count if count > 0 else np.nan
+[2025-07-25 15:43:59,228 - __main__] INFO: 
+                ccc       pearson      spearman
+count  1.420258e+09  1.420258e+09  1.420258e+09
+mean            NaN           NaN           NaN
+std    0.000000e+00  0.000000e+00  0.000000e+00
+min    0.000000e+00  0.000000e+00  0.000000e+00
+25%    9.417534e-06  1.380920e-02  1.846313e-02
+50%    1.724243e-03  3.686523e-02  4.556274e-02
+75%    1.770020e-02  1.121826e-01  1.149902e-01
+max    1.000000e+00  1.000000e+00  1.000000e+00
+[2025-07-25 15:45:10,231 - __main__] INFO: Quantiles from 70% to 100% in 0.01 steps (31 points):
+[2025-07-25 15:45:10,236 - __main__] INFO: 
+           ccc   pearson  spearman
+0.70  0.012085  0.088623  0.090820
+0.71  0.013100  0.092834  0.094910
+0.72  0.014114  0.097290  0.099304
+0.73  0.015221  0.101990  0.104126
+0.74  0.016434  0.106934  0.109314
+0.75  0.017700  0.112183  0.114990
+0.76  0.019089  0.117737  0.121216
+0.77  0.020569  0.123718  0.128052
+0.78  0.022171  0.130127  0.135376
+0.79  0.023911  0.136841  0.143555
+0.80  0.025803  0.144287  0.152466
+0.81  0.027908  0.152100  0.162231
+0.82  0.030136  0.160767  0.172852
+0.83  0.032623  0.170044  0.184570
+0.84  0.035217  0.180176  0.197510
+0.85  0.038330  0.191406  0.211670
+0.86  0.041534  0.203613  0.227295
+0.87  0.045349  0.217163  0.244629
+0.88  0.049866  0.232300  0.263672
+0.89  0.054932  0.249146  0.284912
+0.90  0.060089  0.268066  0.308350
+0.91  0.067322  0.289551  0.334473
+0.92  0.075684  0.313965  0.363770
+0.93  0.085999  0.342041  0.396240
+0.94  0.098999  0.374268  0.432617
+0.95  0.116516  0.411865  0.473633
+0.96  0.139404  0.456299  0.520020
+0.97  0.172974  0.509766  0.574219
+0.98  0.220093  0.576660  0.638672
+0.99  0.295410  0.669434  0.722656
+1.00  1.000000  1.000000  1.000000
+[2025-07-25 15:45:10,236 - __main__] INFO: CCC threshold test:
+[2025-07-25 15:45:10,236 - __main__] INFO: Lower: 0.016571665182709694, Upper: 0.03047236055135727
+[2025-07-25 15:45:10,236 - __main__] INFO: Using tissue-specific thresholds for tissue 'whole_blood':
+[2025-07-25 15:45:10,236 - __main__] INFO: Clustermatch quantiles: lower=0.016572, upper=0.030472
+[2025-07-25 15:45:10,236 - __main__] INFO: Pearson quantiles: lower=0.013898, upper=0.036846
+[2025-07-25 15:45:10,236 - __main__] INFO: Spearman quantiles: lower=0.047449, upper=0.072560
+[2025-07-25 15:45:10,236 - __main__] INFO: 
+============================================================
+[2025-07-25 15:45:10,236 - __main__] INFO: DETAILED THRESHOLD INFORMATION
+[2025-07-25 15:45:10,236 - __main__] INFO: ============================================================
+[2025-07-25 15:45:10,236 - __main__] INFO: Using TISSUE-SPECIFIC thresholds from file:
+[2025-07-25 15:45:10,236 - __main__] INFO:   Threshold source: /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/tissue_thresholds
+[2025-07-25 15:45:10,236 - __main__] INFO:   Tissue: whole_blood
+[2025-07-25 15:45:10,236 - __main__] INFO:   Low threshold percentile:  80.0th percentile
+[2025-07-25 15:45:10,236 - __main__] INFO:   High threshold percentile: 95.0th percentile
+[2025-07-25 15:45:10,236 - __main__] INFO: 
+Actual threshold values:
+[2025-07-25 15:45:10,236 - __main__] INFO:   CCC (Clustermatch):
+[2025-07-25 15:45:10,236 - __main__] INFO:     Low threshold:  0.016572
+[2025-07-25 15:45:10,236 - __main__] INFO:     High threshold: 0.030472
+[2025-07-25 15:45:10,236 - __main__] INFO:   Pearson:
+[2025-07-25 15:45:10,236 - __main__] INFO:     Low threshold:  0.013898
+[2025-07-25 15:45:10,236 - __main__] INFO:     High threshold: 0.036846
+[2025-07-25 15:45:10,236 - __main__] INFO:   Spearman:
+[2025-07-25 15:45:10,236 - __main__] INFO:     Low threshold:  0.047449
+[2025-07-25 15:45:10,236 - __main__] INFO:     High threshold: 0.072560
+[2025-07-25 15:45:10,236 - __main__] INFO: ============================================================
+[2025-07-25 15:45:14,695 - __main__] INFO: Pearson higher count: 710527855
+[2025-07-25 15:45:17,888 - __main__] INFO: Pearson lower count: 357185398
+[2025-07-25 15:45:21,482 - __main__] INFO: Spearman higher count: 506455958
+[2025-07-25 15:45:24,688 - __main__] INFO: Spearman lower count: 728886918
+[2025-07-25 15:45:29,160 - __main__] INFO: Clustermatch higher count: 254006001
+[2025-07-25 15:45:32,368 - __main__] INFO: Clustermatch lower count: 1052506728
+[2025-07-25 15:45:37,084 - __main__] INFO: Plot dataframe shape: (1420258456, 9)
+[2025-07-25 15:45:37,084 - __main__] INFO: Plot dataframe columns: ['pearson_higher', 'pearson_lower', 'spearman_higher', 'spearman_lower', 'clustermatch_higher', 'clustermatch_lower', 'ccc', 'pearson', 'spearman']
+[2025-07-25 15:45:46,336 - __main__] INFO: Categories for upset plot: ['Spearman (low)', 'Pearson (low)', 'Clustermatch (low)', 'Spearman (high)', 'Pearson (high)', 'Clustermatch (high)']
+[2025-07-25 15:45:46,336 - __main__] INFO: Creating full upset plot...
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:795: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["linewidth"].fillna(1, inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:796: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["facecolor"].fillna(self._facecolor, inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:797: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["edgecolor"].fillna(styles["facecolor"], inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:798: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["linestyle"].fillna("solid", inplace=True)
+[2025-07-25 15:57:59,140 - __main__] INFO: Saved full upset plot to: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/upsetplot_gtex_whole_blood_full.svg
+[2025-07-25 15:57:59,140 - __main__] INFO: Copied full upset plot to log directory: logs/20250725_153913/upsetplot_gtex_whole_blood_full.svg
+[2025-07-25 15:57:59,140 - __main__] INFO: Creating trimmed upset plot...
+[2025-07-25 16:08:56,799 - __main__] INFO: Unique index combinations:
+[2025-07-25 16:08:56,805 - __main__] INFO: 
+    Spearman (low)  Pearson (low)  ...  Pearson (high)  Clustermatch (high)
+0            False          False  ...           False                False
+1            False          False  ...           False                 True
+2            False          False  ...            True                False
+3            False          False  ...            True                 True
+4            False          False  ...           False                False
+5            False          False  ...           False                 True
+6            False          False  ...            True                False
+7            False          False  ...            True                 True
+8            False          False  ...           False                False
+9            False          False  ...            True                False
+10           False          False  ...           False                False
+11           False          False  ...            True                False
+12           False           True  ...           False                False
+13           False           True  ...           False                 True
+14           False           True  ...           False                False
+15           False           True  ...           False                 True
+16           False           True  ...           False                False
+17           False           True  ...           False                False
+18            True          False  ...           False                False
+19            True          False  ...           False                 True
+20            True          False  ...            True                False
+21            True          False  ...            True                 True
+22            True          False  ...           False                False
+23            True          False  ...            True                False
+24            True           True  ...           False                False
+25            True           True  ...           False                 True
+26            True           True  ...           False                False
+
+[27 rows x 6 columns]
+[2025-07-25 16:08:56,806 - __main__] INFO: Combinations with exactly 3 True values:
+[2025-07-25 16:08:56,810 - __main__] INFO: 
+    Spearman (low)  Pearson (low)  ...  Pearson (high)  Clustermatch (high)
+7            False          False  ...            True                 True
+11           False          False  ...            True                False
+15           False           True  ...           False                 True
+17           False           True  ...           False                False
+21            True          False  ...            True                 True
+23            True          False  ...            True                False
+25            True           True  ...           False                 True
+26            True           True  ...           False                False
+
+[8 rows x 6 columns]
+[2025-07-25 16:08:56,811 - __main__] INFO: Number of combinations where first 3 are all False: 8
+[2025-07-25 16:08:56,813 - __main__] INFO: Agreements on top: [(False, False, False, False, True, True)
+ (False, False, False, True, False, True)
+ (False, False, False, True, True, False)]
+[2025-07-25 16:08:56,816 - __main__] INFO: Agreements on bottom: [(False, True, True, False, False, False)
+ (True, False, True, False, False, False)
+ (True, True, False, False, False, False)]
+[2025-07-25 16:08:56,818 - __main__] INFO: Disagreements: [(False, False, True, False, True, False)
+ (False, False, True, True, False, False)
+ (False, False, True, True, True, False)
+ (False, True, False, False, False, True)
+ (False, True, False, True, False, False)
+ (False, True, False, True, False, True)
+ (False, True, True, True, False, False)
+ (True, False, False, False, False, True)
+ (True, False, False, False, True, False)
+ (True, False, False, False, True, True)
+ (True, False, True, False, True, False)
+ (True, True, False, False, False, True)]
+[2025-07-25 16:08:56,822 - __main__] INFO: Desired order indices: 20, existing indices: 20
+[2025-07-25 16:28:46,064 - __main__] INFO: Gene pairs by categories after reordering:
+[2025-07-25 16:28:46,073 - __main__] INFO: 
+                                                                                                    Pearson (high)  ...  spearman
+Spearman (low) Pearson (low) Clustermatch (low) Spearman (high) Pearson (high) Clustermatch (high)                  ...          
+False          False         False              True            True           True                           True  ...  0.854004
+                                                                               True                           True  ...  0.709473
+                                                                               True                           True  ...  0.675781
+                                                                               True                           True  ...  0.850586
+                                                                               True                           True  ...  0.834473
+
+[5 rows x 9 columns]
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:795: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["linewidth"].fillna(1, inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:796: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["facecolor"].fillna(self._facecolor, inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:797: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["edgecolor"].fillna(styles["facecolor"], inplace=True)
+/home/zhhaoyu/miniforge3/envs/ccc-gpu/lib/python3.10/site-packages/upsetplot/plotting.py:798: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  styles["linestyle"].fillna("solid", inplace=True)
+[2025-07-25 16:30:43,932 - __main__] INFO: Saved trimmed upset plot to: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/upsetplot_gtex_whole_blood_trimmed.svg
+[2025-07-25 16:30:43,932 - __main__] INFO: Copied trimmed upset plot to log directory: logs/20250725_153913/upsetplot_gtex_whole_blood_trimmed.svg
+[2025-07-25 16:30:44,021 - __main__] INFO: Final dataframe shape: (1420258456, 9)
+[2025-07-25 16:30:44,021 - __main__] INFO: Final dataframe head:
+[2025-07-25 16:30:44,028 - __main__] INFO: 
+                                       Pearson (high)  ...  spearman
+ENSG00000135245.9  ENSG00000169429.10            True  ...  0.854004
+ENSG00000163631.16 ENSG00000169429.10            True  ...  0.709473
+                   ENSG00000135245.9             True  ...  0.675781
+ENSG00000277632.1  ENSG00000169429.10            True  ...  0.850586
+                   ENSG00000135245.9             True  ...  0.834473
+
+[5 rows x 9 columns]
+[2025-07-25 16:30:44,028 - __main__] INFO: Output file for gene pair intersections: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+[2025-07-25 16:30:44,028 - __main__] INFO: Saving gene pair intersections data...
+[2025-07-25 16:30:48,491 - __main__] INFO: Saved gene pair intersections to: /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/gene_pair_intersections-gtex_v8-whole_blood-var_pc_log2.pkl
+[2025-07-25 16:30:48,492 - __main__] INFO: Script completed successfully!
+[2025-07-25 16:30:48,492 - __main__] INFO: All outputs saved to log directory: logs/20250725_153913
