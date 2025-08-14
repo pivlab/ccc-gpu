@@ -76,7 +76,7 @@ TISSUES=(
     # "thyroid"
     # "uterus"
     # "vagina"
-    "whole_blood",
+    "whole_blood"
 )
 
 # Get total number of tissues
@@ -103,7 +103,7 @@ for i in "${!TISSUES[@]}"; do
     echo "=========================================="
     
     # Run compute_intersections.py for this tissue with shared log directory
-    if python compute_intersections.py --gtex-tissue "$TISSUE" --custom-low-quantile 0.80 --custom-high-quantile 0.95  --log-dir "$LOG_DIR" ; then
+    if python compute_intersections.py --gtex-tissue "$TISSUE" --low-percentile 0.80 --high-percentile 0.95 --tissue-threshold-dir /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/tissue_thresholds --log-dir "$LOG_DIR" ; then
         echo "✓ Successfully processed $TISSUE"
         ((PROCESSED++))
     else
