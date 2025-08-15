@@ -225,6 +225,55 @@ def export_to_csv(df: pd.DataFrame, top_n: int, output_path: str, logger: loggin
     top_df.to_csv(output_path, index=False)
     logger.info(f"CSV exported to: {output_path}")
 
+def log_top_results(df: pd.DataFrame, tissue: str, combination: str, logger: logging.Logger, n_rows: int = 10) -> None:
+    """Log the first n rows of results for verification."""
+    top_df = df.head(n_rows)
+    
+    logger.info(f"First {n_rows} results for {tissue} - {combination}:")
+    logger.info("-" * 80)
+    
+    # Log header
+    if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
+        header_parts = ["Gene1", "Gene2"]
+    else:
+        header_parts = ["Index"]
+    
+    # Add key numeric columns for concise logging
+    key_columns = ['ccc', 'pearson', 'spearman']
+    for col in key_columns:
+        if col in df.columns:
+            header_parts.append(col)
+    
+    logger.info(" | ".join(f"{part:<15}" for part in header_parts))
+    logger.info("-" * 80)
+    
+    # Log data rows
+    for i, (idx, row) in enumerate(top_df.iterrows()):
+        if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
+            gene1, gene2 = idx
+            # Truncate long gene names for logging
+            gene1_short = gene1[:15] if len(gene1) > 15 else gene1
+            gene2_short = gene2[:15] if len(gene2) > 15 else gene2
+            row_parts = [gene1_short, gene2_short]
+        else:
+            row_parts = [str(idx)[:15]]
+        
+        # Add key numeric values
+        for col in key_columns:
+            if col in df.columns:
+                value = row[col]
+                if pd.isna(value):
+                    formatted_val = "NaN"
+                elif isinstance(value, (float, np.floating)):
+                    formatted_val = f"{value:.6f}"
+                else:
+                    formatted_val = str(value)
+                row_parts.append(formatted_val)
+        
+        logger.info(" | ".join(f"{part:<15}" for part in row_parts))
+    
+    logger.info("-" * 80)
+
 def create_output_report(df: pd.DataFrame, metadata: dict, tissue: str, combination: str, top_n: int) -> str:
     """Create a complete output report with metadata and top gene pairs."""
     report_lines = []
@@ -353,6 +402,9 @@ def process_single_combination(
         # CSV export
         csv_file = combo_dir / f"top_{top_n}_gene_pairs.csv"
         export_to_csv(df, top_n, str(csv_file), logger)
+        
+        # Log first 10 results for verification
+        log_top_results(df, tissue, combination, logger)
         
         logger.info(f"Successfully processed {tissue} - {combination}: {len(df)} total pairs, {top_n} top pairs")
         return tissue, combination, top_n
