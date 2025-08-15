@@ -1,4 +1,4 @@
-# Gene Pair Analysis and Reduction Tool
+# Gene Pair Analysis Tool
 
 This tool provides comprehensive analysis of gene pair correlation data with support for both single analysis and large-scale batch processing across multiple tissues and correlation combinations.
 
@@ -7,16 +7,15 @@ This tool provides comprehensive analysis of gene pair correlation data with sup
 The script can operate in two main modes:
 
 1. **Single Analysis Mode**: Analyze gene pairs from a specific tissue/combination
-2. **Batch Processing Mode**: Process all tissues and combinations, then perform reduction analysis to find common gene pairs across tissues
+2. **Batch Processing Mode**: Process all tissues and combinations
 
 ## Features
 
 - **Flexible Input**: Direct file input, tissue/combination specification, or full batch processing
 - **Parallel Processing**: Multi-threaded processing for efficient batch analysis
-- **Reduction Analysis**: Find gene pairs common across multiple tissues for each combination
 - **Comprehensive Logging**: Timestamped logs with detailed progress tracking
-- **Multiple Output Formats**: Text reports, CSV exports, and pickle files
-- **Statistical Summaries**: Descriptive statistics and tissue coverage analysis
+- **Multiple Output Formats**: Text reports and CSV exports
+- **Statistical Summaries**: Descriptive statistics for each tissue-combination
 
 ## Installation
 
@@ -41,7 +40,7 @@ python report_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --top 50 
 
 ### Batch Processing Mode
 
-Process all tissues and combinations with reduction analysis:
+Process all tissues and combinations:
 ```bash
 python report_top_gene_pairs.py --data-dir /path/to/gene_pair_selection --top 1000 --batch
 ```
@@ -102,13 +101,8 @@ The tool recognizes these standard combinations:
 ### Batch Mode Outputs
 
 #### Per Combination Directory
-- `top_{N}_gene_pairs_{timestamp}.txt`: Analysis report for this tissue-combination
-- `top_{N}_gene_pairs_{timestamp}.csv`: CSV export of top gene pairs
-
-#### Data Directory Level
-- `gene_pair_reduction_summary_{timestamp}.csv`: Summary statistics across all combinations
-- `gene_pair_reduction_detailed_{timestamp}.pkl`: Detailed results for programmatic access
-- `gene_pair_reduction_report_{timestamp}.txt`: Human-readable reduction analysis report
+- `top_{N}_gene_pairs.txt`: Analysis report for this tissue-combination
+- `top_{N}_gene_pairs.csv`: CSV export of top gene pairs
 
 #### Log Directory
 - `logs/batch_analysis_{timestamp}/gene_pair_analysis.log`: Comprehensive processing log
@@ -117,20 +111,10 @@ The tool recognizes these standard combinations:
 
 1. **Discovery**: Scan data directory for all tissues and valid combinations
 2. **Parallel Processing**: Process each tissue-combination pair concurrently
-3. **Data Collection**: Extract top N gene pairs from each combination
-4. **Reduction Analysis**: Find common gene pairs across tissues for each combination type
-5. **Statistical Analysis**: Calculate coverage statistics and tissue presence
-6. **Report Generation**: Create comprehensive summaries and detailed reports
+3. **Analysis**: Generate top N gene pairs analysis for each tissue-combination
+4. **Report Generation**: Create individual analysis reports and CSV exports for each combination
 
-## Reduction Analysis
 
-The reduction analysis identifies:
-- **Total unique gene pairs** across all tissues for each combination
-- **Common gene pairs** present in all tissues
-- **Highly common gene pairs** present in ≥80% of tissues
-- **Moderately common gene pairs** present in ≥50% of tissues
-- **Per-tissue statistics** showing gene pair counts
-- **Coverage analysis** showing which tissues contribute most gene pairs
 
 ## Logging
 

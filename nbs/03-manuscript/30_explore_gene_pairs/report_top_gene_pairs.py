@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """
-Gene Pair Analysis and Reduction CLI Script
+Gene Pair Analysis CLI Script
 
 This script can operate in two modes:
 1. Single analysis: Load and analyze a single tissue/combination
-2. Batch analysis: Process all tissues and combinations, then perform reduction
+2. Batch analysis: Process all tissues and combinations
 
 The batch mode:
 - Scans all tissues in --data-dir
 - Processes each combination within each tissue folder
 - Generates top k results and logs for each combination
-- Performs streaming reduction to find common gene pairs across tissues
-- Generates summary CSV/PKL files in the data directory
 - Creates comprehensive logging with timestamps
 
 Usage:
@@ -35,8 +33,8 @@ import sys
 import logging
 import os
 import shutil
-from typing import Dict, List, Tuple, Set, Optional
-from collections import defaultdict, Counter
+from typing import Dict, List, Tuple, Optional
+from collections import defaultdict
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 import time
@@ -322,12 +320,12 @@ def process_single_combination(
     combination: str, 
     top_n: int, 
     logger: logging.Logger
-) -> Tuple[str, str, int, Optional[Set[Tuple[str, str]]]]:
+) -> Tuple[str, str, int]:
     """
     Process a single tissue-combination pair.
     
     Returns:
-        Tuple of (tissue, combination, processed_count, gene_pairs_set)
+        Tuple of (tissue, combination, processed_count)
     """
     try:
         logger.info(f"Processing {tissue} - {combination}")
@@ -346,48 +344,31 @@ def process_single_combination(
         metadata = load_metadata(str(metadata_file), logger)
         
         # Generate output files
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
         # Text report
-        report_file = combo_dir / f"top_{top_n}_gene_pairs_{timestamp}.txt"
+        report_file = combo_dir / f"top_{top_n}_gene_pairs.txt"
         report = create_output_report(df, metadata, tissue, combination, top_n)
         with open(report_file, 'w') as f:
             f.write(report)
         
         # CSV export
-        csv_file = combo_dir / f"top_{top_n}_gene_pairs_{timestamp}.csv"
+        csv_file = combo_dir / f"top_{top_n}_gene_pairs.csv"
         export_to_csv(df, top_n, str(csv_file), logger)
         
-        # Extract gene pairs for reduction step
-        top_df = df.head(top_n)
-        if isinstance(top_df.index, pd.MultiIndex) and top_df.index.nlevels == 2:
-            # Handle MultiIndex with 2 levels (gene pairs) regardless of level names
-            gene_pairs = set(top_df.index.tolist())
-            logger.debug(f"Extracted {len(gene_pairs)} gene pairs from {tissue}-{combination}")
-        else:
-            # If not a 2-level multi-index, we can't extract gene pairs for reduction
-            logger.warning(f"Unexpected index structure in {tissue}-{combination}: "
-                         f"type={type(top_df.index)}, names={top_df.index.names}")
-            gene_pairs = None
-        
-        logger.info(f"Successfully processed {tissue} - {combination}: {len(df)} total pairs, {len(top_df)} top pairs")
-        return tissue, combination, len(top_df), gene_pairs
+        logger.info(f"Successfully processed {tissue} - {combination}: {len(df)} total pairs, {top_n} top pairs")
+        return tissue, combination, top_n
         
     except Exception as e:
         logger.error(f"Error processing {tissue} - {combination}: {e}")
-        return tissue, combination, 0, None
+        return tissue, combination, 0
 
 def batch_process_all_combinations(
     data_dir: Path,
     top_n: int,
     logger: logging.Logger,
     max_workers: int = 4
-) -> Dict[str, Dict[str, Set[Tuple[str, str]]]]:
+) -> None:
     """
     Process all tissue-combination pairs in batch mode.
-    
-    Returns:
-        Nested dictionary: {combination: {tissue: gene_pairs_set}}
     """
     # Discover all tissues and combinations
     tissue_combinations = discover_tissues_and_combinations(data_dir, logger)
@@ -407,7 +388,6 @@ def batch_process_all_combinations(
             tasks.append((data_dir, tissue, combination, top_n, logger))
     
     # Process with thread pool
-    results_by_combination = defaultdict(dict)
     completed = 0
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -423,11 +403,8 @@ def batch_process_all_combinations(
             tissue, combination = task[1], task[2]
             
             try:
-                tissue_result, combo_result, count, gene_pairs = future.result()
+                tissue_result, combo_result, count = future.result()
                 completed += 1
-                
-                if gene_pairs is not None:
-                    results_by_combination[combo_result][tissue_result] = gene_pairs
                 
                 progress = (completed / total_tasks) * 100
                 logger.info(f"Progress: {completed}/{total_tasks} ({progress:.1f}%) - "
@@ -438,154 +415,12 @@ def batch_process_all_combinations(
                 completed += 1
     
     logger.info(f"Batch processing completed. Processed {completed}/{total_tasks} combinations")
-    return dict(results_by_combination)
 
-def perform_reduction_analysis(
-    combination_data: Dict[str, Dict[str, Set[Tuple[str, str]]]],
-    data_dir: Path,
-    top_n: int,
-    logger: logging.Logger
-) -> None:
-    """
-    Perform reduction analysis to find common gene pairs across tissues for each combination.
-    """
-    logger.info("Starting reduction analysis to find common gene pairs across tissues")
-    
-    summary_data = []
-    detailed_results = {}
-    
-    for combination, tissue_data in combination_data.items():
-        logger.info(f"Analyzing combination: {combination}")
-        
-        if not tissue_data:
-            logger.warning(f"No data available for combination: {combination}")
-            continue
-        
-        # Collect all gene pairs across tissues
-        all_gene_pairs = set()
-        tissue_gene_counts = {}
-        
-        for tissue, gene_pairs in tissue_data.items():
-            all_gene_pairs.update(gene_pairs)
-            tissue_gene_counts[tissue] = len(gene_pairs)
-        
-        # Count occurrences of each gene pair across tissues
-        gene_pair_counts = Counter()
-        tissue_presence = defaultdict(list)
-        
-        for gene_pair in all_gene_pairs:
-            count = 0
-            for tissue, gene_pairs in tissue_data.items():
-                if gene_pair in gene_pairs:
-                    count += 1
-                    tissue_presence[gene_pair].append(tissue)
-            gene_pair_counts[gene_pair] = count
-        
-        # Statistics
-        total_tissues = len(tissue_data)
-        total_unique_pairs = len(all_gene_pairs)
-        
-        # Find gene pairs present in different numbers of tissues
-        present_in_all = [gp for gp, count in gene_pair_counts.items() if count == total_tissues]
-        present_in_most = [gp for gp, count in gene_pair_counts.items() if count >= total_tissues * 0.8]
-        present_in_majority = [gp for gp, count in gene_pair_counts.items() if count >= total_tissues * 0.5]
-        
-        logger.info(f"  {combination}: {total_unique_pairs} unique gene pairs across {total_tissues} tissues")
-        logger.info(f"    Present in all tissues: {len(present_in_all)}")
-        logger.info(f"    Present in ≥80% tissues: {len(present_in_most)}")
-        logger.info(f"    Present in ≥50% tissues: {len(present_in_majority)}")
-        
-        # Detailed results for this combination
-        detailed_results[combination] = {
-            'total_tissues': total_tissues,
-            'total_unique_pairs': total_unique_pairs,
-            'tissue_gene_counts': tissue_gene_counts,
-            'gene_pair_counts': dict(gene_pair_counts),
-            'tissue_presence': dict(tissue_presence),
-            'present_in_all': present_in_all,
-            'present_in_most': present_in_most,
-            'present_in_majority': present_in_majority
-        }
-        
-        # Summary data
-        summary_data.append({
-            'combination': combination,
-            'total_tissues': total_tissues,
-            'total_unique_pairs': total_unique_pairs,
-            'present_in_all_tissues': len(present_in_all),
-            'present_in_80_percent_tissues': len(present_in_most),
-            'present_in_50_percent_tissues': len(present_in_majority),
-            'average_pairs_per_tissue': np.mean(list(tissue_gene_counts.values())),
-            'std_pairs_per_tissue': np.std(list(tissue_gene_counts.values()))
-        })
-    
-    # Save summary CSV
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    summary_df = pd.DataFrame(summary_data)
-    summary_csv = data_dir / f"gene_pair_reduction_summary_{timestamp}.csv"
-    summary_df.to_csv(summary_csv, index=False)
-    logger.info(f"Saved reduction summary to: {summary_csv}")
-    
-    # Save detailed results pickle
-    detailed_pkl = data_dir / f"gene_pair_reduction_detailed_{timestamp}.pkl"
-    with open(detailed_pkl, 'wb') as f:
-        pickle.dump(detailed_results, f)
-    logger.info(f"Saved detailed reduction results to: {detailed_pkl}")
-    
-    # Create human-readable reduction report
-    report_lines = []
-    report_lines.append("Gene Pair Reduction Analysis Report")
-    report_lines.append("=" * 80)
-    report_lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    report_lines.append(f"Analysis based on top {top_n} gene pairs from each tissue-combination")
-    report_lines.append("")
-    
-    report_lines.append("SUMMARY STATISTICS")
-    report_lines.append("-" * 40)
-    report_lines.append(summary_df.to_string(index=False))
-    report_lines.append("")
-    
-    for combination, details in detailed_results.items():
-        report_lines.append(f"DETAILED ANALYSIS: {combination}")
-        report_lines.append("-" * 60)
-        report_lines.append(f"Total tissues analyzed: {details['total_tissues']}")
-        report_lines.append(f"Total unique gene pairs: {details['total_unique_pairs']}")
-        report_lines.append("")
-        
-        report_lines.append("Gene pairs by tissue coverage:")
-        report_lines.append(f"  Present in ALL tissues: {len(details['present_in_all'])}")
-        if details['present_in_all'][:5]:  # Show first 5
-            report_lines.append(f"    Examples: {details['present_in_all'][:5]}")
-        
-        report_lines.append(f"  Present in ≥80% tissues: {len(details['present_in_most'])}")
-        report_lines.append(f"  Present in ≥50% tissues: {len(details['present_in_majority'])}")
-        report_lines.append("")
-        
-        report_lines.append("Gene pairs per tissue:")
-        tissue_counts_sorted = sorted(details['tissue_gene_counts'].items(), 
-                                    key=lambda x: x[1], reverse=True)
-        for tissue, count in tissue_counts_sorted[:10]:  # Top 10
-            report_lines.append(f"  {tissue}: {count}")
-        if len(tissue_counts_sorted) > 10:
-            report_lines.append(f"  ... and {len(tissue_counts_sorted) - 10} more tissues")
-        report_lines.append("")
-    
-    # Save report
-    report_txt = data_dir / f"gene_pair_reduction_report_{timestamp}.txt"
-    with open(report_txt, 'w') as f:
-        f.write("\n".join(report_lines))
-    logger.info(f"Saved reduction report to: {report_txt}")
-    
-    # Log summary to console
-    logger.info("\n" + "="*60)
-    logger.info("REDUCTION ANALYSIS SUMMARY")
-    logger.info("="*60)
-    logger.info(summary_df.to_string(index=False))
-    logger.info("="*60)
+
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Gene pair analysis - single or batch processing with reduction",
+        description="Gene pair analysis - single or batch processing",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -593,7 +428,7 @@ Examples:
   python report_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --output results.txt
   python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --top 100
 
-  # Batch processing of all tissues and combinations with reduction
+  # Batch processing of all tissues and combinations
   python report_top_gene_pairs.py --data-dir /path/to/gene_pair_selection --top 1000 --batch
   python report_top_gene_pairs.py --data-dir /path/to/gene_pair_selection --top 500 --batch --workers 8
         """
@@ -669,20 +504,13 @@ Examples:
             start_time = time.time()
             
             # Process all combinations
-            combination_data = batch_process_all_combinations(
+            batch_process_all_combinations(
                 data_dir, args.top, logger, args.workers
             )
             
-            batch_time = time.time() - start_time
-            logger.info(f"Batch processing completed in {batch_time:.1f} seconds")
-            
-            # Perform reduction analysis
-            logger.info("=== STARTING REDUCTION ANALYSIS ===")
-            perform_reduction_analysis(combination_data, data_dir, args.top, logger)
-            
             total_time = time.time() - start_time
             logger.info(f"=== COMPLETE ===")
-            logger.info(f"Total processing time: {total_time:.1f} seconds")
+            logger.info(f"Batch processing completed in {total_time:.1f} seconds")
             
         else:
             # Single processing mode
