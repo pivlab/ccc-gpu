@@ -30,24 +30,24 @@ pip install pandas numpy pathlib concurrent.futures
 
 Analyze a specific tissue and combination:
 ```bash
-python report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --top 100
+python 00-report_top_gene_pairs.py --tissue whole_blood --combination c-high-p-low-s-low --top 100
 ```
 
 Direct file input:
 ```bash
-python report_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --top 50 --output my_results.txt
+python 00-report_top_gene_pairs.py --input /path/to/sorted_data_cache.pkl --top 50 --output my_results.txt
 ```
 
 ### Batch Processing Mode
 
 Process all tissues and combinations:
 ```bash
-python report_top_gene_pairs.py --data-dir /path/to/gene_pair_selection --top 1000 --batch
+python 00-report_top_gene_pairs.py --data-dir /path/to/gene_pair_selection --top 1000 --batch
 ```
 
 With custom worker threads:
 ```bash
-python report_top_gene_pairs.py --data-dir /path/to/gene_pair_selection --top 500 --batch --workers 8
+python 00-report_top_gene_pairs.py --data-dir /path/to/gene_pair_selection --top 500 --batch --workers 8
 ```
 
 ## Data Structure Requirements
@@ -141,23 +141,23 @@ The tool recognizes these standard combinations:
 ### Basic Usage
 ```bash
 # Single tissue analysis
-python report_top_gene_pairs.py --tissue liver --combination c-high-p-low-s-low
+python 00-report_top_gene_pairs.py --tissue liver --combination c-high-p-low-s-low
 
 # Full batch processing
-python report_top_gene_pairs.py --batch --top 500
+python 00-report_top_gene_pairs.py --batch --top 500
 ```
 
 ### Advanced Usage
 ```bash
 # Custom data directory with high parallelism
-python report_top_gene_pairs.py \
+python 00-report_top_gene_pairs.py \
     --data-dir /custom/path/gene_pair_selection \
     --batch \
     --top 1000 \
     --workers 16
 
 # Single analysis with custom output
-python report_top_gene_pairs.py \
+python 00-report_top_gene_pairs.py \
     --tissue whole_blood \
     --combination c-high-p-high-s-low \
     --top 200 \
