@@ -165,6 +165,87 @@ python 00-report_top_gene_pairs.py \
     --csv blood_high_corr_data.csv
 ```
 
+## Metadata Correlation Enhancement
+
+The `10-correlate-top-genes-with-metadata.py` script extends the gene pair combination functionality by enriching each gene pair with metadata correlation information from GTEx.
+
+### Overview
+
+This enhancement correlates each gene in the gene pairs with GTEx metadata variables (such as age, sex, BMI, etc.) and adds the top metadata correlations as additional columns to the combined dataset.
+
+### Usage
+
+#### Basic Usage
+
+```bash
+python 10-correlate-top-genes-with-metadata.py --top 10000 --enhance-metadata --metadata-corr-file /path/to/correlation_results.pkl
+```
+
+#### Full Configuration
+
+```bash
+python 10-correlate-top-genes-with-metadata.py \
+  --top 10000 \
+  --enhance-metadata \
+  --metadata-corr-file /pividori_lab/haoyu_projects/ccc-gpu/data/gtex/all_genes_all_tissues_correlation_results.pkl \
+  --top-metadata-correlations 5 \
+  --output-dir ./results_with_metadata \
+  --data-dir /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_selection
+```
+
+### Arguments
+
+- `--enhance-metadata`: Enable metadata correlation enhancement
+- `--metadata-corr-file`: Path to the metadata correlation results pickle file
+- `--top-metadata-correlations`: Number of top metadata correlations to extract per gene (default: 5)
+
+### Output Enhancement
+
+When metadata enhancement is enabled, the following columns are added to each gene pair:
+
+#### Gene 1 Metadata Correlations
+- `gene1_top1_metadata` through `gene1_topN_metadata`: Metadata variable names
+- `gene1_top1_ccc` through `gene1_topN_ccc`: CCC correlation values
+- `gene1_top1_pvalue` through `gene1_topN_pvalue`: Statistical significance p-values
+
+#### Gene 2 Metadata Correlations
+- `gene2_top1_metadata` through `gene2_topN_metadata`: Metadata variable names
+- `gene2_top1_ccc` through `gene2_topN_ccc`: CCC correlation values
+- `gene2_top1_pvalue` through `gene2_topN_pvalue`: Statistical significance p-values
+
+#### Common Metadata Correlations
+- `common_top1_metadata` through `common_topN_metadata`: Metadata variables significantly correlated with both genes
+
+### Metadata Correlation Algorithm
+
+1. **Individual Gene Analysis**: For each gene, identify the top N metadata variables with the strongest absolute correlations (p-value ≤ 0.05)
+
+2. **Common Correlation Analysis**: Find metadata variables significantly correlated with both genes using a minimum rank approach:
+   - Filter significant correlations (p-value ≤ 0.05) for both genes
+   - Compute a combined score using `min(|ccc_gene1|, |ccc_gene2|)`
+   - Rank by combined score to identify the strongest common correlations
+
+### Coverage Analysis
+
+The script provides detailed coverage analysis:
+- Total unique genes in the dataset
+- Number of genes with metadata correlations available
+- Coverage rate percentage
+- Warnings for low coverage scenarios
+
+### Output Files
+
+Enhanced output includes `_with_metadata` suffix:
+- `combined_{combination}_top_gene_pairs_with_metadata.pkl`
+- `combined_{combination}_top_gene_pairs_with_metadata.csv`
+
+### Performance Considerations
+
+- Metadata enhancement increases processing time significantly
+- Memory usage increases due to additional columns
+- Processing is optimized with batch operations and progress tracking
+- Large datasets may benefit from processing smaller subsets
+
 ## Troubleshooting
 
 ### Common Issues
@@ -172,6 +253,10 @@ python 00-report_top_gene_pairs.py \
 1. **FileNotFoundError**: Check that data directory structure matches expected format
 2. **Memory errors**: Reduce `--top` number or `--workers` count
 3. **Permission errors**: Ensure write access to output directories and log directories
+4. **Low metadata coverage**: If very few genes have metadata correlations available, verify:
+   - The metadata correlation file contains data for your genes of interest
+   - Gene symbols match between datasets
+   - The correlation file is complete and not a sample/test file
 
 ### Debug Information
 

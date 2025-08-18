@@ -2,15 +2,19 @@
 """
 CLI tool for combining top gene pairs across tissues and combination categories.
 Processes results from report_top_gene_pairs.py across all tissues and combinations.
+Extended to correlate gene pairs with GTEx metadata using metadata correlation results.
 """
 
 import argparse
 import sys
 import logging
 import time
+import subprocess
+import tempfile
 from pathlib import Path
 from collections import defaultdict
 import pandas as pd
+import numpy as np
 
 
 def setup_logging(output_dir):
@@ -33,6 +37,284 @@ def setup_logging(output_dir):
     logger = logging.getLogger(__name__)
     logger.info(f"Log file: {log_file}")
     return logger, log_file
+
+
+def load_metadata_correlations(metadata_corr_file):
+    """Load metadata correlation results from pickle file."""
+    logger = logging.getLogger(__name__)
+    
+    if not Path(metadata_corr_file).exists():
+        raise FileNotFoundError(f"Metadata correlation file not found: {metadata_corr_file}")
+    
+    logger.info(f"Loading metadata correlation results from: {metadata_corr_file}")
+    
+    # Load the correlation results
+    corr_df = pd.read_pickle(metadata_corr_file)
+    
+    # Filter to successful results only
+    successful_df = corr_df[corr_df['status'] == 'success'].copy()
+    
+    logger.info(f"Loaded correlation data:")
+    logger.info(f"  Total rows: {len(corr_df):,}")
+    logger.info(f"  Successful rows: {len(successful_df):,}")
+    logger.info(f"  Unique genes: {successful_df['gene_symbol'].nunique()}")
+    logger.info(f"  Unique tissues: {successful_df['tissue'].nunique()}")
+    logger.info(f"  Unique metadata columns: {len(successful_df.index.unique())}")
+    
+    return successful_df
+
+
+def get_gene_top_correlations(corr_df, gene_symbol, top_n=5, alpha=0.05):
+    """Get top N metadata correlations for a specific gene."""
+    # Filter for the specific gene and significant results
+    gene_data = corr_df[
+        (corr_df['gene_symbol'] == gene_symbol) & 
+        (corr_df['p_value'] <= alpha)
+    ].copy()
+    
+    if len(gene_data) == 0:
+        return pd.DataFrame()
+    
+    # Sort by absolute CCC value (descending)
+    gene_data['abs_ccc'] = gene_data['ccc_value'].abs()
+    top_correlations = gene_data.sort_values('abs_ccc', ascending=False).head(top_n)
+    
+    return top_correlations[['ccc_value', 'p_value']].reset_index()
+
+
+def top_common_metadata(corr_df, gene1, gene2, top_n=5, alpha=0.05):
+    """
+    Find top common metadata correlations for two genes using min rank approach.
+    
+    Args:
+        corr_df: Metadata correlation dataframe
+        gene1: First gene symbol
+        gene2: Second gene symbol
+        top_n: Number of top common correlations to return
+        alpha: P-value significance threshold
+    
+    Returns:
+        DataFrame with top common metadata correlations
+    """
+    # Filter by p-value significance
+    sig_df = corr_df[corr_df["p_value"] <= alpha].copy()
+    
+    # Split by gene
+    g1 = sig_df[sig_df["gene_symbol"] == gene1][["ccc_value"]].reset_index()
+    g2 = sig_df[sig_df["gene_symbol"] == gene2][["ccc_value"]].reset_index()
+    
+    if len(g1) == 0 or len(g2) == 0:
+        return pd.DataFrame()
+    
+    # Merge on metadata column
+    merged = pd.merge(g1, g2, on="metadata_column", suffixes=(f"_{gene1}", f"_{gene2}"))
+    
+    if len(merged) == 0:
+        return pd.DataFrame()
+    
+    # Compute score = min(abs(ccc1), abs(ccc2))
+    merged["score"] = merged.apply(
+        lambda row: min(abs(row[f"ccc_value_{gene1}"]), abs(row[f"ccc_value_{gene2}"])),
+        axis=1
+    )
+    
+    # Sort and pick top-n
+    topn = merged.sort_values("score", ascending=False).head(top_n)
+    return topn
+
+
+def process_gene_pair_correlations(combined_df, corr_df, top_n_metadata=5):
+    """
+    Process metadata correlations for all gene pairs in the combined dataframe.
+    
+    Args:
+        combined_df: Combined gene pairs dataframe
+        corr_df: Metadata correlation results dataframe  
+        top_n_metadata: Number of top metadata correlations to extract
+    
+    Returns:
+        Enhanced dataframe with metadata correlation columns
+    """
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Processing metadata correlations for {len(combined_df)} gene pairs")
+    logger.info(f"Top N metadata correlations: {top_n_metadata}")
+    
+    # Check available genes in metadata correlation data
+    available_genes = set(corr_df['gene_symbol'].unique())
+    sample_genes = set(combined_df['Gene 1 Symbol'].tolist() + combined_df['Gene 2 Symbol'].tolist())
+    overlap = sample_genes & available_genes
+    missing = sample_genes - overlap
+    
+    logger.info(f"Gene coverage analysis:")
+    logger.info(f"  Total unique genes in pairs: {len(sample_genes):,}")
+    logger.info(f"  Genes with metadata correlations: {len(overlap):,}")
+    logger.info(f"  Genes missing metadata correlations: {len(missing):,}")
+    logger.info(f"  Coverage rate: {(len(overlap)/len(sample_genes)*100):.1f}%")
+    
+    if len(overlap) < 10:
+        logger.warning(f"Very low gene coverage. Available genes: {sorted(list(available_genes))}")
+        logger.warning(f"Sample missing genes: {sorted(list(missing))[:10]}")
+    
+    # Initialize new columns
+    enhanced_df = combined_df.copy()
+    
+    # Gene 1 top correlations columns
+    for i in range(1, top_n_metadata + 1):
+        enhanced_df[f'gene1_top{i}_metadata'] = ''
+        enhanced_df[f'gene1_top{i}_ccc'] = np.nan
+        enhanced_df[f'gene1_top{i}_pvalue'] = np.nan
+    
+    # Gene 2 top correlations columns  
+    for i in range(1, top_n_metadata + 1):
+        enhanced_df[f'gene2_top{i}_metadata'] = ''
+        enhanced_df[f'gene2_top{i}_ccc'] = np.nan
+        enhanced_df[f'gene2_top{i}_pvalue'] = np.nan
+    
+    # Common top correlations columns
+    for i in range(1, top_n_metadata + 1):
+        enhanced_df[f'common_top{i}_metadata'] = ''
+    
+    # Process each gene pair
+    total_pairs = len(enhanced_df)
+    processed_pairs = 0
+    failed_pairs = 0
+    no_data_pairs = 0
+    
+    for idx, row in enhanced_df.iterrows():
+        try:
+            gene1_symbol = row['Gene 1 Symbol']
+            gene2_symbol = row['Gene 2 Symbol']
+            
+            # Progress logging every 1000 pairs
+            if (idx + 1) % 1000 == 0:
+                logger.info(f"Processing gene pair {idx + 1:,}/{total_pairs:,} ({((idx + 1)/total_pairs*100):.1f}%)")
+            
+            # Check if genes are available in metadata correlation data
+            gene1_available = gene1_symbol in available_genes
+            gene2_available = gene2_symbol in available_genes
+            
+            if not gene1_available and not gene2_available:
+                no_data_pairs += 1
+                continue
+            
+            # Get top correlations for gene 1 (if available)
+            if gene1_available:
+                gene1_top = get_gene_top_correlations(corr_df, gene1_symbol, top_n_metadata)
+                
+                # Fill gene 1 correlation data
+                for i, (_, corr_row) in enumerate(gene1_top.iterrows()):
+                    if i < top_n_metadata:
+                        enhanced_df.loc[idx, f'gene1_top{i+1}_metadata'] = corr_row['metadata_column']
+                        enhanced_df.loc[idx, f'gene1_top{i+1}_ccc'] = corr_row['ccc_value']
+                        enhanced_df.loc[idx, f'gene1_top{i+1}_pvalue'] = corr_row['p_value']
+            
+            # Get top correlations for gene 2 (if available)
+            if gene2_available:
+                gene2_top = get_gene_top_correlations(corr_df, gene2_symbol, top_n_metadata)
+                
+                # Fill gene 2 correlation data
+                for i, (_, corr_row) in enumerate(gene2_top.iterrows()):
+                    if i < top_n_metadata:
+                        enhanced_df.loc[idx, f'gene2_top{i+1}_metadata'] = corr_row['metadata_column']
+                        enhanced_df.loc[idx, f'gene2_top{i+1}_ccc'] = corr_row['ccc_value']
+                        enhanced_df.loc[idx, f'gene2_top{i+1}_pvalue'] = corr_row['p_value']
+            
+            # Get common top correlations (only if both genes are available)
+            if gene1_available and gene2_available:
+                common_top = top_common_metadata(corr_df, gene1_symbol, gene2_symbol, top_n_metadata)
+                
+                # Fill common correlation data
+                for i, (_, common_row) in enumerate(common_top.iterrows()):
+                    if i < top_n_metadata:
+                        enhanced_df.loc[idx, f'common_top{i+1}_metadata'] = common_row['metadata_column']
+            
+            processed_pairs += 1
+            
+        except Exception as e:
+            failed_pairs += 1
+            logger.warning(f"Failed to process gene pair at index {idx}: {gene1_symbol}-{gene2_symbol}: {e}")
+            continue
+    
+    logger.info(f"Metadata correlation processing completed:")
+    logger.info(f"  Total pairs: {total_pairs:,}")
+    logger.info(f"  Processed successfully: {processed_pairs:,}")
+    logger.info(f"  No metadata available: {no_data_pairs:,}")
+    logger.info(f"  Failed: {failed_pairs:,}")
+    logger.info(f"  Success rate: {(processed_pairs/total_pairs*100):.1f}%")
+    
+    return enhanced_df
+
+
+def load_and_enhance_combination(combination, tissue_files, output_dir, corr_df=None, top_n_metadata=5, enhance_metadata=False):
+    """Load, combine, and optionally enhance tissue files with metadata correlations."""
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Processing combination: {combination}")
+    logger.info(f"  Files to process: {len(tissue_files)}")
+    logger.info(f"  Enhance with metadata: {enhance_metadata}")
+    
+    combined_dfs = []
+    load_errors = []
+    total_rows = 0
+    
+    for tissue, file_path in tissue_files.items():
+        try:
+            logger.info(f"  Loading {tissue}: {file_path.name}")
+            df = pd.read_csv(file_path)
+            
+            # Add tissue column
+            df['tissue'] = tissue
+            
+            # Reorder columns to put tissue first
+            cols = ['tissue'] + [col for col in df.columns if col != 'tissue']
+            df = df[cols]
+            
+            combined_dfs.append(df)
+            total_rows += len(df)
+            
+            logger.info(f"    Loaded {len(df)} rows")
+            
+        except Exception as e:
+            load_errors.append(f"{tissue}: {str(e)}")
+            logger.error(f"  Failed to load {tissue}: {e}")
+    
+    if not combined_dfs:
+        logger.error(f"No files successfully loaded for combination: {combination}")
+        return None, len(load_errors)
+    
+    # Combine all dataframes
+    logger.info(f"Combining {len(combined_dfs)} dataframes...")
+    combined_df = pd.concat(combined_dfs, ignore_index=True)
+    
+    logger.info(f"Combined dataframe shape: {combined_df.shape}")
+    logger.info(f"Total rows: {total_rows}")
+    
+    if load_errors:
+        logger.warning(f"Load errors for combination {combination}:")
+        for error in load_errors:
+            logger.warning(f"  {error}")
+    
+    # Enhance with metadata correlations if requested
+    if enhance_metadata and corr_df is not None:
+        logger.info(f"Enhancing with metadata correlations...")
+        enhanced_df = process_gene_pair_correlations(combined_df, corr_df, top_n_metadata)
+        combined_df = enhanced_df
+        logger.info(f"Enhanced dataframe shape: {combined_df.shape}")
+    
+    # Save combined results
+    suffix = "_with_metadata" if enhance_metadata else ""
+    output_file_pkl = output_dir / f"combined_{combination}_top_gene_pairs{suffix}.pkl"
+    output_file_csv = output_dir / f"combined_{combination}_top_gene_pairs{suffix}.csv"
+    
+    combined_df.to_pickle(output_file_pkl)
+    combined_df.to_csv(output_file_csv, index=False)
+    
+    logger.info(f"Saved combined results:")
+    logger.info(f"  Pickle: {output_file_pkl}")
+    logger.info(f"  CSV: {output_file_csv}")
+    
+    return combined_df, len(load_errors)
 
 
 def discover_tissues_and_combinations(data_dir):
@@ -112,68 +394,6 @@ def find_top_gene_files(data_dir, top_n):
         logger.info(f"Combination '{combination}': {tissues_with_files} tissues")
     
     return dict(found_files), tissues, combinations
-
-
-def load_and_combine_combination(combination, tissue_files, output_dir):
-    """Load and combine all tissue files for a specific combination."""
-    logger = logging.getLogger(__name__)
-    
-    logger.info(f"Processing combination: {combination}")
-    logger.info(f"  Files to process: {len(tissue_files)}")
-    
-    combined_dfs = []
-    load_errors = []
-    total_rows = 0
-    
-    for tissue, file_path in tissue_files.items():
-        try:
-            logger.info(f"  Loading {tissue}: {file_path.name}")
-            df = pd.read_csv(file_path)
-            
-            # Add tissue column
-            df['tissue'] = tissue
-            
-            # Reorder columns to put tissue first
-            cols = ['tissue'] + [col for col in df.columns if col != 'tissue']
-            df = df[cols]
-            
-            combined_dfs.append(df)
-            total_rows += len(df)
-            
-            logger.info(f"    Loaded {len(df)} rows")
-            
-        except Exception as e:
-            load_errors.append(f"{tissue}: {str(e)}")
-            logger.error(f"  Failed to load {tissue}: {e}")
-    
-    if not combined_dfs:
-        logger.error(f"No files successfully loaded for combination: {combination}")
-        return None
-    
-    # Combine all dataframes
-    logger.info(f"Combining {len(combined_dfs)} dataframes...")
-    combined_df = pd.concat(combined_dfs, ignore_index=True)
-    
-    logger.info(f"Combined dataframe shape: {combined_df.shape}")
-    logger.info(f"Total rows: {total_rows}")
-    
-    if load_errors:
-        logger.warning(f"Load errors for combination {combination}:")
-        for error in load_errors:
-            logger.warning(f"  {error}")
-    
-    # Save combined results
-    output_file_pkl = output_dir / f"combined_{combination}_top_gene_pairs.pkl"
-    output_file_csv = output_dir / f"combined_{combination}_top_gene_pairs.csv"
-    
-    combined_df.to_pickle(output_file_pkl)
-    combined_df.to_csv(output_file_csv, index=False)
-    
-    logger.info(f"Saved combined results:")
-    logger.info(f"  Pickle: {output_file_pkl}")
-    logger.info(f"  CSV: {output_file_csv}")
-    
-    return combined_df, len(load_errors)
 
 
 def generate_summary_report(results_summary, output_dir, top_n):
@@ -271,6 +491,24 @@ def main():
         help="List available tissues and exit",
     )
     
+    parser.add_argument(
+        "--enhance-metadata",
+        action="store_true",
+        help="Enhance combined gene pairs with metadata correlations.",
+    )
+    
+    parser.add_argument(
+        "--metadata-corr-file",
+        help="Path to the metadata correlation results pickle file.",
+    )
+    
+    parser.add_argument(
+        "--top-metadata-correlations",
+        type=int,
+        default=5,
+        help="Number of top metadata correlations to extract for each gene.",
+    )
+    
     args = parser.parse_args()
     
     try:
@@ -308,6 +546,17 @@ def main():
             logger.error("--top argument is required for processing (not needed for --list-* commands)")
             sys.exit(1)
         
+        # Validate metadata enhancement arguments
+        if args.enhance_metadata and not args.metadata_corr_file:
+            logger.error("--metadata-corr-file is required when --enhance-metadata is specified")
+            sys.exit(1)
+        
+        # Load metadata correlations if enhancement is requested
+        corr_df = None
+        if args.enhance_metadata:
+            logger.info("Loading metadata correlation data for enhancement...")
+            corr_df = load_metadata_correlations(args.metadata_corr_file)
+        
         # Find all top gene files
         found_files, tissues, combinations = find_top_gene_files(args.data_dir, args.top)
         
@@ -333,8 +582,11 @@ def main():
             tissue_files = found_files[combination]
             
             combo_start_time = time.time()
-            combined_df, load_errors = load_and_combine_combination(
-                combination, tissue_files, output_dir
+            combined_df, load_errors = load_and_enhance_combination(
+                combination, tissue_files, output_dir,
+                corr_df=corr_df,
+                top_n_metadata=args.top_metadata_correlations,
+                enhance_metadata=args.enhance_metadata
             )
             combo_end_time = time.time()
             combo_runtime = combo_end_time - combo_start_time
@@ -374,8 +626,9 @@ def main():
         # Show which files were created
         logger.info("\nOutput files created:")
         for combination in sorted(results_summary.keys()):
-            logger.info(f"  combined_{combination}_top_gene_pairs.pkl")
-            logger.info(f"  combined_{combination}_top_gene_pairs.csv")
+            suffix = "_with_metadata" if args.enhance_metadata else ""
+            logger.info(f"  combined_{combination}_top_gene_pairs{suffix}.pkl")
+            logger.info(f"  combined_{combination}_top_gene_pairs{suffix}.csv")
         logger.info(f"  combination_summary_report.txt")
         
     except Exception as e:
