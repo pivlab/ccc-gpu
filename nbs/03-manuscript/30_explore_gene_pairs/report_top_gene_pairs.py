@@ -48,6 +48,33 @@ EXPECTED_COMBINATIONS = [
     'c-high-p-low-s-none'
 ]
 
+def load_gene_mappings(logger: logging.Logger) -> Dict[str, str]:
+    """
+    Load gene ID to symbol mappings from the GTEx mapping file.
+    
+    Returns:
+        Dictionary mapping Ensembl gene IDs to gene symbols
+    """
+    mapping_file = Path("/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/gtex_gene_id_symbol_mappings.pkl")
+    
+    try:
+        logger.info(f"Loading gene mappings from {mapping_file}")
+        gene_map_df = pd.read_pickle(mapping_file)
+        gene_map = gene_map_df.set_index("gene_ens_id")["gene_symbol"].to_dict()
+        logger.info(f"Loaded {len(gene_map)} gene mappings")
+        
+        # Verify the mapping works as expected
+        test_gene = "ENSG00000145309.5"
+        if test_gene in gene_map:
+            logger.debug(f"Mapping verification: {test_gene} -> {gene_map[test_gene]}")
+        
+        return gene_map
+        
+    except Exception as e:
+        logger.warning(f"Could not load gene mappings from {mapping_file}: {e}")
+        logger.warning("Gene symbols will not be available in output")
+        return {}
+
 def setup_logging(log_dir: Optional[Path] = None) -> logging.Logger:
     """Setup comprehensive logging configuration."""
     # Create log directory if batch processing
@@ -149,24 +176,33 @@ def find_data_file(data_dir: str, tissue: str, combination: str, logger: logging
             f"Available tissues: {available_tissues[:10]}..." if len(available_tissues) > 10 else f"Available tissues: {available_tissues}"
         )
 
-def format_gene_pair_output(df: pd.DataFrame, top_n: int = 30) -> str:
+def format_gene_pair_output(df: pd.DataFrame, top_n: int = 30, gene_mappings: Dict[str, str] = None) -> str:
     """Format the top gene pairs for text output."""
     top_df = df.head(top_n)
     
     output_lines = []
     output_lines.append(f"Top {top_n} Gene Pairs (from original sorted data)")
-    output_lines.append("=" * 60)
+    output_lines.append("=" * 80)
     output_lines.append("")
     
     # Add column headers
     if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
-        headers = ["Gene1", "Gene2"] + list(df.columns)
+        if gene_mappings:
+            headers = ["Gene1", "Gene2", "Symbol1", "Symbol2"] + list(df.columns)
+        else:
+            headers = ["Gene1", "Gene2"] + list(df.columns)
     else:
         headers = ["Index"] + list(df.columns)
     
     # Format header row
-    header_line = "{:<12} {:<12}".format(headers[0], headers[1])
-    for col in headers[2:]:
+    if gene_mappings and isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
+        header_line = "{:<16} {:<16} {:<12} {:<12}".format(headers[0], headers[1], headers[2], headers[3])
+        start_idx = 4
+    else:
+        header_line = "{:<16} {:<16}".format(headers[0], headers[1])
+        start_idx = 2
+    
+    for col in headers[start_idx:]:
         if col in ['ccc', 'pearson', 'spearman', 'distance_combined', 'distance_mean', 'distance_max']:
             header_line += " {:>12}".format(col)
         else:
@@ -178,9 +214,19 @@ def format_gene_pair_output(df: pd.DataFrame, top_n: int = 30) -> str:
     for i, (idx, row) in enumerate(top_df.iterrows()):
         if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
             gene1, gene2 = idx
-            line = f"{gene1:<12} {gene2:<12}"
+            gene1_display = gene1[:16] if len(gene1) > 16 else gene1
+            gene2_display = gene2[:16] if len(gene2) > 16 else gene2
+            
+            if gene_mappings:
+                symbol1 = gene_mappings.get(gene1, 'Unknown')
+                symbol2 = gene_mappings.get(gene2, 'Unknown')
+                symbol1_display = symbol1[:12] if len(symbol1) > 12 else symbol1
+                symbol2_display = symbol2[:12] if len(symbol2) > 12 else symbol2
+                line = f"{gene1_display:<16} {gene2_display:<16} {symbol1_display:<12} {symbol2_display:<12}"
+            else:
+                line = f"{gene1_display:<16} {gene2_display:<16}"
         else:
-            line = f"{str(idx):<12} {'':<12}"
+            line = f"{str(idx):<16} {'':<16}"
         
         for col in df.columns:
             value = row[col]
@@ -207,7 +253,7 @@ def format_gene_pair_output(df: pd.DataFrame, top_n: int = 30) -> str:
     
     return "\n".join(output_lines)
 
-def export_to_csv(df: pd.DataFrame, top_n: int, output_path: str, logger: logging.Logger) -> None:
+def export_to_csv(df: pd.DataFrame, top_n: int, output_path: str, logger: logging.Logger, gene_mappings: Dict[str, str] = None) -> None:
     """Export the top gene pairs to a CSV file."""
     top_df = df.head(top_n)
     
@@ -221,20 +267,45 @@ def export_to_csv(df: pd.DataFrame, top_n: int, output_path: str, logger: loggin
         top_df = top_df.reset_index()
         top_df.rename(columns={'index': 'gene_pair_index'}, inplace=True)
     
+    # Add gene symbols if mappings are available
+    if gene_mappings and 'gene1' in top_df.columns and 'gene2' in top_df.columns:
+        top_df['Gene 1 Symbol'] = top_df['gene1'].map(gene_mappings).fillna('Unknown')
+        top_df['Gene 2 Symbol'] = top_df['gene2'].map(gene_mappings).fillna('Unknown')
+        
+        # Reorder columns to put symbols after gene2
+        cols = list(top_df.columns)
+        gene1_idx = cols.index('gene1')
+        gene2_idx = cols.index('gene2')
+        symbol1_idx = cols.index('Gene 1 Symbol')
+        symbol2_idx = cols.index('Gene 2 Symbol')
+        
+        # Remove symbols from their current position
+        cols.remove('Gene 1 Symbol')
+        cols.remove('Gene 2 Symbol')
+        
+        # Insert symbols after gene2
+        cols.insert(gene2_idx + 1, 'Gene 1 Symbol')
+        cols.insert(gene2_idx + 2, 'Gene 2 Symbol')
+        
+        top_df = top_df[cols]
+    
     # Save to CSV
     top_df.to_csv(output_path, index=False)
     logger.info(f"CSV exported to: {output_path}")
 
-def log_top_results(df: pd.DataFrame, tissue: str, combination: str, logger: logging.Logger, n_rows: int = 10) -> None:
+def log_top_results(df: pd.DataFrame, tissue: str, combination: str, logger: logging.Logger, gene_mappings: Dict[str, str] = None, n_rows: int = 10) -> None:
     """Log the first n rows of results for verification."""
     top_df = df.head(n_rows)
     
     logger.info(f"First {n_rows} results for {tissue} - {combination}:")
-    logger.info("-" * 80)
+    logger.info("-" * 100)
     
     # Log header
     if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
-        header_parts = ["Gene1", "Gene2"]
+        if gene_mappings:
+            header_parts = ["Gene1", "Gene2", "Symbol1", "Symbol2"]
+        else:
+            header_parts = ["Gene1", "Gene2"]
     else:
         header_parts = ["Index"]
     
@@ -244,19 +315,27 @@ def log_top_results(df: pd.DataFrame, tissue: str, combination: str, logger: log
         if col in df.columns:
             header_parts.append(col)
     
-    logger.info(" | ".join(f"{part:<15}" for part in header_parts))
-    logger.info("-" * 80)
+    logger.info(" | ".join(f"{part:<12}" for part in header_parts))
+    logger.info("-" * 100)
     
     # Log data rows
     for i, (idx, row) in enumerate(top_df.iterrows()):
         if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
             gene1, gene2 = idx
             # Truncate long gene names for logging
-            gene1_short = gene1[:15] if len(gene1) > 15 else gene1
-            gene2_short = gene2[:15] if len(gene2) > 15 else gene2
+            gene1_short = gene1[:12] if len(gene1) > 12 else gene1
+            gene2_short = gene2[:12] if len(gene2) > 12 else gene2
             row_parts = [gene1_short, gene2_short]
+            
+            # Add gene symbols if available
+            if gene_mappings:
+                symbol1 = gene_mappings.get(gene1, 'Unknown')
+                symbol2 = gene_mappings.get(gene2, 'Unknown')
+                symbol1_short = symbol1[:12] if len(symbol1) > 12 else symbol1
+                symbol2_short = symbol2[:12] if len(symbol2) > 12 else symbol2
+                row_parts.extend([symbol1_short, symbol2_short])
         else:
-            row_parts = [str(idx)[:15]]
+            row_parts = [str(idx)[:12]]
         
         # Add key numeric values
         for col in key_columns:
@@ -270,11 +349,11 @@ def log_top_results(df: pd.DataFrame, tissue: str, combination: str, logger: log
                     formatted_val = str(value)
                 row_parts.append(formatted_val)
         
-        logger.info(" | ".join(f"{part:<15}" for part in row_parts))
+        logger.info(" | ".join(f"{part:<12}" for part in row_parts))
     
-    logger.info("-" * 80)
+    logger.info("-" * 100)
 
-def create_output_report(df: pd.DataFrame, metadata: dict, tissue: str, combination: str, top_n: int) -> str:
+def create_output_report(df: pd.DataFrame, metadata: dict, tissue: str, combination: str, top_n: int, gene_mappings: Dict[str, str] = None) -> str:
     """Create a complete output report with metadata and top gene pairs."""
     report_lines = []
     
@@ -295,6 +374,12 @@ def create_output_report(df: pd.DataFrame, metadata: dict, tissue: str, combinat
         for key, value in metadata.items():
             if key not in ['chosen_combination_tuple']:  # Skip complex objects
                 report_lines.append(f"{key.replace('_', ' ').title()}: {value}")
+    
+    # Gene mapping info
+    if gene_mappings:
+        report_lines.append(f"Gene symbol mappings: Available ({len(gene_mappings)} mappings)")
+    else:
+        report_lines.append("Gene symbol mappings: Not available")
     
     report_lines.append("")
     
@@ -319,7 +404,7 @@ def create_output_report(df: pd.DataFrame, metadata: dict, tissue: str, combinat
     
     # Top gene pairs
     report_lines.append("")
-    top_output = format_gene_pair_output(df, top_n)
+    top_output = format_gene_pair_output(df, top_n, gene_mappings)
     report_lines.append(top_output)
     
     return "\n".join(report_lines)
@@ -368,7 +453,8 @@ def process_single_combination(
     tissue: str, 
     combination: str, 
     top_n: int, 
-    logger: logging.Logger
+    logger: logging.Logger,
+    gene_mappings: Dict[str, str] = None
 ) -> Tuple[str, str, int]:
     """
     Process a single tissue-combination pair.
@@ -395,16 +481,16 @@ def process_single_combination(
         # Generate output files
         # Text report
         report_file = combo_dir / f"top_{top_n}_gene_pairs.txt"
-        report = create_output_report(df, metadata, tissue, combination, top_n)
+        report = create_output_report(df, metadata, tissue, combination, top_n, gene_mappings)
         with open(report_file, 'w') as f:
             f.write(report)
         
         # CSV export
         csv_file = combo_dir / f"top_{top_n}_gene_pairs.csv"
-        export_to_csv(df, top_n, str(csv_file), logger)
+        export_to_csv(df, top_n, str(csv_file), logger, gene_mappings)
         
         # Log first 10 results for verification
-        log_top_results(df, tissue, combination, logger)
+        log_top_results(df, tissue, combination, logger, gene_mappings)
         
         logger.info(f"Successfully processed {tissue} - {combination}: {len(df)} total pairs, {top_n} top pairs")
         return tissue, combination, top_n
@@ -417,6 +503,7 @@ def batch_process_all_combinations(
     data_dir: Path,
     top_n: int,
     logger: logging.Logger,
+    gene_mappings: Dict[str, str] = None,
     max_workers: int = 4
 ) -> None:
     """
@@ -437,7 +524,7 @@ def batch_process_all_combinations(
     tasks = []
     for tissue, combinations in tissue_combinations.items():
         for combination in combinations:
-            tasks.append((data_dir, tissue, combination, top_n, logger))
+            tasks.append((data_dir, tissue, combination, top_n, logger, gene_mappings))
     
     # Process with thread pool
     completed = 0
@@ -546,6 +633,9 @@ Examples:
     try:
         data_dir = Path(args.data_dir)
         
+        # Load gene mappings (used in both single and batch modes)
+        gene_mappings = load_gene_mappings(logger)
+        
         if args.batch:
             # Batch processing mode
             logger.info("=== STARTING BATCH PROCESSING MODE ===")
@@ -557,7 +647,7 @@ Examples:
             
             # Process all combinations
             batch_process_all_combinations(
-                data_dir, args.top, logger, args.workers
+                data_dir, args.top, logger, gene_mappings, args.workers
             )
             
             total_time = time.time() - start_time
@@ -600,7 +690,7 @@ Examples:
                 args.csv = csv_name
             
             # Create report
-            report = create_output_report(df, metadata, tissue, combination, args.top)
+            report = create_output_report(df, metadata, tissue, combination, args.top, gene_mappings)
             
             # Save to file
             with open(args.output, 'w') as f:
@@ -608,7 +698,7 @@ Examples:
             logger.info(f"Report saved to: {args.output}")
             
             # Export to CSV
-            export_to_csv(df, args.top, args.csv, logger)
+            export_to_csv(df, args.top, args.csv, logger, gene_mappings)
             
             # Display summary to console
             print("\nTop Gene Pairs Summary:")
@@ -619,7 +709,7 @@ Examples:
             print(f"Text output file: {args.output}")
             print(f"CSV output file: {args.csv}")
             print(f"\nFirst {min(5, args.top)} gene pairs:")
-            print(format_gene_pair_output(df, min(5, args.top)))
+            print(format_gene_pair_output(df, min(5, args.top), gene_mappings))
             
     except Exception as e:
         logger.error(f"Error: {e}")
