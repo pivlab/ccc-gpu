@@ -246,6 +246,102 @@ Enhanced output includes `_with_metadata` suffix:
 - Processing is optimized with batch operations and progress tracking
 - Large datasets may benefit from processing smaller subsets
 
+## Fresh Metadata Correlation Computation
+
+The `--compute-fresh-correlations` option provides even more powerful functionality by computing **fresh, real-time** metadata correlations for each gene pair using the `metadata_corr_cli.py` script.
+
+### Overview
+
+Unlike the pre-computed metadata enhancement, this feature dynamically calls the metadata correlation CLI for each gene pair, computing correlations with all available GTEx metadata variables on-the-fly.
+
+### Usage
+
+#### Basic Fresh Correlation Computation
+
+```bash
+python 10-correlate-top-genes-with-metadata.py --top 1000 --compute-fresh-correlations
+```
+
+#### Combined with Pre-computed Enhancement
+
+```bash
+python 10-correlate-top-genes-with-metadata.py \
+  --top 1000 \
+  --enhance-metadata \
+  --metadata-corr-file /path/to/precomputed.pkl \
+  --compute-fresh-correlations \
+  --top-metadata-correlations 3
+```
+
+### Arguments
+
+- `--compute-fresh-correlations`: Enable real-time metadata correlation computation
+- `--top-metadata-correlations`: Number of top correlations to compute per gene (applies to both pre-computed and fresh)
+
+### Fresh Correlation Output
+
+When fresh correlation computation is enabled, **21 additional columns** are added (assuming `--top-metadata-correlations 5`):
+
+#### Gene 1 Fresh Correlations (15 columns)
+- `gene1_fresh_top1_metadata` through `gene1_fresh_top5_metadata`: Metadata variable names
+- `gene1_fresh_top1_ccc` through `gene1_fresh_top5_ccc`: Fresh CCC correlation values  
+- `gene1_fresh_top1_pvalue` through `gene1_fresh_top5_pvalue`: Fresh p-values
+
+#### Gene 2 Fresh Correlations (15 columns)
+- `gene2_fresh_top1_metadata` through `gene2_fresh_top5_metadata`: Metadata variable names
+- `gene2_fresh_top1_ccc` through `gene2_fresh_top5_ccc`: Fresh CCC correlation values
+- `gene2_fresh_top1_pvalue` through `gene2_fresh_top5_pvalue`: Fresh p-values
+
+#### Common Fresh Correlations (5 columns)
+- `common_fresh_top1_metadata` through `common_fresh_top5_metadata`: Common metadata variables
+
+### Fresh Correlation Algorithm
+
+1. **Individual Gene Processing**: For each gene in a pair, call `metadata_corr_cli.py` to compute correlations with all GTEx metadata
+2. **Result Parsing**: Parse CLI output to extract successful correlations (p-value ≤ 0.05)
+3. **Top Selection**: Rank by absolute CCC value and select top N correlations per gene
+4. **Common Analysis**: Apply the min-rank algorithm to find metadata variables significantly correlated with both genes
+
+### Technical Implementation
+
+- **CLI Integration**: Programmatically calls `metadata_corr_cli.py` with optimized parameters:
+  - `--permutations 10000` (reduced for speed)
+  - `--n-jobs 4` (limited to prevent system overload)
+  - `--timeout 300` seconds per gene pair
+- **Temporary Management**: Creates isolated temp directories for each gene pair
+- **Error Handling**: Graceful handling of CLI failures, timeouts, and missing data
+- **Progress Tracking**: Progress updates every 10 gene pairs (less frequent due to computational cost)
+
+### Output Files
+
+Fresh correlation outputs include `_with_fresh_metadata` suffix:
+- `combined_{combination}_top_gene_pairs_with_fresh_metadata.pkl`
+- `combined_{combination}_top_gene_pairs_with_fresh_metadata.csv`
+
+Combined mode creates: `_with_metadata_with_fresh_metadata` suffix.
+
+### Performance Characteristics
+
+⚠️ **Computationally Intensive**: Fresh correlation computation is **extremely resource-intensive**:
+
+- **Time Complexity**: ~5-30 seconds per gene pair (depending on gene and metadata complexity)
+- **For 10,000 gene pairs**: Expect 14-83 hours of computation time
+- **Memory Usage**: Significant temporary file storage required
+- **I/O Intensive**: Heavy disk usage for temporary CLI results
+
+**Recommendations**:
+- Start with small datasets (10-100 gene pairs) for testing
+- Use adequate storage space for temporary files
+- Consider running on compute clusters for large datasets
+- Monitor system resources during execution
+
+### Use Cases
+
+- **Exploratory Analysis**: When pre-computed correlations don't exist for your specific genes
+- **Comprehensive Studies**: When you need the most current and complete correlation analysis
+- **Validation**: To verify and extend pre-computed correlation results
+- **Custom Metadata**: When working with updated or specialized metadata variables
+
 ## Troubleshooting
 
 ### Common Issues
@@ -257,6 +353,12 @@ Enhanced output includes `_with_metadata` suffix:
    - The metadata correlation file contains data for your genes of interest
    - Gene symbols match between datasets
    - The correlation file is complete and not a sample/test file
+5. **Fresh correlation CLI failures**: If `--compute-fresh-correlations` fails:
+   - Verify the metadata correlation CLI script is accessible
+   - Check that GTEx expression data is available in the expected directory
+   - Ensure sufficient disk space for temporary files
+   - Monitor system resources (memory, CPU) during intensive processing
+   - Consider reducing `--top-metadata-correlations` for faster processing
 
 ### Debug Information
 
