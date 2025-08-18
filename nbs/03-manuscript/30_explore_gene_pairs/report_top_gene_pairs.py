@@ -38,6 +38,7 @@ from collections import defaultdict
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 import time
+import threading
 
 # Global constants
 EXPECTED_COMBINATIONS = [
@@ -47,6 +48,9 @@ EXPECTED_COMBINATIONS = [
     'c-high-p-none-s-low',
     'c-high-p-low-s-none'
 ]
+
+# Global lock for thread-safe logging of multi-line outputs
+LOG_LOCK = threading.Lock()
 
 def load_gene_mappings(logger: logging.Logger) -> Dict[str, str]:
     """
@@ -297,61 +301,63 @@ def log_top_results(df: pd.DataFrame, tissue: str, combination: str, logger: log
     """Log the first n rows of results for verification."""
     top_df = df.head(n_rows)
     
-    logger.info(f"First {n_rows} results for {tissue} - {combination}:")
-    logger.info("-" * 100)
-    
-    # Log header
-    if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
-        if gene_mappings:
-            header_parts = ["Gene1", "Gene2", "Symbol1", "Symbol2"]
-        else:
-            header_parts = ["Gene1", "Gene2"]
-    else:
-        header_parts = ["Index"]
-    
-    # Add key numeric columns for concise logging
-    key_columns = ['ccc', 'pearson', 'spearman']
-    for col in key_columns:
-        if col in df.columns:
-            header_parts.append(col)
-    
-    logger.info(" | ".join(f"{part:<12}" for part in header_parts))
-    logger.info("-" * 100)
-    
-    # Log data rows
-    for i, (idx, row) in enumerate(top_df.iterrows()):
-        if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
-            gene1, gene2 = idx
-            # Truncate long gene names for logging
-            gene1_short = gene1[:12] if len(gene1) > 12 else gene1
-            gene2_short = gene2[:12] if len(gene2) > 12 else gene2
-            row_parts = [gene1_short, gene2_short]
-            
-            # Add gene symbols if available
-            if gene_mappings:
-                symbol1 = gene_mappings.get(gene1, 'Unknown')
-                symbol2 = gene_mappings.get(gene2, 'Unknown')
-                symbol1_short = symbol1[:12] if len(symbol1) > 12 else symbol1
-                symbol2_short = symbol2[:12] if len(symbol2) > 12 else symbol2
-                row_parts.extend([symbol1_short, symbol2_short])
-        else:
-            row_parts = [str(idx)[:12]]
+    # Use lock to prevent interleaving of multi-line table output
+    with LOG_LOCK:
+        logger.info(f"First {n_rows} results for {tissue} - {combination}:")
+        logger.info("-" * 100)
         
-        # Add key numeric values
+        # Log header
+        if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
+            if gene_mappings:
+                header_parts = ["Gene1", "Gene2", "Symbol1", "Symbol2"]
+            else:
+                header_parts = ["Gene1", "Gene2"]
+        else:
+            header_parts = ["Index"]
+        
+        # Add key numeric columns for concise logging
+        key_columns = ['ccc', 'pearson', 'spearman']
         for col in key_columns:
             if col in df.columns:
-                value = row[col]
-                if pd.isna(value):
-                    formatted_val = "NaN"
-                elif isinstance(value, (float, np.floating)):
-                    formatted_val = f"{value:.6f}"
-                else:
-                    formatted_val = str(value)
-                row_parts.append(formatted_val)
+                header_parts.append(col)
         
-        logger.info(" | ".join(f"{part:<12}" for part in row_parts))
-    
-    logger.info("-" * 100)
+        logger.info(" | ".join(f"{part:<12}" for part in header_parts))
+        logger.info("-" * 100)
+        
+        # Log data rows
+        for i, (idx, row) in enumerate(top_df.iterrows()):
+            if isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
+                gene1, gene2 = idx
+                # Truncate long gene names for logging
+                gene1_short = gene1[:12] if len(gene1) > 12 else gene1
+                gene2_short = gene2[:12] if len(gene2) > 12 else gene2
+                row_parts = [gene1_short, gene2_short]
+                
+                # Add gene symbols if available
+                if gene_mappings:
+                    symbol1 = gene_mappings.get(gene1, 'Unknown')
+                    symbol2 = gene_mappings.get(gene2, 'Unknown')
+                    symbol1_short = symbol1[:12] if len(symbol1) > 12 else symbol1
+                    symbol2_short = symbol2[:12] if len(symbol2) > 12 else symbol2
+                    row_parts.extend([symbol1_short, symbol2_short])
+            else:
+                row_parts = [str(idx)[:12]]
+            
+            # Add key numeric values
+            for col in key_columns:
+                if col in df.columns:
+                    value = row[col]
+                    if pd.isna(value):
+                        formatted_val = "NaN"
+                    elif isinstance(value, (float, np.floating)):
+                        formatted_val = f"{value:.6f}"
+                    else:
+                        formatted_val = str(value)
+                    row_parts.append(formatted_val)
+            
+            logger.info(" | ".join(f"{part:<12}" for part in row_parts))
+        
+        logger.info("-" * 100)
 
 def create_output_report(df: pd.DataFrame, metadata: dict, tissue: str, combination: str, top_n: int, gene_mappings: Dict[str, str] = None) -> str:
     """Create a complete output report with metadata and top gene pairs."""
@@ -545,12 +551,15 @@ def batch_process_all_combinations(
                 tissue_result, combo_result, count = future.result()
                 completed += 1
                 
-                progress = (completed / total_tasks) * 100
-                logger.info(f"Progress: {completed}/{total_tasks} ({progress:.1f}%) - "
-                           f"Completed: {tissue_result} - {combo_result} ({count} pairs)")
-                           
+                # Use lock for progress logging to prevent interleaving with other log output
+                with LOG_LOCK:
+                    progress = (completed / total_tasks) * 100
+                    logger.info(f"Progress: {completed}/{total_tasks} ({progress:.1f}%) - "
+                               f"Completed: {tissue_result} - {combo_result} ({count} pairs)")
+                               
             except Exception as e:
-                logger.error(f"Task failed for {tissue} - {combination}: {e}")
+                with LOG_LOCK:
+                    logger.error(f"Task failed for {tissue} - {combination}: {e}")
                 completed += 1
     
     logger.info(f"Batch processing completed. Processed {completed}/{total_tasks} combinations")
