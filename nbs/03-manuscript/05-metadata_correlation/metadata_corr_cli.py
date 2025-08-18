@@ -79,12 +79,11 @@ def find_expression_files(expr_data_dir, include_patterns=None, exclude_patterns
 def load_metadata_and_gene_map():
     """Load metadata and gene mapping files."""
     # Define paths
-    MANUSCRIPT_DIR = Path("/mnt/data/projs/manuscripts/ccc-gpu/")
-    METADATA_DIR = Path("/mnt/data/proj_data/ccc-gpu/gtex_metadata")
+    DATA_DIR = Path("/pividori_lab/haoyu_projects/ccc-gpu/data/gtex")
 
     # File paths
-    METADATA_FILE = METADATA_DIR / "gtex_v8-sample_metadata.pkl"
-    GENE_MAP_FILE = MANUSCRIPT_DIR / "data" / "gtex_gene_id_symbol_mappings.pkl"
+    METADATA_FILE = DATA_DIR / "gtex_v8-sample_metadata.pkl"
+    GENE_MAP_FILE = DATA_DIR / "gtex_gene_id_symbol_mappings.pkl"
 
     # Check if files exist
     for file_path in [METADATA_FILE, GENE_MAP_FILE]:
@@ -368,7 +367,7 @@ def main():
 
     parser.add_argument(
         "--expr-data-dir",
-        default="/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all",
+        default="/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/gene_selection/all",
         help="Directory containing expression data files",
     )
 

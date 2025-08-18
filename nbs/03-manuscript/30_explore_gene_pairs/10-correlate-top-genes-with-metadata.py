@@ -285,6 +285,7 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_d
             sys.executable, str(cli_script),
             gene1_symbol, gene2_symbol,
             "--output-dir", str(pair_temp_dir),
+            "--expr-data-dir", "/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/gene_selection/all",
             "--permutations", "10000",  # Reduce permutations for speed
             "--n-jobs", "4"  # Reduce parallel jobs to avoid overwhelming system
         ]
