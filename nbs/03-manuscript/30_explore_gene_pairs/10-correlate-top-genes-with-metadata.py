@@ -61,13 +61,14 @@ def setup_logging(output_dir):
 
 
 
-def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_dir):
+def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir, temp_dir):
     """
-    Call the metadata correlation CLI script for a gene pair.
+    Call the metadata correlation CLI script for a gene pair in a specific tissue.
     
     Args:
         gene1_symbol: First gene symbol
-        gene2_symbol: Second gene symbol  
+        gene2_symbol: Second gene symbol
+        tissue: Tissue name to process (used with --include flag)
         output_dir: Output directory for results
         temp_dir: Temporary directory for intermediate files
         
@@ -100,6 +101,7 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_d
             gene1_symbol, gene2_symbol,
             "--output-dir", str(pair_temp_dir),
             "--expr-data-dir", "/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/gene_selection/all",
+            "--include", tissue,  # Only process the specific tissue for this gene pair
             "--permutations", "10000",  # Reduce permutations for speed
             "--n-jobs", "4",  # Reduce parallel jobs to avoid overwhelming system
             "--quiet",  # Reduce verbosity for batch processing
@@ -108,7 +110,7 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_d
         ]
         
         # Run the CLI script
-        logger.info(f"Running metadata correlation CLI for {gene1_symbol}-{gene2_symbol}")
+        logger.info(f"Running metadata correlation CLI for {gene1_symbol}-{gene2_symbol} in tissue {tissue}")
         result = subprocess.run(
             cmd, 
             capture_output=True, 
@@ -123,10 +125,10 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_d
             logger.debug(f"CLI stderr for {gene1_symbol}-{gene2_symbol}:\n{result.stderr}")
         
         if result.returncode != 0:
-            logger.warning(f"CLI failed for {gene1_symbol}-{gene2_symbol} (exit code {result.returncode}): {result.stderr}")
+            logger.warning(f"CLI failed for {gene1_symbol}-{gene2_symbol} in {tissue} (exit code {result.returncode}): {result.stderr}")
             return None, None
         else:
-            logger.info(f"CLI succeeded for {gene1_symbol}-{gene2_symbol}")
+            logger.info(f"CLI succeeded for {gene1_symbol}-{gene2_symbol} in {tissue}")
         
         # Load results
         gene1_file = pair_temp_dir / f"{gene1_symbol}_all_tissues_correlation_results.pkl"
@@ -158,10 +160,10 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_d
         return gene1_df, gene2_df
         
     except subprocess.TimeoutExpired:
-        logger.warning(f"Timeout processing {gene1_symbol}-{gene2_symbol}")
+        logger.warning(f"Timeout processing {gene1_symbol}-{gene2_symbol} in {tissue}")
         return None, None
     except Exception as e:
-        logger.warning(f"Error processing {gene1_symbol}-{gene2_symbol}: {e}")
+        logger.warning(f"Error processing {gene1_symbol}-{gene2_symbol} in {tissue}: {e}")
         return None, None
 
 
@@ -293,14 +295,15 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, top_n_m
         try:
             gene1_symbol = row['Gene 1 Symbol']
             gene2_symbol = row['Gene 2 Symbol']
+            tissue = row['tissue']
             
             # Progress logging every 10 pairs (since CLI calls are expensive)
             if (idx + 1) % 10 == 0:
-                logger.info(f"Processing gene pair {idx + 1:,}/{total_pairs:,} ({((idx + 1)/total_pairs*100):.1f}%) - Current: {gene1_symbol}-{gene2_symbol}")
+                logger.info(f"Processing gene pair {idx + 1:,}/{total_pairs:,} ({((idx + 1)/total_pairs*100):.1f}%) - Current: {gene1_symbol}-{gene2_symbol} in {tissue}")
             
-            # Call CLI for this gene pair
+            # Call CLI for this gene pair (only for the specific tissue)
             gene1_cli_df, gene2_cli_df = call_metadata_correlation_cli(
-                gene1_symbol, gene2_symbol, temp_dir, temp_dir
+                gene1_symbol, gene2_symbol, tissue, temp_dir, temp_dir
             )
             
             # Process results if CLI succeeded
@@ -344,7 +347,7 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, top_n_m
             
         except Exception as e:
             failed_pairs += 1
-            logger.warning(f"Failed to process gene pair at index {idx}: {gene1_symbol}-{gene2_symbol}: {e}")
+            logger.warning(f"Failed to process gene pair at index {idx}: {gene1_symbol}-{gene2_symbol} in {tissue}: {e}")
             continue
     
     logger.info(f"Metadata correlation processing completed:")
