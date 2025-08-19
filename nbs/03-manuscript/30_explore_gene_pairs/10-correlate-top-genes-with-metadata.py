@@ -115,7 +115,7 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir
             cmd, 
             capture_output=True, 
             text=True, 
-            timeout=300  # 5 minute timeout per gene pair
+            timeout=1800  # 30 minute timeout per gene pair - needed for 10K permutations
         )
         
         # Log CLI output for debugging
@@ -461,10 +461,21 @@ def discover_tissues_and_combinations(data_dir):
                     combinations.add(combo_dir.name)
     
     tissues.sort()
-    combinations = sorted(list(combinations))
+    
+    # Prioritize 'c-high-p-low-s-low' combination first, then sort the rest
+    combinations_list = list(combinations)
+    priority_combination = 'c-high-p-low-s-low'
+    
+    if priority_combination in combinations_list:
+        combinations_list.remove(priority_combination)
+        combinations_list.sort()
+        combinations = [priority_combination] + combinations_list
+    else:
+        combinations = sorted(combinations_list)
     
     logger.info(f"Discovered {len(tissues)} tissues")
     logger.info(f"Discovered {len(combinations)} combinations: {combinations}")
+    logger.info(f"Processing order: {priority_combination} will be processed first")
     
     return tissues, combinations
 
