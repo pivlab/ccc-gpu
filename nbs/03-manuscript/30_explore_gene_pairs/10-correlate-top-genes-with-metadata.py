@@ -263,12 +263,28 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
     """
     logger = logging.getLogger(__name__)
     
-    logger.info(f"Computing metadata correlations for {len(combined_df)} gene pairs")
-    logger.info(f"Top N metadata correlations: {top_n_metadata}")
+    # Critical start logs
+    logger.info(f"STARTING metadata correlation processing for {len(combined_df):,} gene pairs")
+    logger.info(f"   Configuration: top-{top_n_metadata} metadata correlations per gene")
+    logger.info(f"   Permutations: {args.permutations}, Parallel jobs: {args.n_jobs}")
+    
+    # Estimate processing time
+    estimated_time_minutes = len(combined_df) * 1.5 / 60  # Rough estimate: 1.5 min per pair
+    logger.info(f"   Estimated processing time: {estimated_time_minutes:.1f} minutes ({estimated_time_minutes/60:.1f} hours)")
     
     # Create temporary directory
     temp_dir = Path(temp_dir)
     temp_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"   Temporary directory: {temp_dir}")
+    
+    # Analyze tissues involved
+    unique_tissues = combined_df['tissue'].nunique() if 'tissue' in combined_df.columns else 0
+    if unique_tissues > 0:
+        tissue_counts = combined_df['tissue'].value_counts()
+        logger.info(f"   Processing {unique_tissues} tissue(s): {dict(tissue_counts.head(5))}")
+    
+    import time
+    start_time = time.time()
     
     # Initialize enhanced dataframe with new columns
     enhanced_df = combined_df.copy()
@@ -295,15 +311,42 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
     failed_pairs = 0
     cli_success_pairs = 0
     
+    # Progress tracking
+    last_progress_time = time.time()
+    
+    # Track common metadata fields across all pairs
+    # common_metadata_counter = {}  # Commented out for performance
+    
+    logger.info(f"PROCESSING STARTED: {total_pairs:,} gene pairs to process")
+    
     for idx, row in enhanced_df.iterrows():
         try:
             gene1_symbol = row['Gene 1 Symbol']
             gene2_symbol = row['Gene 2 Symbol']
             tissue = row['tissue']
             
-            # Progress logging every 10 pairs (since CLI calls are expensive)
-            if (idx + 1) % 10 == 0:
-                logger.info(f"Processing gene pair {idx + 1:,}/{total_pairs:,} ({((idx + 1)/total_pairs*100):.1f}%) - Current: {gene1_symbol}-{gene2_symbol} in {tissue}")
+            # Enhanced progress logging with time estimates
+            current_time = time.time()
+            if (idx + 1) % 10 == 0 or idx == 0:
+                elapsed_time = current_time - start_time
+                progress_pct = (idx + 1) / total_pairs
+                
+                if progress_pct > 0:
+                    estimated_total_time = elapsed_time / progress_pct
+                    remaining_time = estimated_total_time - elapsed_time
+                    
+                    logger.info(f"Progress: {idx + 1:,}/{total_pairs:,} ({progress_pct*100:.1f}%) | "
+                               f"Elapsed: {elapsed_time/60:.1f}m | ETA: {remaining_time/60:.1f}m | "
+                               f"Current: {gene1_symbol}-{gene2_symbol} ({tissue})")
+                
+                # Critical milestones
+                if idx + 1 in [50, 100, 250, 500] or (idx + 1) % 500 == 0:
+                    success_rate = (cli_success_pairs / (idx + 1)) * 100 if idx >= 0 else 0
+                    logger.info(f"MILESTONE: Processed {idx + 1:,} pairs | "
+                               f"CLI success rate: {success_rate:.1f}% | "
+                               f"Failures: {failed_pairs}")
+                
+                last_progress_time = current_time
             
             # Call CLI for this gene pair (only for the specific tissue)
             gene1_cli_df, gene2_cli_df = call_metadata_correlation_cli(
@@ -318,6 +361,11 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
                 if gene1_cli_df is not None:
                     gene1_top = get_top_metadata_correlations_from_cli(gene1_cli_df, top_n_metadata)
                     
+                    # Log gene 1 top correlations - Commented out for performance
+                    # if len(gene1_top) > 0:
+                    #     gene1_metadata_fields = [row['metadata_column'] for _, row in gene1_top.iterrows()]
+                    #     logger.debug(f"   {gene1_symbol} top metadata: {gene1_metadata_fields[:top_n_metadata]}")
+                    
                     # Fill gene 1 correlation data
                     for i, (_, corr_row) in enumerate(gene1_top.iterrows()):
                         if i < top_n_metadata:
@@ -328,6 +376,11 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
                 # Get top correlations for gene 2
                 if gene2_cli_df is not None:
                     gene2_top = get_top_metadata_correlations_from_cli(gene2_cli_df, top_n_metadata)
+                    
+                    # Log gene 2 top correlations - Commented out for performance
+                    # if len(gene2_top) > 0:
+                    #     gene2_metadata_fields = [row['metadata_column'] for _, row in gene2_top.iterrows()]
+                    #     logger.debug(f"   {gene2_symbol} top metadata: {gene2_metadata_fields[:top_n_metadata]}")
                     
                     # Fill gene 2 correlation data
                     for i, (_, corr_row) in enumerate(gene2_top.iterrows()):
@@ -342,6 +395,19 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
                         gene1_cli_df, gene2_cli_df, gene1_symbol, gene2_symbol, top_n_metadata
                     )
                     
+                    # Log common metadata correlations (most important!) - Commented out for performance
+                    # if len(common_top) > 0:
+                    #     common_metadata_fields = [row['metadata_column'] for _, row in common_top.iterrows()]
+                    #     common_scores = [f"{row['metadata_column']}({row['score']:.3f})" for _, row in common_top.iterrows()]
+                    #     logger.info(f"   COMMON metadata for {gene1_symbol}-{gene2_symbol}: {common_metadata_fields}")
+                    #     logger.debug(f"   COMMON with scores: {common_scores}")
+                    #     
+                    #     # Count common metadata fields for summary
+                    #     for field in common_metadata_fields:
+                    #         common_metadata_counter[field] = common_metadata_counter.get(field, 0) + 1
+                    # else:
+                    #     logger.debug(f"   No common metadata found for {gene1_symbol}-{gene2_symbol}")
+                    
                     # Fill common correlation data
                     for i, (_, common_row) in enumerate(common_top.iterrows()):
                         if i < top_n_metadata:
@@ -351,16 +417,62 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
             
         except Exception as e:
             failed_pairs += 1
-            logger.warning(f"Failed to process gene pair at index {idx}: {gene1_symbol}-{gene2_symbol} in {tissue}: {e}")
+            logger.warning(f"FAILED gene pair at index {idx}: {gene1_symbol}-{gene2_symbol} in {tissue}: {e}")
+            
+            # Critical warning for high failure rates
+            if failed_pairs > 0 and (idx + 1) >= 20:  # Check after at least 20 attempts
+                failure_rate = (failed_pairs / (idx + 1)) * 100
+                if failure_rate > 20:  # Warning if >20% failure rate
+                    logger.warning(f"HIGH FAILURE RATE: {failure_rate:.1f}% ({failed_pairs}/{idx + 1}) - Review configuration!")
+                elif failure_rate > 50:  # Critical if >50% failure rate  
+                    logger.error(f"CRITICAL FAILURE RATE: {failure_rate:.1f}% - Consider stopping and debugging!")
+            
             continue
     
-    logger.info(f"Metadata correlation processing completed:")
-    logger.info(f"  Total pairs: {total_pairs:,}")
-    logger.info(f"  Processed successfully: {processed_pairs:,}")
-    logger.info(f"  CLI succeeded for: {cli_success_pairs:,}")
-    logger.info(f"  Failed: {failed_pairs:,}")
-    logger.info(f"  Success rate: {(processed_pairs/total_pairs*100):.1f}%")
-    logger.info(f"  CLI success rate: {(cli_success_pairs/total_pairs*100):.1f}%")
+    # Final completion logs with enhanced statistics
+    end_time = time.time()
+    total_time = end_time - start_time
+    avg_time_per_pair = total_time / total_pairs if total_pairs > 0 else 0
+    
+    logger.info(f"METADATA CORRELATION PROCESSING COMPLETED!")
+    logger.info(f"   FINAL STATISTICS:")
+    logger.info(f"   ├─ Total pairs processed: {total_pairs:,}")
+    logger.info(f"   ├─ Successfully processed: {processed_pairs:,}")
+    logger.info(f"   ├─ CLI successes: {cli_success_pairs:,}")
+    logger.info(f"   ├─ Failed pairs: {failed_pairs:,}")
+    logger.info(f"   ├─ Overall success rate: {(processed_pairs/total_pairs*100):.1f}%")
+    logger.info(f"   ├─ CLI success rate: {(cli_success_pairs/total_pairs*100):.1f}%")
+    logger.info(f"   └─ Processing time: {total_time/60:.1f} minutes ({avg_time_per_pair:.1f}s per pair)")
+    
+    # Critical warnings for poor performance
+    cli_success_rate = (cli_success_pairs/total_pairs*100) if total_pairs > 0 else 0
+    if cli_success_rate < 50:
+        logger.error(f"CRITICAL: Very low CLI success rate ({cli_success_rate:.1f}%)! Check configuration and data quality.")
+    elif cli_success_rate < 80:
+        logger.warning(f"WARNING: Low CLI success rate ({cli_success_rate:.1f}%). Consider reviewing failed pairs.")
+    else:
+        logger.info(f"GOOD: CLI success rate is acceptable ({cli_success_rate:.1f}%)")
+    
+    # Tissue-specific summary if applicable
+    if 'tissue' in combined_df.columns:
+        tissue_summary = combined_df['tissue'].value_counts()
+        logger.info(f"   Processed tissues: {dict(tissue_summary)}")
+    
+    # Most frequent common metadata fields summary - Commented out for performance
+    # if common_metadata_counter:
+    #     # Sort by frequency and get top 10
+    #     sorted_common = sorted(common_metadata_counter.items(), key=lambda x: x[1], reverse=True)
+    #     top_common = sorted_common[:10]
+    #     
+    #     logger.info(f"   TOP COMMON METADATA FIELDS (across all gene pairs):")
+    #     for i, (field, count) in enumerate(top_common, 1):
+    #         pct = (count / cli_success_pairs) * 100 if cli_success_pairs > 0 else 0
+    #         logger.info(f"      {i:2d}. {field}: {count:,} pairs ({pct:.1f}%)")
+    #         
+    #     total_unique_common = len(common_metadata_counter)
+    #     logger.info(f"   Total unique common metadata fields found: {total_unique_common}")
+    # else:
+    #     logger.warning(f"   No common metadata fields found across any gene pairs")
     
     # Clean up temporary directory (organized by tissue)
     try:
@@ -377,6 +489,7 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
     except Exception as e:
         logger.warning(f"Failed to clean up temp directory {temp_dir}: {e}")
     
+    logger.info(f"process_gene_pairs_with_metadata_correlations COMPLETED - returning enhanced dataframe with {len(enhanced_df.columns)} columns")
     return enhanced_df
 
 
