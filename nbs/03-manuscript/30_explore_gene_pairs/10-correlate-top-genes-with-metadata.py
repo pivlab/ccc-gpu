@@ -23,19 +23,35 @@ import numpy as np
 def setup_logging(output_dir):
     """Set up logging configuration."""
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    log_dir = output_dir / "logs" / f"gene_pair_combination_{timestamp}"
+    script_dir = Path(__file__).parent
+    log_dir = script_dir / "logs" / f"10-correlate-top-genes-with-metadata_{timestamp}"
     log_dir.mkdir(parents=True, exist_ok=True)
     
-    log_file = log_dir / "gene_pair_combination.log"
+    log_file = log_dir / "10-correlate-top-genes-with-metadata.log"
     
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,  # Enable debug level for CLI output logging
         format='%(asctime)s - %(levelname)s - [%(funcName)s:%(lineno)d] - %(message)s',
         handlers=[
             logging.FileHandler(log_file),
-            logging.StreamHandler()
+            logging.StreamHandler(sys.stdout)  # Explicitly use stdout
         ]
     )
+    
+    # Set console handler to INFO level to avoid cluttering console with debug messages
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - [%(funcName)s:%(lineno)d] - %(message)s'))
+    
+    # File handler keeps DEBUG level for detailed CLI output
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - [%(funcName)s:%(lineno)d] - %(message)s'))
+    
+    # Clear default handlers and add our custom ones
+    logging.getLogger().handlers.clear()
+    logging.getLogger().addHandler(file_handler)
+    logging.getLogger().addHandler(console_handler)
     
     logger = logging.getLogger(__name__)
     logger.info(f"Log file: {log_file}")
@@ -85,10 +101,14 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_d
             "--output-dir", str(pair_temp_dir),
             "--expr-data-dir", "/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/gene_selection/all",
             "--permutations", "10000",  # Reduce permutations for speed
-            "--n-jobs", "4"  # Reduce parallel jobs to avoid overwhelming system
+            "--n-jobs", "4",  # Reduce parallel jobs to avoid overwhelming system
+            "--quiet",  # Reduce verbosity for batch processing
+            "--no-csv-output",  # Skip CSV generation, only need pickle files
+            "--no-individual-logs"  # Skip individual tissue logs
         ]
         
         # Run the CLI script
+        logger.info(f"Running metadata correlation CLI for {gene1_symbol}-{gene2_symbol}")
         result = subprocess.run(
             cmd, 
             capture_output=True, 
@@ -96,9 +116,17 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_d
             timeout=300  # 5 minute timeout per gene pair
         )
         
+        # Log CLI output for debugging
+        if result.stdout:
+            logger.debug(f"CLI stdout for {gene1_symbol}-{gene2_symbol}:\n{result.stdout}")
+        if result.stderr:
+            logger.debug(f"CLI stderr for {gene1_symbol}-{gene2_symbol}:\n{result.stderr}")
+        
         if result.returncode != 0:
-            logger.warning(f"CLI failed for {gene1_symbol}-{gene2_symbol}: {result.stderr}")
+            logger.warning(f"CLI failed for {gene1_symbol}-{gene2_symbol} (exit code {result.returncode}): {result.stderr}")
             return None, None
+        else:
+            logger.info(f"CLI succeeded for {gene1_symbol}-{gene2_symbol}")
         
         # Load results
         gene1_file = pair_temp_dir / f"{gene1_symbol}_all_tissues_correlation_results.pkl"
@@ -109,11 +137,23 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_d
         
         if gene1_file.exists():
             gene1_df = pd.read_pickle(gene1_file)
+            total_gene1 = len(gene1_df)
             gene1_df = gene1_df[gene1_df['status'] == 'success']  # Only successful results
+            logger.info(f"Loaded {gene1_symbol} results: {len(gene1_df)}/{total_gene1} successful correlations")
+        else:
+            logger.warning(f"No results file found for {gene1_symbol}: {gene1_file}")
             
         if gene2_file.exists():
             gene2_df = pd.read_pickle(gene2_file)
+            total_gene2 = len(gene2_df)
             gene2_df = gene2_df[gene2_df['status'] == 'success']  # Only successful results
+            logger.info(f"Loaded {gene2_symbol} results: {len(gene2_df)}/{total_gene2} successful correlations")
+        else:
+            logger.warning(f"No results file found for {gene2_symbol}: {gene2_file}")
+        
+        # Log CLI output files created (for debugging)
+        cli_output_files = list(pair_temp_dir.glob("*"))
+        logger.debug(f"CLI created {len(cli_output_files)} files for {gene1_symbol}-{gene2_symbol}: {[f.name for f in cli_output_files]}")
             
         return gene1_df, gene2_df
         
