@@ -541,16 +541,25 @@ def load_and_enhance_combination(combination, tissue_files, output_dir, args, to
         for error in load_errors:
             logger.warning(f"  {error}")
     
-    # Compute metadata correlations for all gene pairs
-    logger.info(f"Computing metadata correlations...")
-    temp_dir = temp_base_dir / f"correlations_{combination}"
-    enhanced_df = process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, top_n_metadata)
-    combined_df = enhanced_df
-    logger.info(f"Enhanced dataframe shape: {combined_df.shape}")
+    # Conditionally compute metadata correlations
+    if args.combine_only:
+        logger.info(f"Skipping metadata correlations (--combine-only flag enabled)")
+        # Use original combined dataframe without metadata enhancement
+        enhanced_df = combined_df
+        output_suffix = "_combined"
+    else:
+        logger.info(f"Computing metadata correlations...")
+        temp_dir = temp_base_dir / f"correlations_{combination}"
+        enhanced_df = process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, top_n_metadata)
+        logger.info(f"Enhanced dataframe shape: {enhanced_df.shape}")
+        output_suffix = "_with_metadata"
     
-    # Save combined results
-    output_file_pkl = output_dir / f"combined_{combination}_top_gene_pairs_with_metadata.pkl"
-    output_file_csv = output_dir / f"combined_{combination}_top_gene_pairs_with_metadata.csv"
+    # Update combined_df reference
+    combined_df = enhanced_df
+    
+    # Save combined results with appropriate suffix
+    output_file_pkl = output_dir / f"combined_{combination}_top_gene_pairs{output_suffix}.pkl"
+    output_file_csv = output_dir / f"combined_{combination}_top_gene_pairs{output_suffix}.csv"
     
     combined_df.to_pickle(output_file_pkl)
     combined_df.to_csv(output_file_csv, index=False)
@@ -652,7 +661,7 @@ def find_top_gene_files(data_dir, top_n):
     return dict(found_files), tissues, combinations
 
 
-def generate_summary_report(results_summary, output_dir, top_n):
+def generate_summary_report(results_summary, output_dir, top_n, combine_only=False):
     """Generate a comprehensive summary report."""
     logger = logging.getLogger(__name__)
     
@@ -665,6 +674,7 @@ def generate_summary_report(results_summary, output_dir, top_n):
         f.write("=" * 80 + "\n")
         f.write(f"Analysis Date: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Top N Gene Pairs: {top_n}\n")
+        f.write(f"Processing Mode: {'Combine Only (No Metadata Correlations)' if combine_only else 'Full Processing with Metadata Correlations'}\n")
         f.write(f"Output Directory: {output_dir}\n")
         f.write("\n")
         
@@ -699,10 +709,11 @@ def generate_summary_report(results_summary, output_dir, top_n):
         # Files created
         f.write("OUTPUT FILES CREATED\n")
         f.write("-" * 40 + "\n")
+        file_suffix = "_combined" if combine_only else "_with_metadata"
         for combination in sorted(results_summary.keys()):
             f.write(f"Combination: {combination}\n")
-            f.write(f"  - combined_{combination}_top_gene_pairs_with_metadata.pkl\n")
-            f.write(f"  - combined_{combination}_top_gene_pairs_with_metadata.csv\n")
+            f.write(f"  - combined_{combination}_top_gene_pairs{file_suffix}.pkl\n")
+            f.write(f"  - combined_{combination}_top_gene_pairs{file_suffix}.csv\n")
         
         f.write(f"\nSummary report: combination_summary_report.txt\n")
         f.write(f"Log file: Available in logs/ subdirectory\n")
@@ -769,6 +780,12 @@ def main():
         help="Number of parallel jobs for correlation computation.",
     )
     
+    parser.add_argument(
+        "--combine-only",
+        action="store_true",
+        help="Only combine gene pairs across tissues without computing metadata correlations (much faster).",
+    )
+    
     args = parser.parse_args()
     
     try:
@@ -783,6 +800,7 @@ def main():
         logger.info(f"Data directory: {args.data_dir}")
         logger.info(f"Output directory: {output_dir}")
         logger.info(f"Top N gene pairs: {args.top}")
+        logger.info(f"Mode: {'Combine only (no metadata correlations)' if args.combine_only else 'Full processing with metadata correlations'}")
         
         # Discover tissues and combinations
         tissues, combinations = discover_tissues_and_combinations(args.data_dir)
@@ -806,10 +824,14 @@ def main():
             logger.error("--top argument is required for processing (not needed for --list-* commands)")
             sys.exit(1)
         
-        # Create temporary base directory for metadata correlations
-        temp_base_dir = output_dir / "temp_metadata_correlations"
-        temp_base_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Temporary directory for metadata correlations: {temp_base_dir}")
+        # Create temporary base directory for metadata correlations (only if needed)
+        temp_base_dir = None
+        if not args.combine_only:
+            temp_base_dir = output_dir / "temp_metadata_correlations"
+            temp_base_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Temporary directory for metadata correlations: {temp_base_dir}")
+        else:
+            logger.info(f"Skipping temporary directory creation (combine-only mode)")
         
         # Find all top gene files
         found_files, tissues, combinations = find_top_gene_files(args.data_dir, args.top)
@@ -865,7 +887,7 @@ def main():
         total_runtime = total_end_time - total_start_time
         
         # Generate summary report
-        generate_summary_report(results_summary, output_dir, args.top)
+        generate_summary_report(results_summary, output_dir, args.top, args.combine_only)
         
         # Final summary
         logger.info(f"\n{'='*60}")
@@ -878,18 +900,22 @@ def main():
         
         # Show which files were created
         logger.info("\nOutput files created:")
+        file_suffix = "_combined" if args.combine_only else "_with_metadata"
         for combination in sorted(results_summary.keys()):
-            logger.info(f"  combined_{combination}_top_gene_pairs_with_metadata.pkl")
-            logger.info(f"  combined_{combination}_top_gene_pairs_with_metadata.csv")
+            logger.info(f"  combined_{combination}_top_gene_pairs{file_suffix}.pkl")
+            logger.info(f"  combined_{combination}_top_gene_pairs{file_suffix}.csv")
         logger.info(f"  combination_summary_report.txt")
         
-        # Clean up temporary directory
-        try:
-            import shutil
-            shutil.rmtree(temp_base_dir)
-            logger.info(f"Cleaned up temporary directory: {temp_base_dir}")
-        except Exception as e:
-            logger.warning(f"Failed to clean up temp directory {temp_base_dir}: {e}")
+        # Clean up temporary directory (only if it was created)
+        if temp_base_dir is not None:
+            try:
+                import shutil
+                shutil.rmtree(temp_base_dir)
+                logger.info(f"Cleaned up temporary directory: {temp_base_dir}")
+            except Exception as e:
+                logger.warning(f"Failed to clean up temp directory {temp_base_dir}: {e}")
+        else:
+            logger.info("No temporary directory to clean up (combine-only mode)")
         
     except Exception as e:
         logger.error(f"Error: {e}")
