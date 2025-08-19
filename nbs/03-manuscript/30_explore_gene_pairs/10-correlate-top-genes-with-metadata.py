@@ -2,7 +2,9 @@
 """
 CLI tool for combining top gene pairs across tissues and combination categories.
 Processes results from report_top_gene_pairs.py across all tissues and combinations.
-Extended to correlate gene pairs with GTEx metadata using metadata correlation results.
+
+For each gene pair, computes fresh correlations with GTEx metadata using metadata_corr_cli.py
+and extracts top metadata variables correlated with each gene individually and common to both genes.
 """
 
 import argparse
@@ -40,211 +42,7 @@ def setup_logging(output_dir):
     return logger, log_file
 
 
-def load_metadata_correlations(metadata_corr_file):
-    """Load metadata correlation results from pickle file."""
-    logger = logging.getLogger(__name__)
-    
-    if not Path(metadata_corr_file).exists():
-        raise FileNotFoundError(f"Metadata correlation file not found: {metadata_corr_file}")
-    
-    logger.info(f"Loading metadata correlation results from: {metadata_corr_file}")
-    
-    # Load the correlation results
-    corr_df = pd.read_pickle(metadata_corr_file)
-    
-    # Filter to successful results only
-    successful_df = corr_df[corr_df['status'] == 'success'].copy()
-    
-    logger.info(f"Loaded correlation data:")
-    logger.info(f"  Total rows: {len(corr_df):,}")
-    logger.info(f"  Successful rows: {len(successful_df):,}")
-    logger.info(f"  Unique genes: {successful_df['gene_symbol'].nunique()}")
-    logger.info(f"  Unique tissues: {successful_df['tissue'].nunique()}")
-    logger.info(f"  Unique metadata columns: {len(successful_df.index.unique())}")
-    
-    return successful_df
 
-
-def get_gene_top_correlations(corr_df, gene_symbol, top_n=5, alpha=0.05):
-    """Get top N metadata correlations for a specific gene."""
-    # Filter for the specific gene and significant results
-    gene_data = corr_df[
-        (corr_df['gene_symbol'] == gene_symbol) & 
-        (corr_df['p_value'] <= alpha)
-    ].copy()
-    
-    if len(gene_data) == 0:
-        return pd.DataFrame()
-    
-    # Sort by absolute CCC value (descending)
-    gene_data['abs_ccc'] = gene_data['ccc_value'].abs()
-    top_correlations = gene_data.sort_values('abs_ccc', ascending=False).head(top_n)
-    
-    return top_correlations[['ccc_value', 'p_value']].reset_index()
-
-
-def top_common_metadata(corr_df, gene1, gene2, top_n=5, alpha=0.05):
-    """
-    Find top common metadata correlations for two genes using min rank approach.
-    
-    Args:
-        corr_df: Metadata correlation dataframe
-        gene1: First gene symbol
-        gene2: Second gene symbol
-        top_n: Number of top common correlations to return
-        alpha: P-value significance threshold
-    
-    Returns:
-        DataFrame with top common metadata correlations
-    """
-    # Filter by p-value significance
-    sig_df = corr_df[corr_df["p_value"] <= alpha].copy()
-    
-    # Split by gene
-    g1 = sig_df[sig_df["gene_symbol"] == gene1][["ccc_value"]].reset_index()
-    g2 = sig_df[sig_df["gene_symbol"] == gene2][["ccc_value"]].reset_index()
-    
-    if len(g1) == 0 or len(g2) == 0:
-        return pd.DataFrame()
-    
-    # Merge on metadata column
-    merged = pd.merge(g1, g2, on="metadata_column", suffixes=(f"_{gene1}", f"_{gene2}"))
-    
-    if len(merged) == 0:
-        return pd.DataFrame()
-    
-    # Compute score = min(abs(ccc1), abs(ccc2))
-    merged["score"] = merged.apply(
-        lambda row: min(abs(row[f"ccc_value_{gene1}"]), abs(row[f"ccc_value_{gene2}"])),
-        axis=1
-    )
-    
-    # Sort and pick top-n
-    topn = merged.sort_values("score", ascending=False).head(top_n)
-    return topn
-
-
-def process_gene_pair_correlations(combined_df, corr_df, top_n_metadata=5):
-    """
-    Process metadata correlations for all gene pairs in the combined dataframe.
-    
-    Args:
-        combined_df: Combined gene pairs dataframe
-        corr_df: Metadata correlation results dataframe  
-        top_n_metadata: Number of top metadata correlations to extract
-    
-    Returns:
-        Enhanced dataframe with metadata correlation columns
-    """
-    logger = logging.getLogger(__name__)
-    
-    logger.info(f"Processing metadata correlations for {len(combined_df)} gene pairs")
-    logger.info(f"Top N metadata correlations: {top_n_metadata}")
-    
-    # Check available genes in metadata correlation data
-    available_genes = set(corr_df['gene_symbol'].unique())
-    sample_genes = set(combined_df['Gene 1 Symbol'].tolist() + combined_df['Gene 2 Symbol'].tolist())
-    overlap = sample_genes & available_genes
-    missing = sample_genes - overlap
-    
-    logger.info(f"Gene coverage analysis:")
-    logger.info(f"  Total unique genes in pairs: {len(sample_genes):,}")
-    logger.info(f"  Genes with metadata correlations: {len(overlap):,}")
-    logger.info(f"  Genes missing metadata correlations: {len(missing):,}")
-    logger.info(f"  Coverage rate: {(len(overlap)/len(sample_genes)*100):.1f}%")
-    
-    if len(overlap) < 10:
-        logger.warning(f"Very low gene coverage. Available genes: {sorted(list(available_genes))}")
-        logger.warning(f"Sample missing genes: {sorted(list(missing))[:10]}")
-    
-    # Initialize new columns
-    enhanced_df = combined_df.copy()
-    
-    # Gene 1 top correlations columns
-    for i in range(1, top_n_metadata + 1):
-        enhanced_df[f'gene1_top{i}_metadata'] = ''
-        enhanced_df[f'gene1_top{i}_ccc'] = np.nan
-        enhanced_df[f'gene1_top{i}_pvalue'] = np.nan
-    
-    # Gene 2 top correlations columns  
-    for i in range(1, top_n_metadata + 1):
-        enhanced_df[f'gene2_top{i}_metadata'] = ''
-        enhanced_df[f'gene2_top{i}_ccc'] = np.nan
-        enhanced_df[f'gene2_top{i}_pvalue'] = np.nan
-    
-    # Common top correlations columns
-    for i in range(1, top_n_metadata + 1):
-        enhanced_df[f'common_top{i}_metadata'] = ''
-    
-    # Process each gene pair
-    total_pairs = len(enhanced_df)
-    processed_pairs = 0
-    failed_pairs = 0
-    no_data_pairs = 0
-    
-    for idx, row in enhanced_df.iterrows():
-        try:
-            gene1_symbol = row['Gene 1 Symbol']
-            gene2_symbol = row['Gene 2 Symbol']
-            
-            # Progress logging every 1000 pairs
-            if (idx + 1) % 1000 == 0:
-                logger.info(f"Processing gene pair {idx + 1:,}/{total_pairs:,} ({((idx + 1)/total_pairs*100):.1f}%)")
-            
-            # Check if genes are available in metadata correlation data
-            gene1_available = gene1_symbol in available_genes
-            gene2_available = gene2_symbol in available_genes
-            
-            if not gene1_available and not gene2_available:
-                no_data_pairs += 1
-                continue
-            
-            # Get top correlations for gene 1 (if available)
-            if gene1_available:
-                gene1_top = get_gene_top_correlations(corr_df, gene1_symbol, top_n_metadata)
-                
-                # Fill gene 1 correlation data
-                for i, (_, corr_row) in enumerate(gene1_top.iterrows()):
-                    if i < top_n_metadata:
-                        enhanced_df.loc[idx, f'gene1_top{i+1}_metadata'] = corr_row['metadata_column']
-                        enhanced_df.loc[idx, f'gene1_top{i+1}_ccc'] = corr_row['ccc_value']
-                        enhanced_df.loc[idx, f'gene1_top{i+1}_pvalue'] = corr_row['p_value']
-            
-            # Get top correlations for gene 2 (if available)
-            if gene2_available:
-                gene2_top = get_gene_top_correlations(corr_df, gene2_symbol, top_n_metadata)
-                
-                # Fill gene 2 correlation data
-                for i, (_, corr_row) in enumerate(gene2_top.iterrows()):
-                    if i < top_n_metadata:
-                        enhanced_df.loc[idx, f'gene2_top{i+1}_metadata'] = corr_row['metadata_column']
-                        enhanced_df.loc[idx, f'gene2_top{i+1}_ccc'] = corr_row['ccc_value']
-                        enhanced_df.loc[idx, f'gene2_top{i+1}_pvalue'] = corr_row['p_value']
-            
-            # Get common top correlations (only if both genes are available)
-            if gene1_available and gene2_available:
-                common_top = top_common_metadata(corr_df, gene1_symbol, gene2_symbol, top_n_metadata)
-                
-                # Fill common correlation data
-                for i, (_, common_row) in enumerate(common_top.iterrows()):
-                    if i < top_n_metadata:
-                        enhanced_df.loc[idx, f'common_top{i+1}_metadata'] = common_row['metadata_column']
-            
-            processed_pairs += 1
-            
-        except Exception as e:
-            failed_pairs += 1
-            logger.warning(f"Failed to process gene pair at index {idx}: {gene1_symbol}-{gene2_symbol}: {e}")
-            continue
-    
-    logger.info(f"Metadata correlation processing completed:")
-    logger.info(f"  Total pairs: {total_pairs:,}")
-    logger.info(f"  Processed successfully: {processed_pairs:,}")
-    logger.info(f"  No metadata available: {no_data_pairs:,}")
-    logger.info(f"  Failed: {failed_pairs:,}")
-    logger.info(f"  Success rate: {(processed_pairs/total_pairs*100):.1f}%")
-    
-    return enhanced_df
 
 
 def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, output_dir, temp_dir):
@@ -405,9 +203,9 @@ def get_common_metadata_correlations_from_cli(gene1_df, gene2_df, gene1_symbol, 
     return topn
 
 
-def process_gene_pairs_with_fresh_correlations(combined_df, temp_dir, top_n_metadata=5):
+def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, top_n_metadata=5):
     """
-    Process gene pairs with fresh metadata correlations from CLI.
+    Process gene pairs with metadata correlations from CLI.
     
     Args:
         combined_df: Combined gene pairs dataframe
@@ -415,11 +213,11 @@ def process_gene_pairs_with_fresh_correlations(combined_df, temp_dir, top_n_meta
         top_n_metadata: Number of top metadata correlations per gene
         
     Returns:
-        Enhanced dataframe with fresh metadata correlation columns
+        Enhanced dataframe with metadata correlation columns
     """
     logger = logging.getLogger(__name__)
     
-    logger.info(f"Computing fresh metadata correlations for {len(combined_df)} gene pairs")
+    logger.info(f"Computing metadata correlations for {len(combined_df)} gene pairs")
     logger.info(f"Top N metadata correlations: {top_n_metadata}")
     
     # Create temporary directory
@@ -429,21 +227,21 @@ def process_gene_pairs_with_fresh_correlations(combined_df, temp_dir, top_n_meta
     # Initialize enhanced dataframe with new columns
     enhanced_df = combined_df.copy()
     
-    # Gene 1 fresh correlations columns
+    # Gene 1 correlations columns
     for i in range(1, top_n_metadata + 1):
-        enhanced_df[f'gene1_fresh_top{i}_metadata'] = ''
-        enhanced_df[f'gene1_fresh_top{i}_ccc'] = np.nan
-        enhanced_df[f'gene1_fresh_top{i}_pvalue'] = np.nan
+        enhanced_df[f'gene1_top{i}_metadata'] = ''
+        enhanced_df[f'gene1_top{i}_ccc'] = np.nan
+        enhanced_df[f'gene1_top{i}_pvalue'] = np.nan
     
-    # Gene 2 fresh correlations columns  
+    # Gene 2 correlations columns  
     for i in range(1, top_n_metadata + 1):
-        enhanced_df[f'gene2_fresh_top{i}_metadata'] = ''
-        enhanced_df[f'gene2_fresh_top{i}_ccc'] = np.nan
-        enhanced_df[f'gene2_fresh_top{i}_pvalue'] = np.nan
+        enhanced_df[f'gene2_top{i}_metadata'] = ''
+        enhanced_df[f'gene2_top{i}_ccc'] = np.nan
+        enhanced_df[f'gene2_top{i}_pvalue'] = np.nan
     
-    # Common fresh correlations columns
+    # Common correlations columns
     for i in range(1, top_n_metadata + 1):
-        enhanced_df[f'common_fresh_top{i}_metadata'] = ''
+        enhanced_df[f'common_top{i}_metadata'] = ''
     
     # Process each gene pair
     total_pairs = len(enhanced_df)
@@ -476,9 +274,9 @@ def process_gene_pairs_with_fresh_correlations(combined_df, temp_dir, top_n_meta
                     # Fill gene 1 correlation data
                     for i, (_, corr_row) in enumerate(gene1_top.iterrows()):
                         if i < top_n_metadata:
-                            enhanced_df.loc[idx, f'gene1_fresh_top{i+1}_metadata'] = corr_row['metadata_column']
-                            enhanced_df.loc[idx, f'gene1_fresh_top{i+1}_ccc'] = corr_row['ccc_value']
-                            enhanced_df.loc[idx, f'gene1_fresh_top{i+1}_pvalue'] = corr_row['p_value']
+                            enhanced_df.loc[idx, f'gene1_top{i+1}_metadata'] = corr_row['metadata_column']
+                            enhanced_df.loc[idx, f'gene1_top{i+1}_ccc'] = corr_row['ccc_value']
+                            enhanced_df.loc[idx, f'gene1_top{i+1}_pvalue'] = corr_row['p_value']
                 
                 # Get top correlations for gene 2
                 if gene2_cli_df is not None:
@@ -487,9 +285,9 @@ def process_gene_pairs_with_fresh_correlations(combined_df, temp_dir, top_n_meta
                     # Fill gene 2 correlation data
                     for i, (_, corr_row) in enumerate(gene2_top.iterrows()):
                         if i < top_n_metadata:
-                            enhanced_df.loc[idx, f'gene2_fresh_top{i+1}_metadata'] = corr_row['metadata_column']
-                            enhanced_df.loc[idx, f'gene2_fresh_top{i+1}_ccc'] = corr_row['ccc_value']
-                            enhanced_df.loc[idx, f'gene2_fresh_top{i+1}_pvalue'] = corr_row['p_value']
+                            enhanced_df.loc[idx, f'gene2_top{i+1}_metadata'] = corr_row['metadata_column']
+                            enhanced_df.loc[idx, f'gene2_top{i+1}_ccc'] = corr_row['ccc_value']
+                            enhanced_df.loc[idx, f'gene2_top{i+1}_pvalue'] = corr_row['p_value']
                 
                 # Get common correlations if both genes have results
                 if gene1_cli_df is not None and gene2_cli_df is not None:
@@ -500,7 +298,7 @@ def process_gene_pairs_with_fresh_correlations(combined_df, temp_dir, top_n_meta
                     # Fill common correlation data
                     for i, (_, common_row) in enumerate(common_top.iterrows()):
                         if i < top_n_metadata:
-                            enhanced_df.loc[idx, f'common_fresh_top{i+1}_metadata'] = common_row['metadata_column']
+                            enhanced_df.loc[idx, f'common_top{i+1}_metadata'] = common_row['metadata_column']
             
             processed_pairs += 1
             
@@ -509,7 +307,7 @@ def process_gene_pairs_with_fresh_correlations(combined_df, temp_dir, top_n_meta
             logger.warning(f"Failed to process gene pair at index {idx}: {gene1_symbol}-{gene2_symbol}: {e}")
             continue
     
-    logger.info(f"Fresh metadata correlation processing completed:")
+    logger.info(f"Metadata correlation processing completed:")
     logger.info(f"  Total pairs: {total_pairs:,}")
     logger.info(f"  Processed successfully: {processed_pairs:,}")
     logger.info(f"  CLI succeeded for: {cli_success_pairs:,}")
@@ -527,14 +325,12 @@ def process_gene_pairs_with_fresh_correlations(combined_df, temp_dir, top_n_meta
     return enhanced_df
 
 
-def load_and_enhance_combination(combination, tissue_files, output_dir, corr_df=None, top_n_metadata=5, enhance_metadata=False, compute_fresh_correlations=False, temp_base_dir=None):
-    """Load, combine, and optionally enhance tissue files with metadata correlations."""
+def load_and_enhance_combination(combination, tissue_files, output_dir, top_n_metadata=5, temp_base_dir=None):
+    """Load, combine, and enhance tissue files with metadata correlations."""
     logger = logging.getLogger(__name__)
     
     logger.info(f"Processing combination: {combination}")
     logger.info(f"  Files to process: {len(tissue_files)}")
-    logger.info(f"  Enhance with metadata: {enhance_metadata}")
-    logger.info(f"  Compute fresh correlations: {compute_fresh_correlations}")
     
     combined_dfs = []
     load_errors = []
@@ -577,31 +373,16 @@ def load_and_enhance_combination(combination, tissue_files, output_dir, corr_df=
         for error in load_errors:
             logger.warning(f"  {error}")
     
-    # Enhance with pre-computed metadata correlations if requested
-    if enhance_metadata and corr_df is not None:
-        logger.info(f"Enhancing with pre-computed metadata correlations...")
-        enhanced_df = process_gene_pair_correlations(combined_df, corr_df, top_n_metadata)
-        combined_df = enhanced_df
-        logger.info(f"Enhanced dataframe shape: {combined_df.shape}")
-    
-    # Compute fresh metadata correlations if requested
-    if compute_fresh_correlations:
-        logger.info(f"Computing fresh metadata correlations...")
-        temp_dir = temp_base_dir / f"fresh_correlations_{combination}"
-        enhanced_df = process_gene_pairs_with_fresh_correlations(combined_df, temp_dir, top_n_metadata)
-        combined_df = enhanced_df
-        logger.info(f"Enhanced dataframe shape: {combined_df.shape}")
-    
-    # Determine output file suffix
-    suffix = ""
-    if enhance_metadata:
-        suffix += "_with_metadata"
-    if compute_fresh_correlations:
-        suffix += "_with_fresh_metadata"
+    # Compute metadata correlations for all gene pairs
+    logger.info(f"Computing metadata correlations...")
+    temp_dir = temp_base_dir / f"correlations_{combination}"
+    enhanced_df = process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, top_n_metadata)
+    combined_df = enhanced_df
+    logger.info(f"Enhanced dataframe shape: {combined_df.shape}")
     
     # Save combined results
-    output_file_pkl = output_dir / f"combined_{combination}_top_gene_pairs{suffix}.pkl"
-    output_file_csv = output_dir / f"combined_{combination}_top_gene_pairs{suffix}.csv"
+    output_file_pkl = output_dir / f"combined_{combination}_top_gene_pairs_with_metadata.pkl"
+    output_file_csv = output_dir / f"combined_{combination}_top_gene_pairs_with_metadata.csv"
     
     combined_df.to_pickle(output_file_pkl)
     combined_df.to_csv(output_file_csv, index=False)
@@ -741,8 +522,8 @@ def generate_summary_report(results_summary, output_dir, top_n):
         f.write("-" * 40 + "\n")
         for combination in sorted(results_summary.keys()):
             f.write(f"Combination: {combination}\n")
-            f.write(f"  - combined_{combination}_top_gene_pairs.pkl\n")
-            f.write(f"  - combined_{combination}_top_gene_pairs.csv\n")
+            f.write(f"  - combined_{combination}_top_gene_pairs_with_metadata.pkl\n")
+            f.write(f"  - combined_{combination}_top_gene_pairs_with_metadata.csv\n")
         
         f.write(f"\nSummary report: combination_summary_report.txt\n")
         f.write(f"Log file: Available in logs/ subdirectory\n")
@@ -788,27 +569,10 @@ def main():
     )
     
     parser.add_argument(
-        "--enhance-metadata",
-        action="store_true",
-        help="Enhance combined gene pairs with metadata correlations.",
-    )
-    
-    parser.add_argument(
-        "--metadata-corr-file",
-        help="Path to the metadata correlation results pickle file.",
-    )
-    
-    parser.add_argument(
         "--top-metadata-correlations",
         type=int,
         default=5,
         help="Number of top metadata correlations to extract for each gene.",
-    )
-    
-    parser.add_argument(
-        "--compute-fresh-correlations",
-        action="store_true",
-        help="Compute fresh metadata correlations for each gene pair using CLI (computationally expensive).",
     )
     
     args = parser.parse_args()
@@ -848,23 +612,10 @@ def main():
             logger.error("--top argument is required for processing (not needed for --list-* commands)")
             sys.exit(1)
         
-        # Validate metadata enhancement arguments
-        if args.enhance_metadata and not args.metadata_corr_file:
-            logger.error("--metadata-corr-file is required when --enhance-metadata is specified")
-            sys.exit(1)
-        
-        # Load metadata correlations if enhancement is requested
-        corr_df = None
-        if args.enhance_metadata:
-            logger.info("Loading metadata correlation data for enhancement...")
-            corr_df = load_metadata_correlations(args.metadata_corr_file)
-        
-        # Create temporary base directory for fresh correlations if needed
-        temp_base_dir = None
-        if args.compute_fresh_correlations:
-            temp_base_dir = output_dir / "temp_fresh_correlations"
-            temp_base_dir.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Temporary directory for fresh correlations: {temp_base_dir}")
+        # Create temporary base directory for metadata correlations
+        temp_base_dir = output_dir / "temp_metadata_correlations"
+        temp_base_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Temporary directory for metadata correlations: {temp_base_dir}")
         
         # Find all top gene files
         found_files, tissues, combinations = find_top_gene_files(args.data_dir, args.top)
@@ -893,10 +644,7 @@ def main():
             combo_start_time = time.time()
             combined_df, load_errors = load_and_enhance_combination(
                 combination, tissue_files, output_dir,
-                corr_df=corr_df,
                 top_n_metadata=args.top_metadata_correlations,
-                enhance_metadata=args.enhance_metadata,
-                compute_fresh_correlations=args.compute_fresh_correlations,
                 temp_base_dir=temp_base_dir
             )
             combo_end_time = time.time()
@@ -937,23 +685,17 @@ def main():
         # Show which files were created
         logger.info("\nOutput files created:")
         for combination in sorted(results_summary.keys()):
-            suffix = ""
-            if args.enhance_metadata:
-                suffix += "_with_metadata"
-            if args.compute_fresh_correlations:
-                suffix += "_with_fresh_metadata"
-            logger.info(f"  combined_{combination}_top_gene_pairs{suffix}.pkl")
-            logger.info(f"  combined_{combination}_top_gene_pairs{suffix}.csv")
+            logger.info(f"  combined_{combination}_top_gene_pairs_with_metadata.pkl")
+            logger.info(f"  combined_{combination}_top_gene_pairs_with_metadata.csv")
         logger.info(f"  combination_summary_report.txt")
         
-        # Clean up temporary directory if used
-        if temp_base_dir is not None:
-            try:
-                import shutil
-                shutil.rmtree(temp_base_dir)
-                logger.info(f"Cleaned up temporary directory: {temp_base_dir}")
-            except Exception as e:
-                logger.warning(f"Failed to clean up temp directory {temp_base_dir}: {e}")
+        # Clean up temporary directory
+        try:
+            import shutil
+            shutil.rmtree(temp_base_dir)
+            logger.info(f"Cleaned up temporary directory: {temp_base_dir}")
+        except Exception as e:
+            logger.warning(f"Failed to clean up temp directory {temp_base_dir}: {e}")
         
     except Exception as e:
         logger.error(f"Error: {e}")
