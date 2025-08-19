@@ -90,8 +90,11 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir
         logger.error(f"Cannot find metadata correlation CLI script: {cli_script}")
         return None, None
     
-    # Create temporary output directory for this gene pair
-    pair_temp_dir = temp_dir / f"{gene1_symbol}_{gene2_symbol}"
+    # Create tissue-specific temporary directory, then gene pair directory
+    tissue_temp_dir = temp_dir / tissue
+    tissue_temp_dir.mkdir(parents=True, exist_ok=True)
+    
+    pair_temp_dir = tissue_temp_dir / f"{gene1_symbol}_{gene2_symbol}"
     pair_temp_dir.mkdir(exist_ok=True)
     
     try:
@@ -111,6 +114,7 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir
         
         # Run the CLI script
         logger.info(f"Running metadata correlation CLI for {gene1_symbol}-{gene2_symbol} in tissue {tissue}")
+        logger.debug(f"Output directory: {pair_temp_dir}")
         result = subprocess.run(
             cmd, 
             capture_output=True, 
@@ -358,10 +362,18 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
     logger.info(f"  Success rate: {(processed_pairs/total_pairs*100):.1f}%")
     logger.info(f"  CLI success rate: {(cli_success_pairs/total_pairs*100):.1f}%")
     
-    # Clean up temporary directory
+    # Clean up temporary directory (organized by tissue)
     try:
         import shutil
+        # Log directory structure for debugging
+        if temp_dir.exists():
+            tissue_dirs = [d for d in temp_dir.iterdir() if d.is_dir()]
+            logger.debug(f"Cleaning up temp directory with {len(tissue_dirs)} tissue subdirectories")
+            for tissue_dir in tissue_dirs:
+                gene_pair_dirs = [d for d in tissue_dir.iterdir() if d.is_dir()]
+                logger.debug(f"  {tissue_dir.name}: {len(gene_pair_dirs)} gene pairs")
         shutil.rmtree(temp_dir)
+        logger.info(f"Cleaned up temporary directory: {temp_dir}")
     except Exception as e:
         logger.warning(f"Failed to clean up temp directory {temp_dir}: {e}")
     
