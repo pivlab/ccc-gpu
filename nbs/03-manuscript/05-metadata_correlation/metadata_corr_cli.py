@@ -19,8 +19,11 @@ from ccc.coef import ccc
 warnings.filterwarnings("ignore", message="invalid value encountered in cast")
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="numpy")
 
+# Global quiet flag for batch processing
+QUIET_MODE = False
 
-def find_expression_files(expr_data_dir, include_patterns=None, exclude_patterns=None):
+
+def find_expression_files(expr_data_dir, include_patterns=None, exclude_patterns=None, quiet=False):
     """Find expression files matching include/exclude patterns."""
     expr_data_dir = Path(expr_data_dir)
 
@@ -69,14 +72,15 @@ def find_expression_files(expr_data_dir, include_patterns=None, exclude_patterns
                 filtered_files.append((file_path, tissue_name))
         all_files = filtered_files
 
-    print(f"Found {len(all_files)} expression files to process:")
-    for file_path, tissue_name in all_files:
-        print(f"  {tissue_name}: {file_path.name}")
+    if not quiet:
+        print(f"Found {len(all_files)} expression files to process:")
+        for file_path, tissue_name in all_files:
+            print(f"  {tissue_name}: {file_path.name}")
 
     return all_files
 
 
-def load_metadata_and_gene_map():
+def load_metadata_and_gene_map(quiet=False):
     """Load metadata and gene mapping files."""
     # Define paths
     DATA_DIR = Path("/pividori_lab/haoyu_projects/ccc-gpu/data/gtex")
@@ -90,19 +94,21 @@ def load_metadata_and_gene_map():
         if not file_path.exists():
             raise FileNotFoundError(f"Required file not found: {file_path}")
 
-    print("Loading metadata and gene mapping files...")
+    if not quiet:
+        print("Loading metadata and gene mapping files...")
 
     # Load data
     gtex_metadata = pd.read_pickle(METADATA_FILE)
     gene_map = pd.read_pickle(GENE_MAP_FILE)
 
-    print(f"Loaded metadata: {gtex_metadata.shape}")
-    print(f"Loaded gene mapping: {gene_map.shape}")
+    if not quiet:
+        print(f"Loaded metadata: {gtex_metadata.shape}")
+        print(f"Loaded gene mapping: {gene_map.shape}")
 
     return gtex_metadata, gene_map
 
 
-def setup_tissue_logger(gene_symbol, tissue_name, output_dir):
+def setup_tissue_logger(gene_symbol, tissue_name, output_dir, no_individual_logs=False):
     """Set up a logger for a specific gene-tissue combination."""
     logger_name = f"tissue_{gene_symbol}_{tissue_name}"
     logger = logging.getLogger(logger_name)
@@ -113,20 +119,23 @@ def setup_tissue_logger(gene_symbol, tissue_name, output_dir):
     # Set level
     logger.setLevel(logging.INFO)
 
-    # Create file handler
-    log_file = output_dir / f"{gene_symbol}_{tissue_name}.log"
-    file_handler = logging.FileHandler(log_file, mode="w")
-    file_handler.setLevel(logging.INFO)
+    log_file = None
+    if not no_individual_logs:
+        # Create file handler
+        log_file = output_dir / f"{gene_symbol}_{tissue_name}.log"
+        file_handler = logging.FileHandler(log_file, mode="w")
+        file_handler.setLevel(logging.INFO)
 
-    # Create formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    file_handler.setFormatter(formatter)
+        # Create formatter
+        formatter = logging.Formatter(
+            "%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        file_handler.setFormatter(formatter)
 
-    # Add handler to logger
-    logger.addHandler(file_handler)
-
+        # Add handler to logger
+        logger.addHandler(file_handler)
+    
+    # Always return a logger (may have no handlers if individual logs disabled)
     return logger, log_file
 
 
@@ -159,9 +168,14 @@ def setup_summary_logger(gene_symbols, output_dir):
     return logger, log_file
 
 
-def log_and_print(message, logger=None, summary_file=None):
+def log_and_print(message, logger=None, summary_file=None, quiet=None):
     """Print message and log it if logger is provided, optionally write to summary file."""
-    print(message)
+    # Use global quiet mode if not explicitly specified
+    if quiet is None:
+        quiet = QUIET_MODE
+    
+    if not quiet:
+        print(message)
     if logger:
         logger.info(message)
     if summary_file:
@@ -193,11 +207,12 @@ def compute_correlations_for_tissue(
     output_dir,
     pvalue_n_perms=1000000,
     n_jobs=1,
+    no_individual_logs=False,
 ):
     """Compute correlation between gene expression and all metadata columns for a specific tissue."""
 
     # Set up logging for this tissue
-    logger, log_file = setup_tissue_logger(gene_symbol, tissue_name, output_dir)
+    logger, log_file = setup_tissue_logger(gene_symbol, tissue_name, output_dir, no_individual_logs)
 
     log_and_print(f"\n{'='*60}", logger)
     log_and_print(f"Processing tissue: {tissue_name}", logger)
@@ -412,8 +427,30 @@ def main():
         default=".",
         help="Directory to save output files (default: current directory)",
     )
+    
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Reduce output verbosity for batch processing",
+    )
+    
+    parser.add_argument(
+        "--no-csv-output",
+        action="store_true",
+        help="Skip CSV file generation (only create pickle files)",
+    )
+    
+    parser.add_argument(
+        "--no-individual-logs",
+        action="store_true",
+        help="Skip individual tissue log files (only keep summary logs)",
+    )
 
     args = parser.parse_args()
+
+    # Set global quiet mode
+    global QUIET_MODE
+    QUIET_MODE = args.quiet
 
     try:
         # Create output directory if it doesn't exist
@@ -444,6 +481,7 @@ def main():
             args.expr_data_dir,
             include_patterns=args.include,
             exclude_patterns=args.exclude,
+            quiet=args.quiet,
         )
 
         # If user wants to list tissues
@@ -457,7 +495,7 @@ def main():
             return
 
         # Load metadata and gene mapping
-        gtex_metadata, gene_map = load_metadata_and_gene_map()
+        gtex_metadata, gene_map = load_metadata_and_gene_map(quiet=args.quiet)
 
         # If user wants to list metadata columns
         if args.list_metadata_columns:
@@ -502,6 +540,7 @@ def main():
                         output_dir,
                         args.permutations,
                         args.n_jobs,
+                        args.no_individual_logs,
                     )
 
                     tissue_end_time = time.time()
@@ -523,10 +562,11 @@ def main():
                             f"Results for {gene_symbol} in {tissue_name} saved to: {output_file}",
                             summary_logger,
                         )
-                        log_and_print(
-                            f"Log file for {gene_symbol} in {tissue_name} saved to: {log_file}",
-                            summary_logger,
-                        )
+                        if not args.no_individual_logs and log_file:
+                            log_and_print(
+                                f"Log file for {gene_symbol} in {tissue_name} saved to: {log_file}",
+                                summary_logger,
+                            )
                         log_and_print(
                             f"Runtime for {gene_symbol} in {tissue_name}: {tissue_runtime:.2f} seconds ({tissue_runtime/60:.2f} minutes)",
                             summary_logger,
@@ -537,10 +577,11 @@ def main():
                             f"No results generated for {gene_symbol} in {tissue_name}",
                             summary_logger,
                         )
-                        log_and_print(
-                            f"Log file for {gene_symbol} in {tissue_name} saved to: {log_file}",
-                            summary_logger,
-                        )
+                        if not args.no_individual_logs and log_file:
+                            log_and_print(
+                                f"Log file for {gene_symbol} in {tissue_name} saved to: {log_file}",
+                                summary_logger,
+                            )
                         log_and_print(
                             f"Runtime for {gene_symbol} in {tissue_name}: {tissue_runtime:.2f} seconds ({tissue_runtime/60:.2f} minutes)",
                             summary_logger,
@@ -555,10 +596,11 @@ def main():
                         f"Error processing {gene_symbol} in {tissue_name}: {e}",
                         summary_logger,
                     )
-                    log_and_print(
-                        f"Log file for {gene_symbol} in {tissue_name} saved to: {log_file}",
-                        summary_logger,
-                    )
+                    if not args.no_individual_logs and log_file:
+                        log_and_print(
+                            f"Log file for {gene_symbol} in {tissue_name} saved to: {log_file}",
+                            summary_logger,
+                        )
                     log_and_print(
                         f"Runtime for {gene_symbol} in {tissue_name} (failed): {tissue_runtime:.2f} seconds ({tissue_runtime/60:.2f} minutes)",
                         summary_logger,
@@ -594,10 +636,11 @@ def main():
                 output_dir / f"{gene_symbol}_all_tissues_correlation_results.pkl"
             )
             combined_results.to_pickle(combined_output_file)
-            combined_csv_file = (
-                output_dir / f"{gene_symbol}_all_tissues_correlation_results.csv"
-            )
-            combined_results.to_csv(combined_csv_file)
+            if not args.no_csv_output:
+                combined_csv_file = (
+                    output_dir / f"{gene_symbol}_all_tissues_correlation_results.csv"
+                )
+                combined_results.to_csv(combined_csv_file)
 
             # Gene-specific summary
             log_and_print(f"\n{'='*80}", summary_logger, summary_tables_file)
@@ -624,11 +667,12 @@ def main():
                 summary_logger,
                 summary_tables_file,
             )
-            log_and_print(
-                f"Combined results (CSV) saved to: {combined_csv_file}",
-                summary_logger,
-                summary_tables_file,
-            )
+            if not args.no_csv_output:
+                log_and_print(
+                    f"Combined results (CSV) saved to: {combined_csv_file}",
+                    summary_logger,
+                    summary_tables_file,
+                )
 
             # Show summary statistics for this gene
             successful_analyses = combined_results[
@@ -833,24 +877,26 @@ def main():
             summary_tables_file,
         )
 
-        # Also save as CSV for easy viewing
-        mega_csv_file = output_dir / "_all_genes_all_tissues_correlation_results.csv"
-        mega_combined_results.to_csv(mega_csv_file)
-        log_and_print(
-            f"All genes combined results (CSV) saved to: {mega_csv_file}",
-            summary_logger,
-            summary_tables_file,
-        )
+        # Also save as CSV for easy viewing (if not disabled)
+        if not args.no_csv_output:
+            mega_csv_file = output_dir / "_all_genes_all_tissues_correlation_results.csv"
+            mega_combined_results.to_csv(mega_csv_file)
+            log_and_print(
+                f"All genes combined results (CSV) saved to: {mega_csv_file}",
+                summary_logger,
+                summary_tables_file,
+            )
 
-        # List all log files created
-        log_and_print("\nLog files created:", summary_logger)
-        for gene_symbol in all_genes_results.keys():
-            for tissue_name in [name for _, name in expression_files]:
-                log_file = output_dir / f"{gene_symbol}_{tissue_name}.log"
-                if log_file.exists():
-                    log_and_print(
-                        f"  {gene_symbol} - {tissue_name}: {log_file}", summary_logger
-                    )
+        # List all log files created (if individual logs are enabled)
+        if not args.no_individual_logs:
+            log_and_print("\nLog files created:", summary_logger)
+            for gene_symbol in all_genes_results.keys():
+                for tissue_name in [name for _, name in expression_files]:
+                    log_file = output_dir / f"{gene_symbol}_{tissue_name}.log"
+                    if log_file.exists():
+                        log_and_print(
+                            f"  {gene_symbol} - {tissue_name}: {log_file}", summary_logger
+                        )
 
         # Show summary statistics across all genes and tissues
         successful_analyses = mega_combined_results[
