@@ -557,9 +557,9 @@ def load_and_enhance_combination(combination, tissue_files, output_dir, args, to
     # Update combined_df reference
     combined_df = enhanced_df
     
-    # Save combined results with appropriate suffix
-    output_file_pkl = output_dir / f"combined_{combination}_top_gene_pairs{output_suffix}.pkl"
-    output_file_csv = output_dir / f"combined_{combination}_top_gene_pairs{output_suffix}.csv"
+    # Save combined results with appropriate suffix including top_n
+    output_file_pkl = output_dir / f"combined_{combination}_top_{args.top}_gene_pairs{output_suffix}.pkl"
+    output_file_csv = output_dir / f"combined_{combination}_top_{args.top}_gene_pairs{output_suffix}.csv"
     
     combined_df.to_pickle(output_file_pkl)
     combined_df.to_csv(output_file_csv, index=False)
@@ -661,11 +661,16 @@ def find_top_gene_files(data_dir, top_n):
     return dict(found_files), tissues, combinations
 
 
-def generate_summary_report(results_summary, output_dir, top_n, combine_only=False):
+def generate_summary_report(results_summary, output_dir, top_n, combine_only=False, tissue=None):
     """Generate a comprehensive summary report."""
     logger = logging.getLogger(__name__)
     
-    summary_file = output_dir / "combination_summary_report.txt"
+    # Build filename with top_n and optionally tissue
+    filename_parts = ["combination_summary_report", f"top_{top_n}"]
+    if tissue:
+        filename_parts.append(tissue)
+    summary_filename = "_".join(filename_parts) + ".txt"
+    summary_file = output_dir / summary_filename
     
     with open(summary_file, 'w') as f:
         # Header
@@ -712,10 +717,10 @@ def generate_summary_report(results_summary, output_dir, top_n, combine_only=Fal
         file_suffix = "_combined" if combine_only else "_with_metadata"
         for combination in sorted(results_summary.keys()):
             f.write(f"Combination: {combination}\n")
-            f.write(f"  - combined_{combination}_top_gene_pairs{file_suffix}.pkl\n")
-            f.write(f"  - combined_{combination}_top_gene_pairs{file_suffix}.csv\n")
+            f.write(f"  - combined_{combination}_top_{top_n}_gene_pairs{file_suffix}.pkl\n")
+            f.write(f"  - combined_{combination}_top_{top_n}_gene_pairs{file_suffix}.csv\n")
         
-        f.write(f"\nSummary report: combination_summary_report.txt\n")
+        f.write(f"\nSummary report: {summary_filename}\n")
         f.write(f"Log file: Available in logs/ subdirectory\n")
     
     logger.info(f"Summary report saved to: {summary_file}")
@@ -786,6 +791,12 @@ def main():
         help="Only combine gene pairs across tissues without computing metadata correlations (much faster).",
     )
     
+    parser.add_argument(
+        "--tissue",
+        type=str,
+        help="Process only a specific tissue (for debugging). If not provided, all tissues will be processed.",
+    )
+    
     args = parser.parse_args()
     
     try:
@@ -801,6 +812,10 @@ def main():
         logger.info(f"Output directory: {output_dir}")
         logger.info(f"Top N gene pairs: {args.top}")
         logger.info(f"Mode: {'Combine only (no metadata correlations)' if args.combine_only else 'Full processing with metadata correlations'}")
+        if args.tissue:
+            logger.info(f"Tissue filtering: Only processing tissue '{args.tissue}' (debugging mode)")
+        else:
+            logger.info(f"Tissue filtering: Processing all tissues")
         
         # Discover tissues and combinations
         tissues, combinations = discover_tissues_and_combinations(args.data_dir)
@@ -857,6 +872,16 @@ def main():
             
             tissue_files = found_files[combination]
             
+            # Filter to specific tissue if requested (for debugging)
+            if args.tissue:
+                if args.tissue in tissue_files:
+                    tissue_files = {args.tissue: tissue_files[args.tissue]}
+                    logger.info(f"  Filtering to single tissue: {args.tissue} (debugging mode)")
+                else:
+                    logger.warning(f"  Requested tissue '{args.tissue}' not found in combination '{combination}'")
+                    logger.warning(f"  Available tissues: {list(tissue_files.keys())}")
+                    continue
+            
             combo_start_time = time.time()
             combined_df, load_errors = load_and_enhance_combination(
                 combination, tissue_files, output_dir, args,
@@ -887,7 +912,7 @@ def main():
         total_runtime = total_end_time - total_start_time
         
         # Generate summary report
-        generate_summary_report(results_summary, output_dir, args.top, args.combine_only)
+        generate_summary_report(results_summary, output_dir, args.top, args.combine_only, args.tissue)
         
         # Final summary
         logger.info(f"\n{'='*60}")
@@ -902,9 +927,15 @@ def main():
         logger.info("\nOutput files created:")
         file_suffix = "_combined" if args.combine_only else "_with_metadata"
         for combination in sorted(results_summary.keys()):
-            logger.info(f"  combined_{combination}_top_gene_pairs{file_suffix}.pkl")
-            logger.info(f"  combined_{combination}_top_gene_pairs{file_suffix}.csv")
-        logger.info(f"  combination_summary_report.txt")
+            logger.info(f"  combined_{combination}_top_{args.top}_gene_pairs{file_suffix}.pkl")
+            logger.info(f"  combined_{combination}_top_{args.top}_gene_pairs{file_suffix}.csv")
+        
+        # Build summary report filename with same logic as in generate_summary_report
+        summary_filename_parts = ["combination_summary_report", f"top_{args.top}"]
+        if args.tissue:
+            summary_filename_parts.append(args.tissue)
+        summary_filename = "_".join(summary_filename_parts) + ".txt"
+        logger.info(f"  {summary_filename}")
         
         # Clean up temporary directory (only if it was created)
         if temp_base_dir is not None:
