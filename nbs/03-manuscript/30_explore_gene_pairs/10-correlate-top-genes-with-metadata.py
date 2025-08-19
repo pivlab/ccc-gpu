@@ -61,7 +61,7 @@ def setup_logging(output_dir):
 
 
 
-def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir, temp_dir):
+def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir, temp_dir, args):
     """
     Call the metadata correlation CLI script for a gene pair in a specific tissue.
     
@@ -102,8 +102,8 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir
             "--output-dir", str(pair_temp_dir),
             "--expr-data-dir", "/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/gene_selection/all",
             "--include", tissue,  # Only process the specific tissue for this gene pair
-            "--permutations", "10000",  # Reduce permutations for speed
-            "--n-jobs", "4",  # Reduce parallel jobs to avoid overwhelming system
+            "--permutations", str(args.permutations),  # Configurable permutations
+            "--n-jobs", str(args.n_jobs),  # Configurable parallel jobs
             "--quiet",  # Reduce verbosity for batch processing
             "--no-csv-output",  # Skip CSV generation, only need pickle files
             "--no-individual-logs"  # Skip individual tissue logs
@@ -245,7 +245,7 @@ def get_common_metadata_correlations_from_cli(gene1_df, gene2_df, gene1_symbol, 
     return topn
 
 
-def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, top_n_metadata=5):
+def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, top_n_metadata=5):
     """
     Process gene pairs with metadata correlations from CLI.
     
@@ -303,7 +303,7 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, top_n_m
             
             # Call CLI for this gene pair (only for the specific tissue)
             gene1_cli_df, gene2_cli_df = call_metadata_correlation_cli(
-                gene1_symbol, gene2_symbol, tissue, temp_dir, temp_dir
+                gene1_symbol, gene2_symbol, tissue, temp_dir, temp_dir, args
             )
             
             # Process results if CLI succeeded
@@ -368,7 +368,7 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, top_n_m
     return enhanced_df
 
 
-def load_and_enhance_combination(combination, tissue_files, output_dir, top_n_metadata=5, temp_base_dir=None):
+def load_and_enhance_combination(combination, tissue_files, output_dir, args, top_n_metadata=5, temp_base_dir=None):
     """Load, combine, and enhance tissue files with metadata correlations."""
     logger = logging.getLogger(__name__)
     
@@ -419,7 +419,7 @@ def load_and_enhance_combination(combination, tissue_files, output_dir, top_n_me
     # Compute metadata correlations for all gene pairs
     logger.info(f"Computing metadata correlations...")
     temp_dir = temp_base_dir / f"correlations_{combination}"
-    enhanced_df = process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, top_n_metadata)
+    enhanced_df = process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, top_n_metadata)
     combined_df = enhanced_df
     logger.info(f"Enhanced dataframe shape: {combined_df.shape}")
     
@@ -629,6 +629,21 @@ def main():
         help="Number of top metadata correlations to extract for each gene.",
     )
     
+    # Performance tuning arguments
+    parser.add_argument(
+        "--permutations",
+        type=int,
+        default=1000,
+        help="Number of permutations for statistical significance testing (higher = more accurate but slower).",
+    )
+    
+    parser.add_argument(
+        "--n-jobs",
+        type=int,
+        default=16,
+        help="Number of parallel jobs for correlation computation.",
+    )
+    
     args = parser.parse_args()
     
     try:
@@ -686,7 +701,7 @@ def main():
         logger.info("PROCESSING COMBINATIONS")
         logger.info(f"{'='*60}")
         
-        for i, combination in enumerate(sorted(combinations), 1):
+        for i, combination in enumerate(combinations, 1):
             logger.info(f"\n[{i}/{len(combinations)}] Processing combination: {combination}")
             
             if combination not in found_files:
@@ -697,7 +712,7 @@ def main():
             
             combo_start_time = time.time()
             combined_df, load_errors = load_and_enhance_combination(
-                combination, tissue_files, output_dir,
+                combination, tissue_files, output_dir, args,
                 top_n_metadata=args.top_metadata_correlations,
                 temp_base_dir=temp_base_dir
             )
