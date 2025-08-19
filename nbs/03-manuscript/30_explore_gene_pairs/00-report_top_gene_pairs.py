@@ -184,6 +184,20 @@ def format_gene_pair_output(df: pd.DataFrame, top_n: int = 30, gene_mappings: Di
     """Format the top gene pairs for text output."""
     top_df = df.head(top_n)
     
+    # Remove unwanted columns from text output as well
+    columns_to_remove = [
+        "ccc_pearson_diff", 
+        "ccc_spearman_diff", 
+        "ccc_combined_distance", 
+        "ccc_mean_distance", 
+        "ccc_max_distance"
+    ]
+    
+    # Filter out columns that actually exist in the dataframe
+    existing_columns_to_remove = [col for col in columns_to_remove if col in top_df.columns]
+    if existing_columns_to_remove:
+        top_df = top_df.drop(columns=existing_columns_to_remove)
+    
     output_lines = []
     output_lines.append(f"Top {top_n} Gene Pairs (from original sorted data)")
     output_lines.append("=" * 80)
@@ -270,6 +284,23 @@ def export_to_csv(df: pd.DataFrame, top_n: int, output_path: str, logger: loggin
     else:
         top_df = top_df.reset_index()
         top_df.rename(columns={'index': 'gene_pair_index'}, inplace=True)
+    
+    # Remove unwanted columns before export
+    columns_to_remove = [
+        "ccc_pearson_diff", 
+        "ccc_spearman_diff", 
+        "ccc_combined_distance", 
+        "ccc_mean_distance", 
+        "ccc_max_distance"
+    ]
+    
+    # Filter out columns that actually exist in the dataframe
+    existing_columns_to_remove = [col for col in columns_to_remove if col in top_df.columns]
+    if existing_columns_to_remove:
+        logger.info(f"Removing columns from CSV output: {existing_columns_to_remove}")
+        top_df = top_df.drop(columns=existing_columns_to_remove)
+    else:
+        logger.debug(f"No unwanted columns found to remove from: {list(top_df.columns)}")
     
     # Add gene symbols if mappings are available
     if gene_mappings and 'gene1' in top_df.columns and 'gene2' in top_df.columns:
