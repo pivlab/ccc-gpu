@@ -85,6 +85,7 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir
         if not cli_script.exists():
             # Try absolute path
             cli_script = Path("/home/zhhaoyu/_projs/ccc-gpu/nbs/03-manuscript/05-metadata_correlation/metadata_corr_cli.py")
+            cli_script = Path("/home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/05-metadata_correlation/metadata_corr_cli.py")
     
     if not cli_script.exists():
         logger.error(f"Cannot find metadata correlation CLI script: {cli_script}")
@@ -103,7 +104,9 @@ def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir
             sys.executable, str(cli_script),
             gene1_symbol, gene2_symbol,
             "--output-dir", str(pair_temp_dir),
-            "--expr-data-dir", "/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/gene_selection/all",
+            # "--expr-data-dir", "/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/gene_selection/all",
+            "--expr-data-dir", "/mnt/data/proj_data/ccc-gpu/data/gtex/gene_selection/all",
+            "--data-dir", "/mnt/data/proj_data/ccc-gpu/data/gtex",
             "--include", tissue,  # Only process the specific tissue for this gene pair
             "--permutations", str(args.permutations),  # Configurable permutations
             "--n-jobs", str(args.n_jobs),  # Configurable parallel jobs
@@ -780,7 +783,7 @@ def main():
     parser.add_argument(
         "--permutations",
         type=int,
-        default=1000,
+        default=10000,
         help="Number of permutations for statistical significance testing (higher = more accurate but slower).",
     )
     
