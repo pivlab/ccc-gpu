@@ -1,0 +1,168 @@
+2025-08-20 01:13:56 - Output directory: /home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/05-metadata_correlation
+2025-08-20 01:13:56 - Summary log file: _RASSF2_summary_execution.log
+2025-08-20 01:13:56 - Summary tables file: _RASSF2_summary_tables.log
+2025-08-20 01:13:56 - Gene symbols to analyze: RASSF2
+2025-08-20 01:13:56 -
+====================================================================================================
+2025-08-20 01:13:56 - PROCESSING GENE 1/1: RASSF2
+2025-08-20 01:13:56 - ====================================================================================================
+2025-08-20 01:13:56 -
+[1/1] Starting processing for RASSF2 in whole_blood...
+2025-08-20 01:21:21 - Results for RASSF2 in whole_blood saved to: RASSF2_whole_blood_correlation_results.pkl
+2025-08-20 01:21:21 - Log file for RASSF2 in whole_blood saved to: RASSF2_whole_blood.log
+2025-08-20 01:21:21 - Runtime for RASSF2 in whole_blood: 444.69 seconds (7.41 minutes)
+2025-08-20 01:21:21 -
+================================================================================
+2025-08-20 01:21:21 - COMBINED RESULTS SUMMARY
+2025-08-20 01:21:21 - ================================================================================
+2025-08-20 01:21:21 - Gene Symbol: RASSF2
+2025-08-20 01:21:21 - Gene ID: ENSG00000101265.15
+2025-08-20 01:21:21 - Permutations: 100,000
+2025-08-20 01:21:21 - Tissues processed: 1
+2025-08-20 01:21:21 - Combined results saved to: RASSF2_all_tissues_correlation_results.pkl
+2025-08-20 01:21:21 - Combined results (CSV) saved to: RASSF2_all_tissues_correlation_results.csv
+2025-08-20 01:21:21 -
+Total successful analyses across all tissues: 192
+2025-08-20 01:21:21 -
+================================================================================
+2025-08-20 01:21:21 - TOP CORRELATIONS ACROSS ALL TISSUES (by absolute CCC value)
+2025-08-20 01:21:21 - ================================================================================
+2025-08-20 01:21:21 - Tissue               Metadata Column           CCC Value    P-value      Significance
+2025-08-20 01:21:21 - ------------------------------------------------------------------------------------------
+2025-08-20 01:21:21 - whole_blood          COHORT                      0.553714    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          TRCHSTIND                   0.535868    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          TRISCHD                     0.535868    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          SMTSISCH                    0.528125    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          TRDNISCH                    0.509012    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          LBCMVTAB                    0.505233    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          LBEBVGAB                    0.497715    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          LBEBVMAB                    0.497715    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          DTHRFG                      0.490255    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          TRCCLMPD                    0.490252    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          DTHHRDY                     0.464582    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          DTHVNT                      0.443140    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          DTHVNTD                     0.418721    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          MHBRNWGHT                   0.349664    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          MHBRNPH                     0.349664    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          MHABNWBC                    0.270010    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          SMNTERRT                    0.250997    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          SMNTRART                    0.243071    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          TRCRTMP                     0.203103    1.00e-05  ***
+2025-08-20 01:21:21 - whole_blood          SMNTRNRT                    0.202936    1.00e-05  ***
+2025-08-20 01:21:21 -
+================================================================================
+2025-08-20 01:21:21 - SUMMARY BY TISSUE
+2025-08-20 01:21:21 - ================================================================================
+2025-08-20 01:21:21 - Tissue               N Samples  Successful   Mean |CCC|   Max |CCC|
+2025-08-20 01:21:21 - ----------------------------------------------------------------------
+2025-08-20 01:21:21 - whole_blood          755        192          0.060103     0.553714
+2025-08-20 01:21:21 -
+================================================================================
+2025-08-20 01:21:21 - RUNTIME SUMMARY
+2025-08-20 01:21:21 - ================================================================================
+2025-08-20 01:21:21 - Total runtime: 444.69 seconds (7.41 minutes)
+2025-08-20 01:21:21 - Average runtime per tissue: 444.69 seconds
+2025-08-20 01:21:21 -
+Runtime by tissue:
+2025-08-20 01:21:21 - Tissue                    Runtime (sec)   Runtime (min)   Status
+2025-08-20 01:21:21 - ----------------------------------------------------------------------
+2025-08-20 01:21:21 - whole_blood               444.69          7.41            Success
+2025-08-20 01:21:21 -
+Fastest: whole_blood (444.69 seconds)
+2025-08-20 01:21:21 - Slowest: whole_blood (444.69 seconds)
+2025-08-20 01:21:21 - Speed ratio: 1.0x
+2025-08-20 01:21:21 - Runtime for RASSF2: 444.69 seconds (7.41 minutes)
+2025-08-20 01:21:21 -
+====================================================================================================
+2025-08-20 01:21:21 - OVERALL RESULTS SUMMARY
+2025-08-20 01:21:21 - ====================================================================================================
+2025-08-20 01:21:21 - Gene symbols processed: RASSF2
+2025-08-20 01:21:21 - Total genes: 1
+2025-08-20 01:21:21 - Permutations: 100,000
+2025-08-20 01:21:21 - Tissues per gene: 1
+2025-08-20 01:21:21 - All genes combined results saved to: _all_genes_all_tissues_correlation_results.pkl
+2025-08-20 01:21:21 - All genes combined results (CSV) saved to: _all_genes_all_tissues_correlation_results.csv
+2025-08-20 01:21:21 -
+Log files created:
+2025-08-20 01:21:21 -   RASSF2 - whole_blood: RASSF2_whole_blood.log
+2025-08-20 01:21:21 -
+Total successful analyses across all genes and tissues: 192
+2025-08-20 01:21:21 -
+====================================================================================================
+2025-08-20 01:21:21 - TOP CORRELATIONS ACROSS ALL GENES AND TISSUES (by absolute CCC value)
+2025-08-20 01:21:21 - ====================================================================================================
+2025-08-20 01:21:21 - Gene         Tissue               Metadata Column           CCC Value    P-value      Significance
+2025-08-20 01:21:21 - --------------------------------------------------------------------------------------------------------------
+2025-08-20 01:21:21 - RASSF2       whole_blood          COHORT                      0.553714    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          TRCHSTIND                   0.535868    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          TRISCHD                     0.535868    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SMTSISCH                    0.528125    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          TRDNISCH                    0.509012    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          LBCMVTAB                    0.505233    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          LBEBVGAB                    0.497715    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          LBEBVMAB                    0.497715    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          DTHRFG                      0.490255    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          TRCCLMPD                    0.490252    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          DTHHRDY                     0.464582    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          DTHVNT                      0.443140    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          DTHVNTD                     0.418721    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          MHBRNWGHT                   0.349664    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          MHBRNPH                     0.349664    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          MHABNWBC                    0.270010    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SMNTERRT                    0.250997    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SMNTRART                    0.243071    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          TRCRTMP                     0.203103    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SMNTRNRT                    0.202936    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          ETHNCTY                     0.195811    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SME1MPRT                    0.181940    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SMALTALG                    0.177009    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SME2MPRT                    0.172974    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          DTHFUCODD                   0.170768    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SMMPUNRT                    0.168576    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SMMAPRT                     0.168576    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          DTHCODD                     0.167829    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SMCHMPRS                    0.143365    1.00e-05  ***
+2025-08-20 01:21:21 - RASSF2       whole_blood          SMCENTER                    0.108148    1.00e-05  ***
+2025-08-20 01:21:21 -
+====================================================================================================
+2025-08-20 01:21:21 - SUMMARY BY GENE
+2025-08-20 01:21:21 - ====================================================================================================
+2025-08-20 01:21:21 -
+Gene: RASSF2 (ID: ENSG00000101265.15)
+2025-08-20 01:21:21 -   Tissues processed: 1
+2025-08-20 01:21:21 -   Successful analyses: 192
+2025-08-20 01:21:21 -   Mean |CCC|: 0.060103
+2025-08-20 01:21:21 -   Max |CCC|: 0.553714
+2025-08-20 01:21:21 -   Top correlation: COHORT in whole_blood (CCC: 0.553714, p: 1.00e-05)
+2025-08-20 01:21:21 -   Runtime: 444.69 seconds (7.41 minutes)
+2025-08-20 01:21:21 -
+====================================================================================================
+2025-08-20 01:21:21 - SUMMARY BY TISSUE (across all genes)
+2025-08-20 01:21:21 - ====================================================================================================
+2025-08-20 01:21:21 - Tissue                    N Genes    Successful   Mean |CCC|   Max |CCC|
+2025-08-20 01:21:21 - ---------------------------------------------------------------------------
+2025-08-20 01:21:21 - whole_blood               1          192          0.060103     0.553714
+2025-08-20 01:21:21 -
+====================================================================================================
+2025-08-20 01:21:21 - RUNTIME SUMMARY
+2025-08-20 01:21:21 - ====================================================================================================
+2025-08-20 01:21:21 - Total runtime: 444.70 seconds (7.41 minutes)
+2025-08-20 01:21:21 - Average runtime per gene: 444.70 seconds
+2025-08-20 01:21:21 - Total gene-tissue combinations: 1
+2025-08-20 01:21:21 -
+Runtime by gene:
+2025-08-20 01:21:21 - Gene            Runtime (sec)   Runtime (min)   Tissues    Successful
+2025-08-20 01:21:21 - ---------------------------------------------------------------------------
+2025-08-20 01:21:21 - RASSF2          444.69          7.41            1          1
+2025-08-20 01:21:21 -
+Average runtime by tissue (across all genes):
+2025-08-20 01:21:21 - Tissue                    Avg Runtime (sec)  Avg Runtime (min)  N Runs   Min        Max
+2025-08-20 01:21:21 - -----------------------------------------------------------------------------------------------
+2025-08-20 01:21:21 - whole_blood               444.69             7.41               1        444.69     444.69
+2025-08-20 01:21:21 -
+Fastest tissue (avg): whole_blood (444.69 seconds)
+2025-08-20 01:21:21 - Slowest tissue (avg): whole_blood (444.69 seconds)
+2025-08-20 01:21:21 - Speed ratio: 1.0x
+2025-08-20 01:21:21 -
+Summary log saved to: _RASSF2_summary_execution.log
+2025-08-20 01:21:21 - Summary tables saved to: _RASSF2_summary_tables.log
