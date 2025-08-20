@@ -13,7 +13,8 @@ import logging
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from ccc.coef import ccc
+# from ccc.coef import ccc
+from ccc.coef.impl_gpu import ccc 
 
 # Suppress specific NumPy warnings
 warnings.filterwarnings("ignore", message="invalid value encountered in cast")
@@ -80,10 +81,10 @@ def find_expression_files(expr_data_dir, include_patterns=None, exclude_patterns
     return all_files
 
 
-def load_metadata_and_gene_map(quiet=False):
+def load_metadata_and_gene_map(data_dir, quiet=False):
     """Load metadata and gene mapping files."""
     # Define paths
-    DATA_DIR = Path("/pividori_lab/haoyu_projects/ccc-gpu/data/gtex")
+    DATA_DIR = Path(data_dir)
 
     # File paths
     METADATA_FILE = DATA_DIR / "gtex_v8-sample_metadata.pkl"
@@ -445,6 +446,12 @@ def main():
         action="store_true",
         help="Skip individual tissue log files (only keep summary logs)",
     )
+    
+    parser.add_argument(
+        "--data-dir",
+        default="/pividori_lab/haoyu_projects/ccc-gpu/data/gtex",
+        help="Directory containing GTEx data files (metadata and gene mappings)",
+    )
 
     args = parser.parse_args()
 
@@ -495,7 +502,7 @@ def main():
             return
 
         # Load metadata and gene mapping
-        gtex_metadata, gene_map = load_metadata_and_gene_map(quiet=args.quiet)
+        gtex_metadata, gene_map = load_metadata_and_gene_map(args.data_dir, quiet=args.quiet)
 
         # If user wants to list metadata columns
         if args.list_metadata_columns:
