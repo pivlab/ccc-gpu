@@ -18,42 +18,49 @@ from pathlib import Path
 from collections import defaultdict
 import pandas as pd
 import numpy as np
+import multiprocessing as mp
+from multiprocessing import Queue
+import pickle
 
 
-def setup_logging(output_dir):
+def setup_logging(output_dir, combination=None):
     """Set up logging configuration."""
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     script_dir = Path(__file__).parent
-    log_dir = script_dir / "logs" / f"10-correlate-top-genes-with-metadata_{timestamp}"
+    
+    if combination:
+        # Separate log directory for each combination
+        log_dir = script_dir / "logs" / f"10-correlate-top-genes-with-metadata_{timestamp}" / combination
+        log_filename = f"combination_{combination}.log"
+    else:
+        # Main log directory
+        log_dir = script_dir / "logs" / f"10-correlate-top-genes-with-metadata_{timestamp}"
+        log_filename = "10-correlate-top-genes-with-metadata_main.log"
+    
     log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / log_filename
     
-    log_file = log_dir / "10-correlate-top-genes-with-metadata.log"
+    # Clear any existing handlers for this process
+    logger = logging.getLogger(__name__ if not combination else f"{__name__}.{combination}")
+    logger.handlers.clear()
+    logger.setLevel(logging.DEBUG)
     
-    logging.basicConfig(
-        level=logging.DEBUG,  # Enable debug level for CLI output logging
-        format='%(asctime)s - %(levelname)s - [%(funcName)s:%(lineno)d] - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler(sys.stdout)  # Explicitly use stdout
-        ]
-    )
-    
-    # Set console handler to INFO level to avoid cluttering console with debug messages
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - [%(funcName)s:%(lineno)d] - %(message)s'))
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - [%(funcName)s:%(lineno)d] - %(message)s')
     
     # File handler keeps DEBUG level for detailed CLI output
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - [%(funcName)s:%(lineno)d] - %(message)s'))
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
     
-    # Clear default handlers and add our custom ones
-    logging.getLogger().handlers.clear()
-    logging.getLogger().addHandler(file_handler)
-    logging.getLogger().addHandler(console_handler)
+    # Console handler for INFO level (only for main process)
+    if not combination:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
     
-    logger = logging.getLogger(__name__)
     logger.info(f"Log file: {log_file}")
     return logger, log_file
 
@@ -502,9 +509,62 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
     return enhanced_df
 
 
-def load_and_enhance_combination(combination, tissue_files, output_dir, args, top_n_metadata=5, temp_base_dir=None):
+def process_combination_worker(combination, tissue_files, output_dir, args, top_n_metadata=5, temp_base_dir=None, result_queue=None):
+    """Worker function to process a single combination in a separate process."""
+    try:
+        # Set up logging for this combination
+        logger, log_file = setup_logging(output_dir, combination)
+        
+        logger.info(f"WORKER STARTED for combination: {combination}")
+        logger.info(f"Process ID: {os.getpid()}")
+        logger.info(f"Log file: {log_file}")
+        
+        # Call the actual processing function
+        combined_df, load_errors = load_and_enhance_combination(
+            combination, tissue_files, output_dir, args, top_n_metadata, temp_base_dir, logger
+        )
+        
+        # Prepare result
+        if combined_df is not None:
+            result = {
+                'combination': combination,
+                'success': True,
+                'tissues_processed': len(tissue_files),
+                'total_rows': len(combined_df),
+                'load_errors': load_errors,
+                'unique_genes': len(set(combined_df['gene1'].tolist() + combined_df['gene2'].tolist())) if 'gene1' in combined_df.columns and 'gene2' in combined_df.columns else 0,
+                'log_file': str(log_file)
+            }
+        else:
+            result = {
+                'combination': combination,
+                'success': False,
+                'error': 'Processing failed',
+                'log_file': str(log_file)
+            }
+        
+        logger.info(f"WORKER COMPLETED for combination: {combination}")
+        
+        if result_queue is not None:
+            result_queue.put(result)
+        return result
+        
+    except Exception as e:
+        error_result = {
+            'combination': combination,
+            'success': False,
+            'error': str(e),
+            'log_file': str(log_file) if 'log_file' in locals() else 'N/A'
+        }
+        if result_queue is not None:
+            result_queue.put(error_result)
+        return error_result
+
+
+def load_and_enhance_combination(combination, tissue_files, output_dir, args, top_n_metadata=5, temp_base_dir=None, logger=None):
     """Load, combine, and enhance tissue files with metadata correlations."""
-    logger = logging.getLogger(__name__)
+    if logger is None:
+        logger = logging.getLogger(__name__)
     
     logger.info(f"Processing combination: {combination}")
     logger.info(f"  Files to process: {len(tissue_files)}")
@@ -670,6 +730,159 @@ def find_top_gene_files(data_dir, top_n):
     return dict(found_files), tissues, combinations
 
 
+def process_combinations_sequential(combinations, found_files, output_dir, args, temp_base_dir, logger):
+    """Process combinations sequentially (original behavior)."""
+    results_summary = {}
+    
+    for i, combination in enumerate(combinations, 1):
+        logger.info(f"\n[{i}/{len(combinations)}] Processing combination: {combination}")
+        
+        if combination not in found_files:
+            logger.warning(f"No files found for combination: {combination}")
+            continue
+        
+        tissue_files = found_files[combination]
+        
+        # Filter to specific tissue if requested (for debugging)
+        if args.tissue:
+            if args.tissue in tissue_files:
+                tissue_files = {args.tissue: tissue_files[args.tissue]}
+                logger.info(f"  Filtering to single tissue: {args.tissue} (debugging mode)")
+            else:
+                logger.warning(f"  Requested tissue '{args.tissue}' not found in combination '{combination}'")
+                logger.warning(f"  Available tissues: {list(tissue_files.keys())}")
+                continue
+        
+        combo_start_time = time.time()
+        combined_df, load_errors = load_and_enhance_combination(
+            combination, tissue_files, output_dir, args,
+            top_n_metadata=args.top_metadata_correlations,
+            temp_base_dir=temp_base_dir
+        )
+        combo_end_time = time.time()
+        combo_runtime = combo_end_time - combo_start_time
+        
+        if combined_df is not None:
+            # Store summary statistics
+            results_summary[combination] = {
+                'tissues_processed': len(tissue_files),
+                'total_rows': len(combined_df),
+                'load_errors': load_errors,
+                'runtime': combo_runtime,
+                'unique_genes': len(set(combined_df['gene1'].tolist() + combined_df['gene2'].tolist())) if 'gene1' in combined_df.columns and 'gene2' in combined_df.columns else 0
+            }
+            
+            logger.info(f"Combination {combination} completed:")
+            logger.info(f"  Runtime: {combo_runtime:.2f} seconds ({combo_runtime/60:.2f} minutes)")
+            logger.info(f"  Total rows: {len(combined_df):,}")
+            logger.info(f"  Unique genes: {results_summary[combination]['unique_genes']:,}")
+        else:
+            logger.error(f"Failed to process combination: {combination}")
+    
+    return results_summary
+
+
+def process_combinations_parallel(combinations, found_files, output_dir, args, temp_base_dir, logger):
+    """Process combinations in parallel using multiprocessing."""
+    results_summary = {}
+    
+    # Filter combinations that have files
+    valid_combinations = [c for c in combinations if c in found_files]
+    
+    if not valid_combinations:
+        logger.error("No valid combinations found")
+        return results_summary
+    
+    logger.info(f"Starting parallel processing of {len(valid_combinations)} combinations")
+    logger.info(f"Maximum parallel workers: {args.max_parallel_combinations}")
+    
+    # Prepare arguments for each worker
+    worker_args = []
+    for combination in valid_combinations:
+        tissue_files = found_files[combination]
+        
+        # Filter to specific tissue if requested (for debugging)
+        if args.tissue:
+            if args.tissue in tissue_files:
+                tissue_files = {args.tissue: tissue_files[args.tissue]}
+                logger.info(f"  Filtering combination '{combination}' to single tissue: {args.tissue}")
+            else:
+                logger.warning(f"  Skipping combination '{combination}': tissue '{args.tissue}' not found")
+                continue
+        
+        worker_args.append((
+            combination, tissue_files, output_dir, args, 
+            args.top_metadata_correlations, temp_base_dir
+        ))
+    
+    if not worker_args:
+        logger.error("No valid worker arguments after filtering")
+        return results_summary
+    
+    # Start processing with multiprocessing
+    logger.info(f"Launching {len(worker_args)} parallel workers")
+    
+    try:
+        # Use multiprocessing Pool
+        max_workers = min(args.max_parallel_combinations, len(worker_args))
+        with mp.Pool(processes=max_workers) as pool:
+            # Start all workers
+            async_results = []
+            for worker_arg in worker_args:
+                result = pool.apply_async(process_combination_worker, worker_arg)
+                async_results.append((worker_arg[0], result))  # (combination, async_result)
+            
+            # Monitor progress
+            completed = 0
+            total = len(async_results)
+            
+            while completed < total:
+                time.sleep(5)  # Check every 5 seconds
+                
+                current_completed = sum(1 for _, result in async_results if result.ready())
+                if current_completed > completed:
+                    completed = current_completed
+                    logger.info(f"Progress: {completed}/{total} combinations completed")
+                    
+                    # Log which combinations are done
+                    for combination, result in async_results:
+                        if result.ready() and combination not in results_summary:
+                            try:
+                                worker_result = result.get()
+                                if worker_result['success']:
+                                    results_summary[combination] = {
+                                        'tissues_processed': worker_result['tissues_processed'],
+                                        'total_rows': worker_result['total_rows'],
+                                        'load_errors': worker_result['load_errors'],
+                                        'runtime': 0,  # Will be updated later
+                                        'unique_genes': worker_result['unique_genes'],
+                                        'log_file': worker_result['log_file']
+                                    }
+                                    logger.info(f"✓ Combination '{combination}' completed successfully")
+                                    logger.info(f"  Rows: {worker_result['total_rows']:,}")
+                                    logger.info(f"  Unique genes: {worker_result['unique_genes']:,}")
+                                    logger.info(f"  Log file: {worker_result['log_file']}")
+                                else:
+                                    logger.error(f"✗ Combination '{combination}' failed: {worker_result.get('error', 'Unknown error')}")
+                                    logger.error(f"  Log file: {worker_result.get('log_file', 'N/A')}")
+                            except Exception as e:
+                                logger.error(f"✗ Error getting result for combination '{combination}': {e}")
+            
+            # Ensure all workers complete
+            pool.close()
+            pool.join()
+            
+        logger.info(f"All {total} combination workers completed")
+        
+    except Exception as e:
+        logger.error(f"Error in parallel processing: {e}")
+        # Fall back to sequential processing
+        logger.info("Falling back to sequential processing")
+        return process_combinations_sequential(combinations, found_files, output_dir, args, temp_base_dir, logger)
+    
+    return results_summary
+
+
 def generate_summary_report(results_summary, output_dir, top_n, combine_only=False, tissue=None):
     """Generate a comprehensive summary report."""
     logger = logging.getLogger(__name__)
@@ -728,9 +941,12 @@ def generate_summary_report(results_summary, output_dir, top_n, combine_only=Fal
             f.write(f"Combination: {combination}\n")
             f.write(f"  - combined_{combination}_top_{top_n}_gene_pairs{file_suffix}.pkl\n")
             f.write(f"  - combined_{combination}_top_{top_n}_gene_pairs{file_suffix}.csv\n")
+            if 'log_file' in results_summary[combination]:
+                f.write(f"  - Log file: {results_summary[combination]['log_file']}\n")
         
         f.write(f"\nSummary report: {summary_filename}\n")
-        f.write(f"Log file: Available in logs/ subdirectory\n")
+        f.write(f"Main log file: Available in logs/ subdirectory\n")
+        f.write(f"Individual combination logs: Available in logs/*/combination_*.log\n")
     
     logger.info(f"Summary report saved to: {summary_file}")
 
@@ -806,6 +1022,19 @@ def main():
         help="Process only a specific tissue (for debugging). If not provided, all tissues will be processed.",
     )
     
+    parser.add_argument(
+        "--parallel-combinations",
+        action="store_true",
+        help="Process different combinations in parallel (recommended for faster processing).",
+    )
+    
+    parser.add_argument(
+        "--max-parallel-combinations",
+        type=int,
+        default=5,
+        help="Maximum number of combinations to process in parallel (default: 5).",
+    )
+    
     args = parser.parse_args()
     
     try:
@@ -813,7 +1042,7 @@ def main():
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Set up logging
+        # Set up logging (main process)
         logger, log_file = setup_logging(output_dir)
         
         logger.info(f"Starting top gene pairs combination analysis")
@@ -821,6 +1050,9 @@ def main():
         logger.info(f"Output directory: {output_dir}")
         logger.info(f"Top N gene pairs: {args.top}")
         logger.info(f"Mode: {'Combine only (no metadata correlations)' if args.combine_only else 'Full processing with metadata correlations'}")
+        logger.info(f"Parallel processing: {'Enabled' if args.parallel_combinations else 'Disabled'}")
+        if args.parallel_combinations:
+            logger.info(f"Max parallel combinations: {args.max_parallel_combinations}")
         if args.tissue:
             logger.info(f"Tissue filtering: Only processing tissue '{args.tissue}' (debugging mode)")
         else:
@@ -864,58 +1096,23 @@ def main():
             logger.error("No matching top gene pairs files found")
             sys.exit(1)
         
-        # Process each combination
+        # Process each combination (parallel or sequential)
         results_summary = {}
         total_start_time = time.time()
         
         logger.info(f"\n{'='*60}")
         logger.info("PROCESSING COMBINATIONS")
         logger.info(f"{'='*60}")
+        logger.info(f"Parallel processing: {'Enabled' if args.parallel_combinations else 'Disabled'}")
         
-        for i, combination in enumerate(combinations, 1):
-            logger.info(f"\n[{i}/{len(combinations)}] Processing combination: {combination}")
-            
-            if combination not in found_files:
-                logger.warning(f"No files found for combination: {combination}")
-                continue
-            
-            tissue_files = found_files[combination]
-            
-            # Filter to specific tissue if requested (for debugging)
-            if args.tissue:
-                if args.tissue in tissue_files:
-                    tissue_files = {args.tissue: tissue_files[args.tissue]}
-                    logger.info(f"  Filtering to single tissue: {args.tissue} (debugging mode)")
-                else:
-                    logger.warning(f"  Requested tissue '{args.tissue}' not found in combination '{combination}'")
-                    logger.warning(f"  Available tissues: {list(tissue_files.keys())}")
-                    continue
-            
-            combo_start_time = time.time()
-            combined_df, load_errors = load_and_enhance_combination(
-                combination, tissue_files, output_dir, args,
-                top_n_metadata=args.top_metadata_correlations,
-                temp_base_dir=temp_base_dir
+        if args.parallel_combinations:
+            results_summary = process_combinations_parallel(
+                combinations, found_files, output_dir, args, temp_base_dir, logger
             )
-            combo_end_time = time.time()
-            combo_runtime = combo_end_time - combo_start_time
-            
-            if combined_df is not None:
-                # Store summary statistics
-                results_summary[combination] = {
-                    'tissues_processed': len(tissue_files),
-                    'total_rows': len(combined_df),
-                    'load_errors': load_errors,
-                    'runtime': combo_runtime,
-                    'unique_genes': len(set(combined_df['gene1'].tolist() + combined_df['gene2'].tolist())) if 'gene1' in combined_df.columns and 'gene2' in combined_df.columns else 0
-                }
-                
-                logger.info(f"Combination {combination} completed:")
-                logger.info(f"  Runtime: {combo_runtime:.2f} seconds ({combo_runtime/60:.2f} minutes)")
-                logger.info(f"  Total rows: {len(combined_df):,}")
-                logger.info(f"  Unique genes: {results_summary[combination]['unique_genes']:,}")
-            else:
-                logger.error(f"Failed to process combination: {combination}")
+        else:
+            results_summary = process_combinations_sequential(
+                combinations, found_files, output_dir, args, temp_base_dir, logger
+            )
         
         total_end_time = time.time()
         total_runtime = total_end_time - total_start_time
@@ -930,7 +1127,14 @@ def main():
         logger.info(f"Total runtime: {total_runtime:.2f} seconds ({total_runtime/60:.2f} minutes)")
         logger.info(f"Combinations processed: {len(results_summary)}")
         logger.info(f"Output directory: {output_dir}")
-        logger.info(f"Log file: {log_file}")
+        logger.info(f"Main log file: {log_file}")
+        if args.parallel_combinations:
+            logger.info(f"Individual combination log files:")
+            for combination in sorted(results_summary.keys()):
+                if 'log_file' in results_summary[combination]:
+                    logger.info(f"  {combination}: {results_summary[combination]['log_file']}")
+                else:
+                    logger.info(f"  {combination}: Log file not available")
         
         # Show which files were created
         logger.info("\nOutput files created:")
@@ -963,4 +1167,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # Required for multiprocessing on Windows and some Unix systems
+    mp.freeze_support()
     main() 
