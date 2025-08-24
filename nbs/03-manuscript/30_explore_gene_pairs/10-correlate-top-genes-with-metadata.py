@@ -1062,6 +1062,13 @@ def main():
     )
     
     parser.add_argument(
+        "--combinations",
+        nargs="*",
+        default=["c-high-p-low-s-low"],
+        help="List of combination categories to process. Default: ['c-high-p-low-s-low']. Use --list-combinations to see available options.",
+    )
+    
+    parser.add_argument(
         "--parallel-combinations",
         action="store_true",
         help="Process different combinations in parallel (recommended for faster processing).",
@@ -1099,6 +1106,28 @@ def main():
         
         # Discover tissues and combinations
         tissues, combinations = discover_tissues_and_combinations(args.data_dir)
+        
+        # Filter combinations if specific ones are requested
+        available_combinations = set(combinations)
+        requested_combinations = set(args.combinations) if args.combinations else available_combinations
+        
+        # Check if requested combinations exist
+        invalid_combinations = requested_combinations - available_combinations
+        if invalid_combinations:
+            logger.error(f"Invalid combination(s) requested: {list(invalid_combinations)}")
+            logger.error(f"Available combinations: {list(available_combinations)}")
+            sys.exit(1)
+        
+        # Filter to only requested combinations
+        original_count = len(combinations)
+        combinations = [c for c in combinations if c in requested_combinations]
+        
+        if args.combinations and args.combinations != ["c-high-p-low-s-low"]:
+            logger.info(f"Combination filtering: Processing {len(combinations)} selected combination(s): {combinations}")
+        elif args.combinations == ["c-high-p-low-s-low"]:
+            logger.info(f"Combination filtering: Using default - processing only 'c-high-p-low-s-low'")
+        else:
+            logger.info(f"Combination filtering: Processing all {len(combinations)} combinations")
         
         # If user wants to list combinations
         if args.list_combinations:
