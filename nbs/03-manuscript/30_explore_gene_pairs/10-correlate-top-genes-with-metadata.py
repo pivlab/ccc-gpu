@@ -5,6 +5,16 @@ Processes results from report_top_gene_pairs.py across all tissues and combinati
 
 For each gene pair, computes fresh correlations with GTEx metadata using metadata_corr_cli.py
 and extracts top metadata variables correlated with each gene individually and common to both genes.
+
+Output columns added per gene pair:
+- Gene 1: top N metadata correlations (gene1_top{1-N}_metadata, gene1_top{1-N}_ccc, gene1_top{1-N}_pvalue)
+- Gene 2: top N metadata correlations (gene2_top{1-N}_metadata, gene2_top{1-N}_ccc, gene2_top{1-N}_pvalue)
+- Common: comma-separated list (common_metadata) + detailed top 5 (25 new columns):
+  * top{1-5}_common_metadata_name: metadata variable name
+  * top{1-5}_common_metadata_gene1_ccc: Gene 1's CCC value for this metadata
+  * top{1-5}_common_metadata_gene1_pvalue: Gene 1's p-value for this metadata
+  * top{1-5}_common_metadata_gene2_ccc: Gene 2's CCC value for this metadata
+  * top{1-5}_common_metadata_gene2_pvalue: Gene 2's p-value for this metadata
 """
 
 import argparse
@@ -229,9 +239,9 @@ def get_common_metadata_correlations_from_cli(gene1_df, gene2_df, gene1_symbol, 
     if gene1_df is None or gene2_df is None or len(gene1_df) == 0 or len(gene2_df) == 0:
         return pd.DataFrame()
     
-    # Filter by p-value significance
-    sig_df1 = gene1_df[gene1_df["p_value"] <= alpha][["ccc_value"]].reset_index()
-    sig_df2 = gene2_df[gene2_df["p_value"] <= alpha][["ccc_value"]].reset_index()
+    # Filter by p-value significance and include p-values in the result
+    sig_df1 = gene1_df[gene1_df["p_value"] <= alpha][["ccc_value", "p_value"]].reset_index()
+    sig_df2 = gene2_df[gene2_df["p_value"] <= alpha][["ccc_value", "p_value"]].reset_index()
     
     if len(sig_df1) == 0 or len(sig_df2) == 0:
         return pd.DataFrame()
@@ -313,6 +323,14 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
     
     # Common correlations column (single column with comma-separated values)
     enhanced_df['common_metadata'] = ''
+    
+    # Top 5 common metadata detailed columns (25 new columns)
+    for i in range(1, 6):  # top 1 to top 5
+        enhanced_df[f'top{i}_common_metadata_name'] = ''
+        enhanced_df[f'top{i}_common_metadata_gene1_ccc'] = np.nan  
+        enhanced_df[f'top{i}_common_metadata_gene1_pvalue'] = np.nan
+        enhanced_df[f'top{i}_common_metadata_gene2_ccc'] = np.nan
+        enhanced_df[f'top{i}_common_metadata_gene2_pvalue'] = np.nan
     
     # Process each gene pair
     total_pairs = len(enhanced_df)
@@ -417,17 +435,38 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
                     # else:
                     #     logger.debug(f"   No common metadata found for {gene1_symbol}-{gene2_symbol}")
                     
-                    # Fill common correlation data as comma-separated list
+                    # Fill common correlation data as comma-separated list AND detailed columns
                     if len(common_top) > 0:
                         common_metadata_list = []
+                        
+                        # Fill detailed columns for top 5 common metadata
                         for i, (_, common_row) in enumerate(common_top.iterrows()):
                             if i < top_n_metadata:
                                 common_metadata_list.append(common_row['metadata_column'])
+                            
+                            # Fill detailed columns (up to 5 entries)
+                            if i < 5:  # Only fill top 5 detailed columns
+                                col_num = i + 1
+                                metadata_name = common_row['metadata_column']
+                                
+                                # Fill the detailed columns
+                                enhanced_df.loc[idx, f'top{col_num}_common_metadata_name'] = metadata_name
+                                enhanced_df.loc[idx, f'top{col_num}_common_metadata_gene1_ccc'] = common_row[f'ccc_value_{gene1_symbol}']
+                                enhanced_df.loc[idx, f'top{col_num}_common_metadata_gene1_pvalue'] = common_row[f'p_value_{gene1_symbol}']
+                                enhanced_df.loc[idx, f'top{col_num}_common_metadata_gene2_ccc'] = common_row[f'ccc_value_{gene2_symbol}']
+                                enhanced_df.loc[idx, f'top{col_num}_common_metadata_gene2_pvalue'] = common_row[f'p_value_{gene2_symbol}']
                         
-                        # Create comma-separated string
+                        # Create comma-separated string for backward compatibility
                         enhanced_df.loc[idx, 'common_metadata'] = ','.join(common_metadata_list)
                     else:
                         enhanced_df.loc[idx, 'common_metadata'] = ''
+                        # Clear all detailed columns if no common metadata
+                        for i in range(1, 6):
+                            enhanced_df.loc[idx, f'top{i}_common_metadata_name'] = ''
+                            enhanced_df.loc[idx, f'top{i}_common_metadata_gene1_ccc'] = np.nan
+                            enhanced_df.loc[idx, f'top{i}_common_metadata_gene1_pvalue'] = np.nan
+                            enhanced_df.loc[idx, f'top{i}_common_metadata_gene2_ccc'] = np.nan
+                            enhanced_df.loc[idx, f'top{i}_common_metadata_gene2_pvalue'] = np.nan
             
             processed_pairs += 1
             
