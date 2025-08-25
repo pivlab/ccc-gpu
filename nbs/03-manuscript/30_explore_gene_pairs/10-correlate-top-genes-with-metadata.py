@@ -31,6 +31,9 @@ import numpy as np
 import multiprocessing as mp
 from multiprocessing import Queue
 import pickle
+import json
+import hashlib
+from datetime import datetime
 
 
 def setup_logging(output_dir, combination=None):
@@ -76,6 +79,126 @@ def setup_logging(output_dir, combination=None):
 
 
 
+
+
+def call_single_gene_cli(gene_symbol: str, tissue: str, output_dir: Path, args) -> pd.DataFrame:
+    """
+    Call the metadata correlation CLI script for a single gene in a specific tissue.
+    
+    Args:
+        gene_symbol: Gene symbol to analyze
+        tissue: Tissue name to process
+        output_dir: Output directory for results
+        args: Command line arguments
+        
+    Returns:
+        DataFrame with correlation results or None if failed
+    """
+    logger = logging.getLogger(__name__)
+    
+    # Path to the metadata correlation CLI script
+    cli_script = Path("nbs/03-manuscript/05-metadata_correlation/metadata_corr_cli.py")
+    if not cli_script.exists():
+        cli_script = Path("../05-metadata_correlation/metadata_corr_cli.py")
+        if not cli_script.exists():
+            cli_script = Path("/home/haoyu/_database/projs/ccc-gpu/nbs/03-manuscript/05-metadata_correlation/metadata_corr_cli.py")
+    
+    if not cli_script.exists():
+        logger.error(f"Cannot find metadata correlation CLI script: {cli_script}")
+        return None
+    
+    # Create gene-specific output directory
+    gene_output_dir = output_dir / gene_symbol / tissue
+    gene_output_dir.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        # Construct command to run the CLI for single gene
+        cmd = [
+            sys.executable, str(cli_script),
+            gene_symbol,  # Only single gene
+            "--output-dir", str(gene_output_dir),
+            "--expr-data-dir", "/mnt/data/proj_data/ccc-gpu/data/gtex/gene_selection/all",
+            "--data-dir", "/mnt/data/proj_data/ccc-gpu/data/gtex",
+            "--include", tissue,
+            "--permutations", str(args.permutations),
+            "--n-jobs", str(args.n_jobs),
+            "--quiet",
+            "--no-csv-output",
+            "--no-individual-logs"
+        ]
+        
+        # Run the CLI script
+        logger.debug(f"Running single gene CLI for {gene_symbol} in {tissue}")
+        result = subprocess.run(
+            cmd, 
+            capture_output=True, 
+            text=True, 
+            timeout=900  # 15 minute timeout per single gene (reduced from pair timeout)
+        )
+        
+        if result.returncode != 0:
+            logger.warning(f"Single gene CLI failed for {gene_symbol} in {tissue}: {result.stderr}")
+            return None
+        
+        # Load results
+        result_file = gene_output_dir / f"{gene_symbol}_all_tissues_correlation_results.pkl"
+        if result_file.exists():
+            result_df = pd.read_pickle(result_file)
+            # Only successful results
+            result_df = result_df[result_df['status'] == 'success'] if 'status' in result_df.columns else result_df
+            logger.debug(f"Loaded {gene_symbol}-{tissue}: {len(result_df)} correlations")
+            return result_df
+        else:
+            logger.warning(f"No results file found for {gene_symbol}-{tissue}: {result_file}")
+            return None
+            
+    except subprocess.TimeoutExpired:
+        logger.error(f"Timeout for single gene {gene_symbol} in {tissue}")
+        return None
+    except Exception as e:
+        logger.error(f"Error processing single gene {gene_symbol} in {tissue}: {e}")
+        return None
+
+
+def get_or_compute_gene_correlation(gene_symbol: str, tissue: str, cache: 'GeneLevelCache', args) -> pd.DataFrame:
+    """
+    Get gene correlation results from cache or compute if not cached.
+    
+    Args:
+        gene_symbol: Gene symbol to analyze
+        tissue: Tissue name
+        cache: Cache manager instance
+        args: Command line arguments
+        
+    Returns:
+        DataFrame with correlation results or None if failed
+    """
+    logger = logging.getLogger(__name__)
+    
+    # Try to load from cache first
+    cached_result = cache.load_cached_result(gene_symbol, tissue, args)
+    if cached_result is not None:
+        logger.debug(f"Cache hit for {gene_symbol}-{tissue}")
+        return cached_result
+    
+    # Cache miss - compute the correlation
+    logger.debug(f"Cache miss for {gene_symbol}-{tissue}, computing...")
+    
+    # Create temporary output directory for computation
+    temp_output = cache.cache_dir / "temp" / gene_symbol / tissue
+    temp_output.mkdir(parents=True, exist_ok=True)
+    
+    # Call single gene CLI
+    result_df = call_single_gene_cli(gene_symbol, tissue, cache.cache_dir / "temp", args)
+    
+    if result_df is not None and len(result_df) > 0:
+        # Cache the successful result
+        cache.save_to_cache(gene_symbol, tissue, args, result_df)
+        logger.debug(f"Cached new result for {gene_symbol}-{tissue}")
+        return result_df
+    else:
+        logger.warning(f"Failed to compute correlation for {gene_symbol}-{tissue}")
+        return None
 
 
 def call_metadata_correlation_cli(gene1_symbol, gene2_symbol, tissue, output_dir, temp_dir, args):
@@ -269,6 +392,154 @@ def get_common_metadata_correlations_from_cli(gene1_df, gene2_df, gene1_symbol, 
     return topn
 
 
+class GeneLevelCache:
+    """Manages gene-level correlation caching to avoid redundant computations."""
+    
+    def __init__(self, cache_dir: Path):
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.stats = {"hits": 0, "misses": 0, "invalid": 0}
+        self._load_global_stats()
+    
+    def _load_global_stats(self):
+        """Load global cache statistics."""
+        stats_file = self.cache_dir / "cache_stats.json"
+        if stats_file.exists():
+            try:
+                with open(stats_file, 'r') as f:
+                    saved_stats = json.load(f)
+                self.stats.update(saved_stats)
+            except Exception:
+                pass
+    
+    def _save_global_stats(self):
+        """Save global cache statistics."""
+        stats_file = self.cache_dir / "cache_stats.json"
+        try:
+            with open(stats_file, 'w') as f:
+                json.dump(self.stats, f, indent=2)
+        except Exception:
+            pass
+    
+    def _get_cache_key(self, gene_symbol: str, tissue: str, permutations: int) -> str:
+        """Generate cache key based on gene, tissue, and computation parameters."""
+        return f"{gene_symbol}_{tissue}_p{permutations}"
+    
+    def _get_cache_path(self, gene_symbol: str, tissue: str) -> Path:
+        """Get the cache directory path for a gene-tissue combination."""
+        return self.cache_dir / gene_symbol / tissue
+    
+    def _get_cache_files(self, gene_symbol: str, tissue: str) -> tuple:
+        """Get paths for cache files."""
+        cache_path = self._get_cache_path(gene_symbol, tissue)
+        return (
+            cache_path / f"{gene_symbol}_{tissue}_correlation_results.pkl",
+            cache_path / f"{gene_symbol}_{tissue}_cache_info.json"
+        )
+    
+    def _compute_cache_hash(self, args) -> str:
+        """Compute hash of computation parameters for cache validation."""
+        params = {
+            'permutations': args.permutations,
+            'n_jobs': args.n_jobs,
+            'expr_data_dir': getattr(args, 'expr_data_dir', 'default'),
+            'data_dir': getattr(args, 'data_dir', 'default')
+        }
+        return hashlib.md5(json.dumps(params, sort_keys=True).encode()).hexdigest()[:8]
+    
+    def is_cached(self, gene_symbol: str, tissue: str, args) -> bool:
+        """Check if a gene-tissue correlation is cached and valid."""
+        result_file, info_file = self._get_cache_files(gene_symbol, tissue)
+        
+        if not (result_file.exists() and info_file.exists()):
+            return False
+        
+        try:
+            with open(info_file, 'r') as f:
+                cache_info = json.load(f)
+            
+            # Validate cache parameters
+            current_hash = self._compute_cache_hash(args)
+            return cache_info.get('params_hash') == current_hash
+        except Exception:
+            return False
+    
+    def load_cached_result(self, gene_symbol: str, tissue: str, args) -> pd.DataFrame:
+        """Load cached correlation result."""
+        if not self.is_cached(gene_symbol, tissue, args):
+            self.stats["misses"] += 1
+            return None
+        
+        result_file, _ = self._get_cache_files(gene_symbol, tissue)
+        try:
+            result_df = pd.read_pickle(result_file)
+            self.stats["hits"] += 1
+            self._save_global_stats()
+            return result_df
+        except Exception:
+            self.stats["invalid"] += 1
+            return None
+    
+    def save_to_cache(self, gene_symbol: str, tissue: str, args, result_df: pd.DataFrame):
+        """Save correlation result to cache."""
+        result_file, info_file = self._get_cache_files(gene_symbol, tissue)
+        result_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            # Save result
+            result_df.to_pickle(result_file)
+            
+            # Save cache info
+            cache_info = {
+                'gene_symbol': gene_symbol,
+                'tissue': tissue,
+                'params_hash': self._compute_cache_hash(args),
+                'created_at': datetime.now().isoformat(),
+                'permutations': args.permutations,
+                'n_jobs': args.n_jobs
+            }
+            
+            with open(info_file, 'w') as f:
+                json.dump(cache_info, f, indent=2)
+                
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Failed to cache {gene_symbol}-{tissue}: {e}")
+    
+    def clear_cache(self):
+        """Clear all cached results."""
+        import shutil
+        if self.cache_dir.exists():
+            shutil.rmtree(self.cache_dir)
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.stats = {"hits": 0, "misses": 0, "invalid": 0}
+        self._save_global_stats()
+    
+    def get_cache_stats(self) -> dict:
+        """Get detailed cache statistics."""
+        total_attempts = self.stats["hits"] + self.stats["misses"]
+        hit_rate = self.stats["hits"] / total_attempts if total_attempts > 0 else 0
+        
+        # Count cache files
+        cache_entries = 0
+        cache_size_mb = 0
+        if self.cache_dir.exists():
+            for pkl_file in self.cache_dir.rglob("*.pkl"):
+                cache_entries += 1
+                try:
+                    cache_size_mb += pkl_file.stat().st_size / (1024 * 1024)
+                except:
+                    pass
+        
+        return {
+            "hits": self.stats["hits"],
+            "misses": self.stats["misses"], 
+            "invalid": self.stats["invalid"],
+            "hit_rate": f"{hit_rate:.2%}",
+            "cache_entries": cache_entries,
+            "cache_size_mb": f"{cache_size_mb:.1f}"
+        }
+
+
 def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, top_n_metadata=5):
     """
     Process gene pairs with metadata correlations from CLI.
@@ -305,6 +576,17 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
     
     import time
     start_time = time.time()
+    
+    # Initialize gene-level cache if enabled
+    cache = None
+    if not args.disable_cache:
+        cache = GeneLevelCache(args.cache_dir)
+        logger.info(f"   Gene caching: Enabled (cache directory: {args.cache_dir})")
+        if hasattr(args, 'clear_cache') and args.clear_cache:
+            cache.clear_cache()
+            logger.info("   Cache cleared before processing")
+    else:
+        logger.info(f"   Gene caching: Disabled (using original pair-based processing)")
     
     # Initialize enhanced dataframe with new columns
     enhanced_df = combined_df.copy()
@@ -375,10 +657,16 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
                 
                 last_progress_time = current_time
             
-            # Call CLI for this gene pair (only for the specific tissue)
-            gene1_cli_df, gene2_cli_df = call_metadata_correlation_cli(
-                gene1_symbol, gene2_symbol, tissue, temp_dir, temp_dir, args
-            )
+            # Get gene correlations (cached or computed)
+            if cache is not None:
+                # Use gene-level caching
+                gene1_cli_df = get_or_compute_gene_correlation(gene1_symbol, tissue, cache, args)
+                gene2_cli_df = get_or_compute_gene_correlation(gene2_symbol, tissue, cache, args)
+            else:
+                # Fallback to original pair-based processing
+                gene1_cli_df, gene2_cli_df = call_metadata_correlation_cli(
+                    gene1_symbol, gene2_symbol, tissue, temp_dir, temp_dir, args
+                )
             
             # Process results if CLI succeeded
             if gene1_cli_df is not None or gene2_cli_df is not None:
@@ -512,6 +800,22 @@ def process_gene_pairs_with_metadata_correlations(combined_df, temp_dir, args, t
     if 'tissue' in combined_df.columns:
         tissue_summary = combined_df['tissue'].value_counts()
         logger.info(f"   Processed tissues: {dict(tissue_summary)}")
+    
+    # Cache statistics if caching was enabled
+    if cache is not None:
+        cache_stats = cache.get_cache_stats()
+        logger.info(f"   CACHE STATISTICS:")
+        logger.info(f"   ├─ Cache hits: {cache_stats['hits']:,}")
+        logger.info(f"   ├─ Cache misses: {cache_stats['misses']:,}")
+        logger.info(f"   ├─ Hit rate: {cache_stats['hit_rate']}")
+        logger.info(f"   ├─ Cache entries: {cache_stats['cache_entries']:,}")
+        logger.info(f"   └─ Cache size: {cache_stats['cache_size_mb']} MB")
+        
+        # Estimate time savings
+        total_cache_attempts = cache_stats['hits'] + cache_stats['misses']
+        if total_cache_attempts > 0:
+            time_saved_estimate = cache_stats['hits'] * 15 / 60  # Assume 15 sec per correlation
+            logger.info(f"   Estimated time saved by caching: {time_saved_estimate:.1f} minutes")
     
     # Most frequent common metadata fields summary - Commented out for performance
     # if common_metadata_counter:
@@ -1081,6 +1385,32 @@ def main():
         help="Maximum number of combinations to process in parallel (default: 5).",
     )
     
+    # Gene correlation caching arguments
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=Path("./gene_correlation_cache"),
+        help="Directory to store cached gene correlation results (default: ./gene_correlation_cache).",
+    )
+    
+    parser.add_argument(
+        "--disable-cache",
+        action="store_true",
+        help="Disable gene correlation caching and use original pair-based processing.",
+    )
+    
+    parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="Clear the gene correlation cache before processing.",
+    )
+    
+    parser.add_argument(
+        "--cache-stats",
+        action="store_true",
+        help="Show cache statistics and exit.",
+    )
+    
     args = parser.parse_args()
     
     try:
@@ -1103,6 +1433,37 @@ def main():
             logger.info(f"Tissue filtering: Only processing tissue '{args.tissue}' (debugging mode)")
         else:
             logger.info(f"Tissue filtering: Processing all tissues")
+        
+        # Handle cache-related arguments
+        if args.cache_stats:
+            if args.cache_dir.exists():
+                cache = GeneLevelCache(args.cache_dir)
+                stats = cache.get_cache_stats()
+                logger.info(f"Cache Statistics:")
+                logger.info(f"  Cache directory: {args.cache_dir}")
+                logger.info(f"  Cache hits: {stats['hits']:,}")
+                logger.info(f"  Cache misses: {stats['misses']:,}")
+                logger.info(f"  Hit rate: {stats['hit_rate']}")
+                logger.info(f"  Cache entries: {stats['cache_entries']:,}")
+                logger.info(f"  Cache size: {stats['cache_size_mb']} MB")
+            else:
+                logger.info(f"No cache found at {args.cache_dir}")
+            return
+        
+        if args.clear_cache:
+            cache = GeneLevelCache(args.cache_dir)
+            cache.clear_cache()
+            logger.info(f"Cache cleared: {args.cache_dir}")
+            if not hasattr(args, 'top') or args.top is None:
+                return  # If only clearing cache, exit
+        
+        # Log caching configuration
+        if args.disable_cache:
+            logger.info(f"Gene caching: Disabled")
+        else:
+            logger.info(f"Gene caching: Enabled (directory: {args.cache_dir})")
+            if args.clear_cache:
+                logger.info(f"Cache will be cleared before processing")
         
         # Discover tissues and combinations
         tissues, combinations = discover_tissues_and_combinations(args.data_dir)
