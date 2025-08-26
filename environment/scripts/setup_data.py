@@ -115,6 +115,15 @@ def download_understudied_genes_s3_table(**kwargs):
         "664952f391b4f2077757b1d3a17603f0",
         logger=logger,
     )
+    
+def download_biomart_genes_hg38(**kwargs):
+    output_file = conf.COMMON_DATA_FILES["BIOMART_GENES_INFO_FILE"]
+    curl(
+        "https://zenodo.org/records/10944491/files/biomart_genes_hg38.csv.gz?download=1",
+        output_file,
+        "c4d74e156e968267278587d3ce30e5eb",
+        logger=logger,
+    )
 
 
 if __name__ == "__main__":
