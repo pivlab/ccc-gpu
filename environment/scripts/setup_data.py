@@ -1,6 +1,7 @@
 """
 It sets up the file/folder structure by downloading the necessary files.
 """
+
 from pathlib import Path
 
 from ccc import conf
@@ -115,7 +116,8 @@ def download_understudied_genes_s3_table(**kwargs):
         "664952f391b4f2077757b1d3a17603f0",
         logger=logger,
     )
-    
+
+
 def download_biomart_genes_hg38(**kwargs):
     output_file = conf.COMMON_DATA_FILES["BIOMART_GENES_INFO_FILE"]
     curl(
