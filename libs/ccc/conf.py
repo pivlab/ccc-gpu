@@ -53,6 +53,13 @@ GENERAL["N_JOBS_LOW"] = next(int(opt) for opt in options if opt is not None)
 
 
 #
+# Data dir
+#
+COMMON_DATA_FILES = {}
+COMMON_DATA_FILES["BIOMART_GENES_INFO_FILE"] = DATA_DIR / "biomart_genes_hg38.csv.gz"
+
+
+#
 # Manuscript
 #
 MANUSCRIPT = {}
