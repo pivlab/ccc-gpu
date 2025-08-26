@@ -3,6 +3,9 @@ Gets user settings (from settings.py module) and create the final configuration 
 All the rest of the code reads configuration values from this module.
 This file IS NOT intended to be modified by the user.
 """
+
+from __future__ import annotations
+
 import os
 import tempfile
 from pathlib import Path
@@ -43,9 +46,11 @@ options = [
 GENERAL["N_JOBS"] = next(int(opt) for opt in options if opt is not None)
 
 options = [
-    m
-    if (m := os.environ.get("CM_N_JOBS_LOW")) is not None and m.strip() != ""
-    else None,
+    (
+        m
+        if (m := os.environ.get("CM_N_JOBS_LOW")) is not None and m.strip() != ""
+        else None
+    ),
     getattr(settings, "N_JOBS_LOW", None),
     GENERAL["N_JOBS"],
 ]
@@ -103,9 +108,9 @@ GTEX["GENE_SELECTION_DIR"] = Path(GTEX["RESULTS_DIR"], "gene_selection").resolve
 GTEX["SIMILARITY_MATRICES_DIR"] = Path(
     GTEX["RESULTS_DIR"], "similarity_matrices"
 ).resolve()
-GTEX[
-    "SIMILARITY_MATRIX_FILENAME_TEMPLATE"
-] = "gtex_v8_data_{tissue}-{gene_sel_strategy}-{corr_method}.pkl"
+GTEX["SIMILARITY_MATRIX_FILENAME_TEMPLATE"] = (
+    "gtex_v8_data_{tissue}-{gene_sel_strategy}-{corr_method}.pkl"
+)
 GTEX["GENE_PAIR_INTERSECTIONS"] = Path(
     GTEX["RESULTS_DIR"], "gene_pair_intersections"
 ).resolve()
@@ -147,7 +152,7 @@ if __name__ == "__main__":
 
             if isinstance(var_value, (str, int, PurePath)):
                 new_var_name = f"CM_{var_name}"
-                print(f'export {new_var_name}="{str(var_value)}"')
+                print(f'export {new_var_name}="{var_value!s}"')
                 yield new_var_name
             elif isinstance(var_value, dict):
                 new_dict = {f"{var_name}_{k}": v for k, v in var_value.items()}
