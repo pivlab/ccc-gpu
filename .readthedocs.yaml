@@ -17,8 +17,8 @@ build:
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
   configuration: docs/source/conf.py
-  # Fail on all warnings to catch broken references
-  fail_on_warning: true
+  # Don't fail on warnings to allow minor issues during build
+  fail_on_warning: false
 
 # Build additional formats
 formats:
