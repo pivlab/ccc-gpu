@@ -4,6 +4,10 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os
+import sys
+
+# Add the project root to Python path for autodoc
+sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -187,7 +191,7 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 if on_rtd:
     # Don't try to import modules that require GPU/CUDA when building docs
-    autodoc_mock_imports = ['ccc_cuda_ext', 'cupy', 'numba']
+    autodoc_mock_imports = ['ccc_cuda_ext', 'cupy', 'numba', 'rmm']
 
 # MathJax configuration for mathematical expressions
 mathjax3_config = {
