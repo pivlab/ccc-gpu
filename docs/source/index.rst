@@ -8,7 +8,7 @@ CCC-GPU Documentation
 
 The **Clustermatch Correlation Coefficient (CCC)** is a highly-efficient, next-generation correlation coefficient that captures not-only-linear relationships and can work on numerical and categorical data types. **CCC-GPU** is a GPU-accelerated implementation that provides significant performance improvements for large-scale datasets using CUDA.
 
-CCC is based on the simple idea of clustering data points and then computing the Adjusted Rand Index (ARI) between the two clusterings. It is a robust and efficient method that can detect linear and non-linear relationships, making it suitable for a wide range of applications in genomics, machine learning, and data science.
+CCC is based on clustering data points using individual features, and then computing the Adjusted Rand Index (ARI) between the two clusterings to derive a similarity value between the features. It is a robust and efficient method that can detect linear and non-linear relationships, making it suitable for a wide range of applications in genomics, machine learning, and data science.
 
 .. toctree::
    :maxdepth: 2
