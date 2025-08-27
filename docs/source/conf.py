@@ -3,7 +3,6 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import sys
 import os
 
 # -- Project information -----------------------------------------------------
@@ -87,27 +86,32 @@ napoleon_attr_annotations = True
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 # The theme to use for HTML and HTML Help pages.
-html_theme = 'haiku'
-
-# Theme options are theme-specific and customize the look and feel of a theme
-# further. For a list of options available for each theme, see the
-# documentation.
-html_theme_options = {
-    'canonical_url': '',
-    'analytics_id': '',
-    'logo_only': False,
-    'display_version': True,
-    'prev_next_buttons_location': 'bottom',
-    'style_external_links': False,
-    'vcs_pageview_mode': '',
-    'style_nav_header_background': 'white',
-    # Toc options
-    'collapse_navigation': True,
-    'sticky_navigation': True,
-    'navigation_depth': 4,
-    'includehidden': True,
-    'titles_only': False
-}
+# Try to use sphinx_rtd_theme, fallback to haiku if not available
+try:
+    import sphinx_rtd_theme
+    html_theme = 'sphinx_rtd_theme'
+    # Theme options for sphinx_rtd_theme
+    html_theme_options = {
+        'canonical_url': '',
+        'analytics_id': '',
+        'logo_only': False,
+        'display_version': True,
+        'prev_next_buttons_location': 'bottom',
+        'style_external_links': False,
+        'vcs_pageview_mode': '',
+        'style_nav_header_background': 'white',
+        # Toc options
+        'collapse_navigation': True,
+        'sticky_navigation': True,
+        'navigation_depth': 4,
+        'includehidden': True,
+        'titles_only': False
+    }
+except ImportError:
+    # Fallback to haiku theme with appropriate options
+    html_theme = 'haiku'
+    # Theme options for haiku theme (much simpler)
+    html_theme_options = {}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -184,12 +188,6 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
     # Don't try to import modules that require GPU/CUDA when building docs
     autodoc_mock_imports = ['ccc_cuda_ext', 'cupy', 'numba']
-    
-    # Use a simpler theme if RTD theme is not available
-    try:
-        import sphinx_rtd_theme
-    except ImportError:
-        html_theme = 'default'
 
 # MathJax configuration for mathematical expressions
 mathjax3_config = {
