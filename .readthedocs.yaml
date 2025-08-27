@@ -13,10 +13,6 @@ build:
     post_create_environment:
       # Install docs requirements that can't be expressed as a standard Python package
       - pip install --upgrade pip setuptools wheel
-    post_install:
-      # Install the package in development mode
-      # This allows autodoc to import the modules
-      - pip install -e .
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
@@ -35,5 +31,3 @@ python:
     - requirements: docs/requirements.txt
     - method: pip
       path: .
-      extra_requirements:
-        - test
