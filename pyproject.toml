@@ -47,6 +47,8 @@ cmake.args = [
 cmake.verbose = true
 wheel.packages = ["libs/ccc"]  # Directory containing your Python packages
 wheel.exclude = ["*.cpp", "*.h"]  # Exclude C++ headers from wheel
+wheel.py-api = "cp310"  # Python API version
+wheel.platlib = true  # Contains compiled extensions
 
 [tool.pytest.ini_options]
 minversion = "6.0"

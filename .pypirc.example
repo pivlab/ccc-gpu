@@ -1,0 +1,18 @@
+# Example PyPI configuration file
+# Copy this file to ~/.pypirc and update with your credentials
+# chmod 600 ~/.pypirc to protect your credentials
+
+[distutils]
+index-servers =
+    pypi
+    testpypi
+
+[pypi]
+repository = https://upload.pypi.org/legacy/
+username = __token__
+password = pypi-YOUR-API-TOKEN-HERE
+
+[testpypi]
+repository = https://test.pypi.org/legacy/
+username = __token__
+password = pypi-YOUR-TEST-API-TOKEN-HERE
