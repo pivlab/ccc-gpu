@@ -16,7 +16,7 @@ conda activate ccc-gpu 2>/dev/null || mamba activate ccc-gpu
 
 # Check if dist directory exists
 if [ ! -d "dist" ]; then
-    echo "Error: dist/ directory not found. Run ./scripts/build_package.sh first."
+    echo "Error: dist/ directory not found. Run ./scripts/00-build_package.sh  first."
     exit 1
 fi
 
