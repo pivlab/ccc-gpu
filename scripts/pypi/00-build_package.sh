@@ -54,4 +54,4 @@ ls -la dist/
 echo "====================================="
 
 echo "Build complete! Packages are in the dist/ directory."
-echo "To upload to test PyPI, run: ./scripts/pypi/upload_to_test_pypi.sh"
+echo "To upload to test PyPI, run: ./scripts/pypi/10-upload_to_test_pypi.sh"
