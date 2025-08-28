@@ -1,4 +1,5 @@
-name: cccgpu-dev
+# Environment for developing, testing, and researching on ccc-gpu
+name: ccc-gpu-dev
 channels:
   - conda-forge
 dependencies:

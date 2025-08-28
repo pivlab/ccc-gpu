@@ -1,16 +1,18 @@
+# Environment for publish ccc-gpu via conda, bundled with CUDA
 name: ccc-gpu
 channels:
-  - rapidsai
   - conda-forge
   - nvidia
 dependencies:
+  - mamba
+  - conda-lock
+  - sphinx
+  - pip
+  - minepy
   - cmake>=3.15
   - cuda=12.5 # We can refer to Cupy to see how they handle this CUDA dependency, that way we can make ccc-gpu also a pip package
   - cupy=13.*
-  - minepy
   - python=3.10
-  - pip
-  # - rapids=24.08 # Maybe usefull in future optimization
   - ipython=8.*
   - numba=0.60.*
   - numpy=1.26.*
@@ -21,7 +23,6 @@ dependencies:
   - scipy=1.15.*
   - scikit-learn=1.6.*
   - seaborn=0.13.*
-  - sphinx=8.*
   - upsetplot=0.9.*
 platforms:
   - linux-64
