@@ -27,26 +27,6 @@ python -m pip install --upgrade build twine setuptools wheel auditwheel
 echo "Building source distribution and wheel..."
 python -m build
 
-# Fix wheel platform tags for PyPI compatibility
-echo "Fixing wheel platform tags..."
-if [ -f dist/*.whl ]; then
-    echo "Repairing wheels for manylinux compatibility..."
-    for wheel in dist/*.whl; do
-        if [[ "$wheel" == *"linux_x86_64"* ]]; then
-            echo "Repairing wheel: $wheel"
-            auditwheel repair "$wheel" --plat-tag manylinux_2_17_x86_64 --wheel-dir dist/ || {
-                echo "Warning: auditwheel repair failed, trying manual wheel tag fix..."
-                # Fallback: rename the wheel file to use manylinux tag
-                new_wheel=$(echo "$wheel" | sed 's/linux_x86_64/manylinux_2_17_x86_64/')
-                if [ "$wheel" != "$new_wheel" ]; then
-                    mv "$wheel" "$new_wheel"
-                    echo "Renamed $wheel to $new_wheel"
-                fi
-            }
-        fi
-    done
-fi
-
 # List built packages
 echo "====================================="
 echo "Built packages:"
