@@ -1,40 +1,44 @@
 Installation
 ============
 
-Prerequisites
--------------
-
-- Python 3.9 or higher
-- CUDA 11.0 or higher (for GPU acceleration)
-- CMake 3.15 or higher  
-- A C++20 compatible compiler
-
 Quick Install with pip
 ----------------------
 
 The ``cccgpu`` package is now available for installation via pip from test PyPI:
 
+However, note that cccgpu depends on `libstdc++`. For a smooth installation, we recommend using a wrapper conda environment to install it:
+
+.. code-block:: bash
+
+    mamba create -n ccc-gpu-toolchain-env -c conda-forge python=3.10 pip pytest libstdcxx-ng && conda activate ccc-gpu-toolchain-env
+
+Support for more Python versions and architectures requires extra effort, and will be added soon.
+
+Then, install the package in the toolchain environment:
+
 .. code-block:: bash
 
     pip install --index-url https://test.pypi.org/simple/ \
                 --extra-index-url https://pypi.org/simple/ \
-                cccgpu
+                --only-binary=cccgpu cccgpu
+
+Then try running some tests to verify the installation:
+
+.. code-block:: bash
+
+    python -c "from ccc.coef.impl_gpu import ccc as ccc_gpu; import numpy as np; print(ccc_gpu(np.random.rand(100), np.random.rand(100)))"
+
 
 **Command options explained:**
 
 - ``--index-url https://test.pypi.org/simple/``: Specifies test PyPI as the primary package index to search for ``cccgpu``
 - ``--extra-index-url https://pypi.org/simple/``: Adds the main PyPI repository as a fallback to install dependencies (numpy, scipy, numba, etc.) that may not be available on test PyPI
+- ``--only-binary=cccgpu``: Ensures that only binary wheels are installed for ``cccgpu`` package, so you don't need to compile it from source
 - ``cccgpu``: The package name to install
 
 .. note::
    This installs from test PyPI while the package is in testing phase. Once stable, it will be available from the main PyPI repository with a simple ``pip install cccgpu`` command.
 
-.. warning::
-   **Prerequisites for pip installation:**
-   
-   - CUDA toolkit must be installed on your system
-   - Compatible NVIDIA GPU with appropriate drivers
-   - Python 3.9-3.11 (check available wheels on the `test PyPI page <https://test.pypi.org/project/cccgpu/>`_)
 
 Install from Source
 -------------------

@@ -1,10 +1,10 @@
 # Minimal environment containing python, pip to help verify the installation from pypi, without cuda bundled
-name: ccc-gpu-test-pypi
+name: ccc-gpu-toolchain-env
 channels:
   - conda-forge
 dependencies:
   - pip
-  - python>=3.10
+  - python=3.10
   - pytest
   - libstdcxx-ng
 platforms:
