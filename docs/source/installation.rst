@@ -10,6 +10,7 @@ However, note that cccgpu depends on `libstdc++`. For a smooth installation, we 
 
 .. code-block:: bash
 
+    # If you don't have mamba, you can use conda instead, or refer to the instruction in the "Install from Source" section below
     mamba create -n ccc-gpu-toolchain-env -c conda-forge python=3.10 pip pytest libstdcxx-ng && conda activate ccc-gpu-toolchain-env
 
 Support for more Python versions and architectures requires extra effort, and will be added soon.
@@ -43,7 +44,7 @@ Then try running some tests to verify the installation:
 Install from Source
 -------------------
 
-For now, install from source using the provided conda-lock environment:
+We provided a conda-lock environment to install the package from source:
 
 1. Install Prerequisites
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -75,38 +76,8 @@ First, install Mamba (recommended) and conda-lock:
     conda activate ccc-gpu
 
     # Install the package in development mode
-    pip install -e .
+    pip install .
 
-Alternative Setup
-~~~~~~~~~~~~~~~~~
-
-If you prefer a simpler approach without conda-lock:
-
-.. code-block:: bash
-
-    # Create basic conda environment
-    conda create -n ccc-gpu python=3.9
-    conda activate ccc-gpu
-
-    # Install CUDA toolkit and dependencies
-    conda install -c conda-forge cudatoolkit-dev cmake ninja
-    pip install numpy scipy numba pybind11 scikit-build-core
-
-    # Install the package
-    pip install -e .
-
-CUDA Setup
-----------
-
-Make sure you have CUDA installed and configured:
-
-.. code-block:: bash
-
-    # Check CUDA installation
-    nvcc --version
-    nvidia-smi
-
-    # The build system will automatically detect your CUDA installation
 
 Updating Dependencies
 ---------------------
@@ -150,6 +121,6 @@ By default, CCC-GPU runs silently without debug output. You can enable detailed 
 This is particularly useful for:
 
 - Debugging GPU memory issues
-- Understanding CUDA device utilization  
+- Understanding CUDA device utilization
 - Monitoring batch processing performance
 - Troubleshooting installation problems
