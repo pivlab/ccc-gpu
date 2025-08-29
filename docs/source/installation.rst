@@ -1,6 +1,14 @@
 Installation
 ============
 
+Prerequisites
+-----------------
+
+Hardware requirements:
+- GPU with CUDA Compute Capability 8.6 or higher
+Software requirements:
+- OS: Linux x86_64
+
 Quick Install with pip
 ----------------------
 
