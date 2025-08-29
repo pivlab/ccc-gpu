@@ -74,7 +74,7 @@ First, install Mamba (recommended) and conda-lock:
 .. code-block:: bash
 
     # Clone the repository
-    git clone https://github.com/your-username/ccc-gpu.git
+    git clone https://github.com/pivlab/ccc-gpu
     cd ccc-gpu
 
     # Create conda environment from lock file
