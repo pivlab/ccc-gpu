@@ -3,8 +3,11 @@
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![CUDA](https://img.shields.io/badge/CUDA-11.0+-green.svg)](https://developer.nvidia.com/cuda-downloads)
+[![Documentation](https://img.shields.io/badge/docs-readthedocs-blue.svg)](https://ccc-gpu.readthedocs.io/en/latest/)
 
 The **Clustermatch Correlation Coefficient (CCC)** is a highly-efficient, next-generation correlation coefficient that captures not-only-linear relationships and can work on numerical and categorical data types. **CCC-GPU** is a GPU-accelerated implementation that provides significant performance improvements for large-scale datasets using CUDA.
+
+📖 **Full documentation available at: [https://ccc-gpu.readthedocs.io/en/latest/](https://ccc-gpu.readthedocs.io/en/latest/)**
 
 CCC is based on the simple idea of clustering data points and then computing the Adjusted Rand Index (ARI) between the two clusterings. It is a robust and efficient method that can detect linear and non-linear relationships, making it suitable for a wide range of applications in genomics, machine learning, and data science.
 
@@ -17,21 +20,35 @@ CCC is based on the simple idea of clustering data points and then computing the
 
 ## Installation
 
-### Prerequisites
+### Requirements
 
-- Python 3.9 or higher
+**Hardware:**
+- GPU with CUDA Compute Capability 8.6 or higher
+
+**Software:**
+- OS: Linux x86_64
+- Python 3.10 (support for more versions coming soon)
 - CUDA 11.0 or higher (for GPU acceleration)
-- CMake 3.15 or higher
-- A C++20 compatible compiler
 
-### Quick Install (Coming Soon!)
+### Quick Install with pip
 
-**A conda package will be published soon for easy installation:**
+The `cccgpu` package is available via pip from test PyPI. We recommend using a conda environment for dependency management:
 
 ```bash
-# Coming soon - simplified conda installation
-conda install -c conda-forge ccc-gpu
+# Create conda environment with required dependencies
+mamba create -n ccc-gpu-env -c conda-forge python=3.10 pip pytest libstdcxx-ng
+conda activate ccc-gpu-env
+
+# Install cccgpu from test PyPI
+pip install --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/ \
+            --only-binary=cccgpu cccgpu
+
+# Verify installation
+python -c "from ccc.coef.impl_gpu import ccc as ccc_gpu; import numpy as np; print(ccc_gpu(np.random.rand(100), np.random.rand(100)))"
 ```
+
+**Note:** This installs from test PyPI while the package is in testing phase. Once stable, it will be available from the main PyPI repository with `pip install cccgpu`.
 
 ### Install from Source
 
