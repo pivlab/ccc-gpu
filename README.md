@@ -1,8 +1,8 @@
 # Clustermatch Correlation Coefficient GPU (CCC-GPU)
 
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![CUDA](https://img.shields.io/badge/CUDA-11.0+-green.svg)](https://developer.nvidia.com/cuda-downloads)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![CUDA](https://img.shields.io/badge/CUDA-12.0+-green.svg)](https://developer.nvidia.com/cuda-downloads)
 [![Documentation](https://img.shields.io/badge/docs-readthedocs-blue.svg)](https://ccc-gpu.readthedocs.io/en/latest/)
 
 The **Clustermatch Correlation Coefficient (CCC)** is a highly-efficient, next-generation correlation coefficient that captures not-only-linear relationships and can work on numerical and categorical data types. **CCC-GPU** is a GPU-accelerated implementation that provides significant performance improvements for large-scale datasets using CUDA.
@@ -28,7 +28,7 @@ CCC is based on the simple idea of clustering data points and then computing the
 **Software:**
 - OS: Linux x86_64
 - Python 3.10 (support for more versions coming soon)
-- CUDA 11.0 or higher (for GPU acceleration)
+- CUDA 12.0 or higher (for GPU acceleration)
 
 ### Quick Install with pip
 
