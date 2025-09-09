@@ -12,7 +12,7 @@ Software requirements:
 Quick Install with pip
 ----------------------
 
-The ``cccgpu`` package is now available for installation via pip from test PyPI:
+The ``cccgpu`` package is now available for installation via pip from test PyPI.
 
 However, note that cccgpu depends on `libstdc++`. For a smooth installation, we recommend using a wrapper conda environment to install it:
 

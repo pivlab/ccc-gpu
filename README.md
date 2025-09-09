@@ -32,7 +32,7 @@ CCC is based on the simple idea of clustering data points and then computing the
 
 ### Quick Install with pip
 
-The `cccgpu` package is available via pip from test PyPI. We recommend using a conda environment for dependency management:
+The `cccgpu` package is available via pip from test PyPI. However, note that cccgpu depends on `libstdc++`. For a smooth installation, we recommend using a wrapper conda environment to install it:
 
 ```bash
 # Create conda environment with required dependencies
@@ -48,7 +48,16 @@ pip install --index-url https://test.pypi.org/simple/ \
 python -c "from ccc.coef.impl_gpu import ccc as ccc_gpu; import numpy as np; print(ccc_gpu(np.random.rand(100), np.random.rand(100)))"
 ```
 
+Support for more Python versions and architectures requires extra effort, and will be added soon.
+
 **Note:** This installs from test PyPI while the package is in testing phase. Once stable, it will be available from the main PyPI repository with `pip install cccgpu`.
+
+**Command options explained:**
+
+- ``--index-url https://test.pypi.org/simple/``: Specifies test PyPI as the primary package index to search for ``cccgpu``
+- ``--extra-index-url https://pypi.org/simple/``: Adds the main PyPI repository as a fallback to install dependencies (numpy, scipy, numba, etc.) that may not be available on test PyPI
+- ``--only-binary=cccgpu``: Ensures that only binary wheels are installed for ``cccgpu`` package, so you don't need to compile it from source
+- ``cccgpu``: The package name to install
 
 ### Install from Source
 
