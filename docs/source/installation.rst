@@ -18,8 +18,7 @@ However, note that cccgpu depends on `libstdc++`. For a smooth installation, we 
 
 .. code-block:: bash
 
-    # If you don't have mamba, you can use conda instead, or refer to the instruction in the "Install from Source" section below
-    mamba create -n ccc-gpu-toolchain-env -c conda-forge python=3.10 pip pytest libstdcxx-ng && conda activate ccc-gpu-toolchain-env
+    conda create -n ccc-gpu-toolchain-env -c conda-forge python=3.10 pip pytest libstdcxx-ng && conda activate ccc-gpu-toolchain-env
 
 Support for more Python versions and architectures requires extra effort, and will be added soon.
 
@@ -67,6 +66,7 @@ First, install Mamba (recommended) and conda-lock:
 
     # Install conda-lock
     pip install conda-lock
+    # or conda install --channel=conda-forge --name=base conda-lock
 
 2. Clone and Setup Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

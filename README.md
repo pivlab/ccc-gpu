@@ -36,7 +36,7 @@ The `cccgpu` package is available via pip from test PyPI. We recommend using a c
 
 ```bash
 # Create conda environment with required dependencies
-mamba create -n ccc-gpu-env -c conda-forge python=3.10 pip pytest libstdcxx-ng
+conda create -n ccc-gpu-env -c conda-forge python=3.10 pip pytest libstdcxx-ng
 conda activate ccc-gpu-env
 
 # Install cccgpu from test PyPI
@@ -59,19 +59,20 @@ For now, install from source using the provided conda-lock environment:
 First, install Mamba (recommended) and conda-lock:
 
 ```bash
-# Install MiniForge (includes Mamba)
+# Install MiniForge (includes Mamba). If you already have Mamba, or prefer to use conda, you can skip this step.
 curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
 bash Miniforge3-$(uname)-$(uname -m).sh -b
 
-# Install conda-lock
+# Install conda-lock, a tool to generate conda lock file to ensure reproducibility of the environment.
 pip install conda-lock
+# or conda install --channel=conda-forge --name=base conda-lock
 ```
 
 #### 2. Clone and Setup Environment
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/ccc-gpu.git
+git clone https://github.com/pivlab/ccc-gpu
 cd ccc-gpu
 
 # Create conda environment from lock file
@@ -80,37 +81,8 @@ conda-lock install --name ccc-gpu conda-lock.yml --conda mamba
 # Activate environment
 conda activate ccc-gpu
 
-# Install the package in development mode
-pip install -e .
-```
-
-#### Alternative Setup
-
-If you prefer a simpler approach without conda-lock:
-
-```bash
-# Create basic conda environment
-conda create -n ccc-gpu python=3.9
-conda activate ccc-gpu
-
-# Install CUDA toolkit and dependencies
-conda install -c conda-forge cudatoolkit-dev cmake ninja
-pip install numpy scipy numba pybind11 scikit-build-core
-
-# Install the package
-pip install -e .
-```
-
-### CUDA Setup
-
-Make sure you have CUDA installed and configured:
-
-```bash
-# Check CUDA installation
-nvcc --version
-nvidia-smi
-
-# The build system will automatically detect your CUDA installation
+# Install the package from source
+pip install .
 ```
 
 ### Updating Dependencies
