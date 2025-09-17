@@ -61,55 +61,80 @@ Support for more Python versions and architectures requires extra effort, and wi
 
 ### Install from Source
 
-For now, install from source using the provided conda-lock environment:
+Install from source using the provided conda-lock environment:
 
-#### 1. Install Prerequisites
-
-First, install Mamba (recommended) and conda-lock:
-
-```bash
-# Install MiniForge (includes Mamba). If you already have Mamba, or prefer to use conda, you can skip this step.
-curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
-bash Miniforge3-$(uname)-$(uname -m).sh -b
-
-# Install conda-lock, a tool to generate conda lock file to ensure reproducibility of the environment.
-pip install conda-lock
-# or conda install --channel=conda-forge --name=base conda-lock
-```
-
-#### 2. Clone and Setup Environment
+#### 1. Clone Repository
 
 ```bash
 # Clone the repository
 git clone https://github.com/pivlab/ccc-gpu
 cd ccc-gpu
+```
 
-# Create conda environment from lock file
-conda-lock install --name ccc-gpu conda-lock.yml --conda mamba
+#### 2. Setup Environment with conda-lock
 
-# Activate environment
+This process uses a temporary environment to manage the conda-lock installation, keeping your base environment clean:
+
+> **Why conda-lock?** We use conda-lock to ensure **reproducible installations** across different systems. Unlike regular `environment.yml` files, conda-lock provides exact version pins for all packages and their dependencies, preventing version conflicts and ensuring you get the same environment that was tested during development.
+
+```bash
+# Create temporary environment for conda-lock
+conda create -n ccc-gpu-setup python=3.10 -y  # or: mamba create -n ccc-gpu-setup python=3.10 -y
+conda activate ccc-gpu-setup
+
+# Install conda-lock in temporary environment
+conda install --channel=conda-forge conda-lock -y  # or: mamba install --channel=conda-forge conda-lock -y
+
+# Create the main ccc-gpu environment from lock file
+conda-lock install --name ccc-gpu conda-lock.yml  # or: conda-lock install --name ccc-gpu conda-lock.yml --conda mamba
+
+# Activate the main environment
 conda activate ccc-gpu
 
 # Install the package from source
 pip install .
 ```
 
-### Updating Dependencies
+#### 3. Optional: Clean up temporary environment
 
-To update the environment when dependencies change:
+Once installation is complete, you can optionally remove the temporary setup environment:
 
 ```bash
-# Regenerate lock file (for developers)
-conda-lock --file environment/environment-gpu.yml --conda mamba
-
-# Update existing environment
-conda-lock install --name ccc-gpu conda-lock.yml --conda mamba
+# Remove temporary environment (optional)
+conda deactivate  # Make sure you're not in ccc-gpu-setup
+conda remove -n ccc-gpu-setup --all -y  # or: mamba remove -n ccc-gpu-setup --all -y
 ```
+
+#### Alternative: Install conda-lock in base environment
+
+If you prefer to install conda-lock directly in your base environment:
+
+```bash
+# Option 1: Using pip
+pip install conda-lock
+
+# Option 2: Using conda
+conda install --channel=conda-forge conda-lock -y  # or: mamba install --channel=conda-forge conda-lock -y
+
+# Then create environment directly
+conda-lock install --name ccc-gpu conda-lock.yml  # or: conda-lock install --name ccc-gpu conda-lock.yml --conda mamba
+conda activate ccc-gpu
+pip install .
+```
+
+> **Note**: If you prefer to use Mamba for faster package resolution, you can install MiniForge which includes Mamba:
+> ```bash
+> curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+> bash Miniforge3-$(uname)-$(uname -m).sh -b
+> ```
+> Then replace `conda` with `mamba` in the commands above.
+
 
 ## Testing
 To execute all the test suites, at the root of the repository, run:
 
 ```bash
+conda activate ccc-gpu
 bash ./scripts/run_tests.sh python
 ```
 
@@ -212,7 +237,7 @@ CCC-GPU provides significant performance improvements over CPU-only implementati
 
 ## Documentation
 
-Build and view documentation locally:
+Build and view the full documentation locally:
 
 ```bash
 cd docs
