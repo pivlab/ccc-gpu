@@ -1,1 +1,2 @@
 tests/data/* -text
+*.ipynb linguist-documentation
