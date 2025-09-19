@@ -258,10 +258,7 @@ If you use CCC-GPU in your research, please cite the original CCC paper:
   author={Zhang, Haoyu and Fotso, Kevin and Pividori, Milton},
   journal={bioRxiv},
   year={2025},
-  publisher={Cold Spring Harbor Laboratory},
   doi={10.1101/2025.06.03.657735},
-  pmid={40502087},
-  pmcid={PMC12157546}
 }
 ```
 
