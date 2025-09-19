@@ -255,7 +255,7 @@ If you use CCC-GPU in your research, please cite the original CCC paper:
 ```bibtex
 @article{zhang2025cccgpu,
   title={CCC-GPU: A graphics processing unit (GPU)-optimized nonlinear correlation coefficient for large transcriptomic analyses},
-  author={Zhang, Hang and Fotso, Kenneth and Pividori, Milton},
+  author={Zhang, Haoyu and Fotso, Kevin and Pividori, Milton},
   journal={bioRxiv},
   year={2025},
   publisher={Cold Spring Harbor Laboratory},
