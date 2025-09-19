@@ -26,13 +26,13 @@ CCC is based on the simple idea of clustering data points and then computing the
 - GPU with CUDA Compute Capability 8.6 or higher
 
 **Software:**
-- OS: Linux x86_64
+- OS: Linux x86_64, Windows x86_64 (not tested yet)
 - Python 3.10 (support for more versions coming soon)
 - CUDA 12.0 or higher (for GPU acceleration)
 
 ### Quick Install with pip
 
-The `cccgpu` package is available via pip from test PyPI. However, note that cccgpu depends on `libstdc++`. For a smooth installation, we recommend using a wrapper conda environment to install it:
+The `cccgpu` package is available via pip from test PyPI. However, note that cccgpu depends on `libstdc++`. For a smooth installation without compatibility issues with your local system, we recommend using a wrapper conda environment to install it:
 
 ```bash
 # Create conda environment with required dependencies
