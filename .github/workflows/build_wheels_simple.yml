@@ -1,0 +1,55 @@
+name: Build Wheels (Simplified)
+
+on:
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: 'Python version to build (e.g., cp311)'
+        required: false
+        default: 'cp311'
+      os:
+        description: 'OS to build on'
+        required: false
+        default: 'ubuntu-20.04'
+        type: choice
+        options:
+          - ubuntu-20.04
+          - windows-2019
+
+jobs:
+  build_single_wheel:
+    name: Build wheel for ${{ inputs.python_version }} on ${{ inputs.os }}
+    runs-on: ${{ inputs.os }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install CUDA
+        uses: Jimver/cuda-toolkit@v0.2.16
+        id: cuda-toolkit
+        with:
+          cuda: '12.8.0'
+          method: 'network'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.21.3
+
+      - name: Build wheel
+        env:
+          CIBW_BUILD: "${{ inputs.python_version }}-*"
+          CIBW_SKIP: "pp* *-musllinux* *-manylinux_i686 *-manylinux_aarch64 *-win32"
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ inputs.python_version }}-${{ inputs.os }}
+          path: ./wheelhouse/*.whl

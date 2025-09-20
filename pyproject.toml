@@ -59,3 +59,29 @@ addopts = "-ra -q"
 testpaths = [
     "tests",
 ]
+
+[tool.cibuildwheel]
+# Build for Python 3.10-3.14 on Linux and Windows x86_64
+build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
+skip = "pp* *-musllinux* *-manylinux_i686 *-manylinux_aarch64 *-win32 *-win_arm64"
+
+# Linux-specific configuration
+[tool.cibuildwheel.linux]
+before-all = """
+    yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && \
+    yum clean all && \
+    yum install -y cuda-toolkit-12-8 ninja-build && \
+    echo "CUDA installation completed"
+"""
+environment = {CUDA_HOME="/usr/local/cuda-12.8", PATH="/usr/local/cuda-12.8/bin:$PATH", LD_LIBRARY_PATH="/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH", CMAKE_CUDA_COMPILER="/usr/local/cuda-12.8/bin/nvcc", CUDACXX="/usr/local/cuda-12.8/bin/nvcc"}
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} --plat manylinux2014_x86_64"
+manylinux-x86_64-image = "manylinux2014"
+
+# Windows-specific configuration
+[tool.cibuildwheel.windows]
+before-build = "pip install delvewheel"
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel} --add-path C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\bin"
+
+# Test configuration
+test-command = "python -c \"import ccc_cuda_ext; print('CUDA extension imported successfully')\""
+test-requires = ["numpy", "scipy", "numba", "pandas", "scikit-learn"]

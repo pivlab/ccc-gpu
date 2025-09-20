@@ -1,0 +1,208 @@
+name: Build Wheels
+
+on:
+  push:
+    branches: [ main, build-multi-os ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, windows-2019]
+        cuda-version: ["12.8.0"]  # CUDA 12.8 for latest GPU support
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Install CUDA on the runner (for Windows primarily, also useful for Linux)
+      - name: Install CUDA
+        uses: Jimver/cuda-toolkit@v0.2.16
+        id: cuda-toolkit
+        with:
+          cuda: ${{ matrix.cuda-version }}
+          method: 'network'
+          sub-packages: '["nvcc", "cudart", "cufft", "cublas", "cusparse", "cusolver", "curand", "npp", "nvrtc"]'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  # Version for running cibuildwheel
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.21.3
+
+      - name: Build wheels - Linux
+        if: runner.os == 'Linux'
+        env:
+          CIBW_BUILD: "cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64 cp314-manylinux_x86_64"
+          # Skip PyPy, musllinux, and other architectures
+          CIBW_SKIP: "pp* *-musllinux* *-manylinux_i686 *-manylinux_aarch64"
+          # Install CUDA and other dependencies inside the container
+          CIBW_BEFORE_ALL_LINUX: |
+            # Install CUDA repository and toolkit
+            yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
+            yum clean all
+            yum install -y cuda-toolkit-12-8 ninja-build
+            # Set CUDA environment
+            echo "export CUDA_HOME=/usr/local/cuda-12.8" >> ~/.bashrc
+            echo "export PATH=/usr/local/cuda-12.8/bin:$PATH" >> ~/.bashrc
+            echo "export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH" >> ~/.bashrc
+            source ~/.bashrc
+            # Verify CUDA installation
+            nvcc --version
+          CIBW_ENVIRONMENT_LINUX: |
+            CUDA_HOME="/usr/local/cuda-12.8"
+            PATH="/usr/local/cuda-12.8/bin:$PATH"
+            LD_LIBRARY_PATH="/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH"
+            CMAKE_CUDA_COMPILER="/usr/local/cuda-12.8/bin/nvcc"
+            CUDACXX="/usr/local/cuda-12.8/bin/nvcc"
+          # Repair wheels to bundle CUDA libraries
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: |
+            auditwheel repair -w {dest_dir} {wheel} --plat manylinux2014_x86_64
+          # Test imports
+          CIBW_TEST_COMMAND: |
+            python -c "import ccc_cuda_ext; print('CUDA extension imported successfully')"
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
+
+      - name: Build wheels - Windows
+        if: runner.os == 'Windows'
+        env:
+          CIBW_BUILD: "cp310-win_amd64 cp311-win_amd64 cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
+          CIBW_SKIP: "pp* *-win32 *-win_arm64"
+          CIBW_BEFORE_BUILD_WINDOWS: |
+            pip install delvewheel
+          CIBW_ENVIRONMENT_WINDOWS: |
+            CUDA_HOME="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}"
+            CUDA_PATH="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}"
+            PATH="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}\\bin;$PATH"
+            CMAKE_CUDA_COMPILER="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}\\bin\\nvcc.exe"
+            CUDACXX="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}\\bin\\nvcc.exe"
+          # Use delvewheel for Windows to bundle DLLs
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: |
+            delvewheel repair -w {dest_dir} {wheel} --add-path "${{ steps.cuda-toolkit.outputs.CUDA_PATH }}\\bin"
+          CIBW_TEST_COMMAND: |
+            python -c "import ccc_cuda_ext; print('CUDA extension imported successfully')"
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
+
+      - name: Upload wheels as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-cuda${{ matrix.cuda-version }}
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+
+      - name: Build sdist
+        run: python -m build --sdist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  test_wheels:
+    name: Test wheel on ${{ matrix.os }} - Python ${{ matrix.python-version }}
+    needs: [build_wheels]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, windows-2019]
+        python-version: ["3.10", "3.11", "3.12"]
+        cuda-version: ["12.8.0"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install CUDA for testing
+      - name: Install CUDA
+        uses: Jimver/cuda-toolkit@v0.2.16
+        with:
+          cuda: ${{ matrix.cuda-version }}
+          method: 'network'
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-cuda${{ matrix.cuda-version }}
+          path: ./wheelhouse
+
+      - name: Install wheel and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy numba pandas scikit-learn pytest
+          python -m pip install --find-links ./wheelhouse cccgpu
+
+      - name: Run basic import test
+        run: |
+          python -c "import ccc; import ccc_cuda_ext; print('All imports successful')"
+          python -c "from ccc import compute; print('CCC compute module loaded')"
+
+      - name: Run pytest
+        run: |
+          pytest tests/test_coef.py -v
+
+  upload_pypi:
+    name: Upload to PyPI
+    needs: [build_wheels, build_sdist, test_wheels]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - name: Display structure of downloaded files
+        run: ls -la dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          # Remove this line to upload to real PyPI instead of TestPyPI
+          # repository_url: https://test.pypi.org/legacy/
