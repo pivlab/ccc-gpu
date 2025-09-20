@@ -9,6 +9,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+build_*/
 develop-eggs/
 dist/
 downloads/
@@ -20,12 +21,18 @@ parts/
 sdist/
 var/
 wheels/
+wheelhouse/
 pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
+
+# CMake build directories
+build_test/
+libs/*/build/
+_deps/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

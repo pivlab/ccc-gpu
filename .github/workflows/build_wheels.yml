@@ -21,10 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      # Install CUDA on the runner (for Windows primarily, also useful for Linux)
+      # Install CUDA on the runner
       - name: Install CUDA
         uses: Jimver/cuda-toolkit@v0.2.16
         id: cuda-toolkit
@@ -86,8 +84,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v5
