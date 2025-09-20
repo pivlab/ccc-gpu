@@ -18,12 +18,13 @@ This is the primary workflow that builds wheels for all supported configurations
 - **CUDA version**: 12.5 (for stable GPU support and features)
 
 #### Key Features:
-1. Builds wheels for all Python versions in parallel on Linux
-2. Automatically installs CUDA toolkit in manylinux container
-3. Bundles CUDA libraries with wheels for standalone distribution
-4. Runs basic import tests after building
-5. Uploads wheels as GitHub Actions artifacts
-6. Optionally publishes to PyPI on version tags
+1. Uses conda to manage CUDA 12.5 environment for reliable installation
+2. Builds wheels for all Python versions in parallel on Linux
+3. Automatically installs CUDA toolkit in manylinux container
+4. Bundles CUDA libraries with wheels for standalone distribution
+5. Runs basic import tests after building
+6. Uploads wheels as GitHub Actions artifacts
+7. Optionally publishes to PyPI on version tags
 
 ### Simplified Workflow: `build_wheels_simple.yml`
 
@@ -54,12 +55,23 @@ Helper script for Windows wheels:
 
 ### Prerequisites
 
-1. Install cibuildwheel:
+1. Install conda/mamba:
+```bash
+# Install miniforge (includes mamba)
+curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+bash Miniforge3-$(uname)-$(uname -m).sh
+```
+
+2. Create CUDA environment:
+```bash
+mamba env create -f environment/environment-gpu.yml
+conda activate ccc-gpu
+```
+
+3. Install cibuildwheel:
 ```bash
 pip install cibuildwheel
 ```
-
-2. Install CUDA Toolkit 12.5 (or compatible version)
 
 ### Build Commands
 
@@ -73,9 +85,11 @@ Build specific Python version:
 CIBW_BUILD="cp311-*" cibuildwheel --output-dir wheelhouse
 ```
 
-Build with custom CUDA path (Linux):
+Build with conda CUDA environment:
 ```bash
-export CUDA_HOME=/usr/local/cuda-12.5
+# Activate the conda environment with CUDA
+conda activate ccc-gpu
+# CUDA paths are automatically set by conda
 cibuildwheel --output-dir wheelhouse
 ```
 
@@ -83,11 +97,13 @@ cibuildwheel --output-dir wheelhouse
 
 ### Linux (manylinux)
 
-- Uses manylinux2014 base image for broad Linux distribution compatibility
-- CUDA 12.5 is installed inside the container via yum package manager
+- Uses conda to install CUDA 12.5 on the host system for reliable setup
+- Uses manylinux2014 base image for broad Linux distribution compatibility  
+- CUDA 12.5 is also installed inside the container via yum package manager
 - Wheels are repaired with `auditwheel` to bundle CUDA shared libraries
 - Resulting wheels are compatible with most Linux distributions (CentOS 7+, Ubuntu 16.04+, etc.)
 - Supports x86_64 architecture only
+- Conda environment ensures consistent CUDA version across local and CI builds
 
 ## CUDA Architecture Support
 
@@ -119,8 +135,9 @@ To support additional architectures, modify the `CMAKE_CUDA_ARCHITECTURES` setti
 ### Common Issues
 
 1. **CUDA not found during build**
-   - Ensure CUDA_HOME/CUDA_PATH environment variable is set
-   - Verify CUDA toolkit version compatibility
+   - Ensure conda environment is activated: `conda activate ccc-gpu`
+   - Verify CUDA installation: `nvcc --version`
+   - Check conda CUDA package: `conda list cuda`
 
 2. **Wheel import fails with missing shared library**
    - Check auditwheel output for excluded libraries
@@ -134,6 +151,9 @@ To support additional architectures, modify the `CMAKE_CUDA_ARCHITECTURES` setti
 
 Enable verbose output:
 ```bash
+# Ensure conda environment is active
+conda activate ccc-gpu
+# Enable verbose cibuildwheel output
 CIBW_BUILD_VERBOSITY=3 cibuildwheel --output-dir wheelhouse
 ```
 

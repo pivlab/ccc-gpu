@@ -23,22 +23,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install CUDA
-        uses: Jimver/cuda-toolkit@v0.2.16
-        id: cuda-toolkit
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          cuda: '12.5.0'
-          method: 'network'
+          environment-file: environment/environment-gpu.yml
+          activate-environment: ccc-gpu
+          auto-activate-base: false
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          use-mamba: true
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      - name: Verify CUDA installation
+        shell: bash -l {0}
+        run: |
+          conda info
+          nvcc --version
 
       - name: Install cibuildwheel
+        shell: bash -l {0}
         run: python -m pip install cibuildwheel==2.21.3
 
       - name: Build wheel
+        shell: bash -l {0}
         env:
           CIBW_BUILD: "${{ inputs.python_version }}-*"
           CIBW_SKIP: "pp* *-musllinux* *-manylinux_i686 *-manylinux_aarch64 *-win32"
