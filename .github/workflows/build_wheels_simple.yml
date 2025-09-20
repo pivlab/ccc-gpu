@@ -10,11 +10,10 @@ on:
       os:
         description: 'OS to build on'
         required: false
-        default: 'ubuntu-20.04'
+        default: 'ubuntu-24.04'
         type: choice
         options:
-          - ubuntu-20.04
-          - windows-2019
+          - ubuntu-24.04
 
 jobs:
   build_single_wheel:

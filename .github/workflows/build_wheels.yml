@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019]
+        os: [ubuntu-24.04]
         cuda-version: ["12.8.0"]  # CUDA 12.8 for latest GPU support
 
     steps:
@@ -41,8 +41,7 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
 
-      - name: Build wheels - Linux
-        if: runner.os == 'Linux'
+      - name: Build wheels
         env:
           CIBW_BUILD: "cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64 cp314-manylinux_x86_64"
           # Skip PyPy, musllinux, and other architectures
@@ -75,26 +74,6 @@ jobs:
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 
-      - name: Build wheels - Windows
-        if: runner.os == 'Windows'
-        env:
-          CIBW_BUILD: "cp310-win_amd64 cp311-win_amd64 cp312-win_amd64 cp313-win_amd64 cp314-win_amd64"
-          CIBW_SKIP: "pp* *-win32 *-win_arm64"
-          CIBW_BEFORE_BUILD_WINDOWS: |
-            pip install delvewheel
-          CIBW_ENVIRONMENT_WINDOWS: |
-            CUDA_HOME="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}"
-            CUDA_PATH="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}"
-            PATH="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}\\bin;$PATH"
-            CMAKE_CUDA_COMPILER="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}\\bin\\nvcc.exe"
-            CUDACXX="${{ steps.cuda-toolkit.outputs.CUDA_PATH }}\\bin\\nvcc.exe"
-          # Use delvewheel for Windows to bundle DLLs
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: |
-            delvewheel repair -w {dest_dir} {wheel} --add-path "${{ steps.cuda-toolkit.outputs.CUDA_PATH }}\\bin"
-          CIBW_TEST_COMMAND: |
-            python -c "import ccc_cuda_ext; print('CUDA extension imported successfully')"
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse
 
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v4
@@ -136,7 +115,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019]
+        os: [ubuntu-24.04]
         python-version: ["3.10", "3.11", "3.12"]
         cuda-version: ["12.8.0"]
 

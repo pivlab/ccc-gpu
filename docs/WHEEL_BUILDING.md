@@ -13,13 +13,13 @@ The project uses `cibuildwheel` to automatically build wheels for multiple Pytho
 This is the primary workflow that builds wheels for all supported configurations:
 
 - **Triggers**: Push to main/build-multi-os branches, pull requests, tags starting with 'v*'
-- **Platforms**: Ubuntu 20.04 (Linux) and Windows 2019
+- **Platform**: Ubuntu 24.04 (Linux only)
 - **Python versions**: 3.10, 3.11, 3.12, 3.13, 3.14
 - **CUDA version**: 12.8 (for latest GPU support and features)
 
 #### Key Features:
-1. Builds wheels for all Python versions in parallel
-2. Automatically installs CUDA toolkit in build environment
+1. Builds wheels for all Python versions in parallel on Linux
+2. Automatically installs CUDA toolkit in manylinux container
 3. Bundles CUDA libraries with wheels for standalone distribution
 4. Runs basic import tests after building
 5. Uploads wheels as GitHub Actions artifacts
@@ -81,19 +81,13 @@ cibuildwheel --output-dir wheelhouse
 
 ## Platform-Specific Notes
 
-### Linux
+### Linux (manylinux)
 
-- Uses manylinux2014 base image for compatibility
-- CUDA is installed inside the container via yum
-- Wheels are repaired with `auditwheel` to bundle shared libraries
-- Compatible with most Linux distributions
-
-### Windows
-
-- Requires Visual Studio C++ build tools
-- CUDA is installed on the runner before building
-- Uses `delvewheel` to bundle CUDA DLLs
-- May need manual DLL path adjustment for non-standard CUDA installations
+- Uses manylinux2014 base image for broad Linux distribution compatibility
+- CUDA 12.8 is installed inside the container via yum package manager
+- Wheels are repaired with `auditwheel` to bundle CUDA shared libraries
+- Resulting wheels are compatible with most Linux distributions (CentOS 7+, Ubuntu 16.04+, etc.)
+- Supports x86_64 architecture only
 
 ## CUDA Architecture Support
 
@@ -128,9 +122,9 @@ To support additional architectures, modify the `CMAKE_CUDA_ARCHITECTURES` setti
    - Ensure CUDA_HOME/CUDA_PATH environment variable is set
    - Verify CUDA toolkit version compatibility
 
-2. **Wheel import fails with missing DLL**
-   - Windows: Run the repair script manually
-   - Linux: Check auditwheel output for excluded libraries
+2. **Wheel import fails with missing shared library**
+   - Check auditwheel output for excluded libraries
+   - Verify CUDA libraries are properly bundled in the wheel
 
 3. **Build fails with compiler errors**
    - Verify C++ standard compatibility (requires C++20)
@@ -185,7 +179,6 @@ To update the CUDA version:
 
 2. Update `pyproject.toml`:
    - Modify CUDA installation commands in `[tool.cibuildwheel.linux]`
-   - Update paths in `[tool.cibuildwheel.windows]`
 
 3. Update documentation with new version requirements
 
@@ -196,6 +189,18 @@ To add support for new Python versions:
 1. Update `CIBW_BUILD` environment variable in workflows
 2. Add version to `build` list in `pyproject.toml`
 3. Update test matrix in workflow
+
+## Summary
+
+This configuration provides automated wheel building for the CCC-GPU project with the following specifications:
+
+- **Platform**: Ubuntu 24.04 (Linux only)
+- **Python Versions**: 3.10, 3.11, 3.12, 3.13, 3.14
+- **CUDA Version**: 12.8 with latest features and GPU architecture support
+- **Wheel Type**: manylinux2014 for broad Linux distribution compatibility
+- **Architecture**: x86_64 only
+
+The resulting wheels are self-contained with bundled CUDA libraries and can be installed on most modern Linux distributions without requiring a separate CUDA installation.
 
 ## Resources
 
