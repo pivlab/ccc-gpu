@@ -70,10 +70,10 @@ skip = "pp* *-musllinux* *-manylinux_i686 *-manylinux_aarch64"
 before-all = """
     yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && \
     yum clean all && \
-    yum install -y cuda-toolkit-12-8 ninja-build && \
+    yum install -y cuda-toolkit-12-5 ninja-build && \
     echo "CUDA installation completed"
 """
-environment = {CUDA_HOME="/usr/local/cuda-12.8", PATH="/usr/local/cuda-12.8/bin:$PATH", LD_LIBRARY_PATH="/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH", CMAKE_CUDA_COMPILER="/usr/local/cuda-12.8/bin/nvcc", CUDACXX="/usr/local/cuda-12.8/bin/nvcc"}
+environment = {CUDA_HOME="/usr/local/cuda-12.5", PATH="/usr/local/cuda-12.5/bin:$PATH", LD_LIBRARY_PATH="/usr/local/cuda-12.5/lib64:$LD_LIBRARY_PATH", CMAKE_CUDA_COMPILER="/usr/local/cuda-12.5/bin/nvcc", CUDACXX="/usr/local/cuda-12.5/bin/nvcc"}
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} --plat manylinux2014_x86_64"
 manylinux-x86_64-image = "manylinux2014"
 

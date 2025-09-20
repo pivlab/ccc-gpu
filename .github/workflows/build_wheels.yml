@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        cuda-version: ["12.8.0"]  # CUDA 12.8 for latest GPU support
+        cuda-version: ["12.5.0"]  # CUDA 12.5 for stable GPU support
 
     steps:
       - uses: actions/checkout@v4
@@ -49,20 +49,20 @@ jobs:
             # Install CUDA repository and toolkit
             yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
             yum clean all
-            yum install -y cuda-toolkit-12-8 ninja-build
+            yum install -y cuda-toolkit-12-5 ninja-build
             # Set CUDA environment
-            echo "export CUDA_HOME=/usr/local/cuda-12.8" >> ~/.bashrc
-            echo "export PATH=/usr/local/cuda-12.8/bin:$PATH" >> ~/.bashrc
-            echo "export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH" >> ~/.bashrc
+            echo "export CUDA_HOME=/usr/local/cuda-12.5" >> ~/.bashrc
+            echo "export PATH=/usr/local/cuda-12.5/bin:$PATH" >> ~/.bashrc
+            echo "export LD_LIBRARY_PATH=/usr/local/cuda-12.5/lib64:$LD_LIBRARY_PATH" >> ~/.bashrc
             source ~/.bashrc
             # Verify CUDA installation
             nvcc --version
           CIBW_ENVIRONMENT_LINUX: |
-            CUDA_HOME="/usr/local/cuda-12.8"
-            PATH="/usr/local/cuda-12.8/bin:$PATH"
-            LD_LIBRARY_PATH="/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH"
-            CMAKE_CUDA_COMPILER="/usr/local/cuda-12.8/bin/nvcc"
-            CUDACXX="/usr/local/cuda-12.8/bin/nvcc"
+            CUDA_HOME="/usr/local/cuda-12.5"
+            PATH="/usr/local/cuda-12.5/bin:$PATH"
+            LD_LIBRARY_PATH="/usr/local/cuda-12.5/lib64:$LD_LIBRARY_PATH"
+            CMAKE_CUDA_COMPILER="/usr/local/cuda-12.5/bin/nvcc"
+            CUDACXX="/usr/local/cuda-12.5/bin/nvcc"
           # Repair wheels to bundle CUDA libraries
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: |
             auditwheel repair -w {dest_dir} {wheel} --plat manylinux2014_x86_64
@@ -113,7 +113,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04]
         python-version: ["3.10", "3.11", "3.12"]
-        cuda-version: ["12.8.0"]
+        cuda-version: ["12.5.0"]
 
     steps:
       - uses: actions/checkout@v4

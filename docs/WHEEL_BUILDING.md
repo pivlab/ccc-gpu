@@ -15,7 +15,7 @@ This is the primary workflow that builds wheels for all supported configurations
 - **Triggers**: Push to main/build-multi-os branches, pull requests, tags starting with 'v*'
 - **Platform**: Ubuntu 24.04 (Linux only)
 - **Python versions**: 3.10, 3.11, 3.12, 3.13, 3.14
-- **CUDA version**: 12.8 (for latest GPU support and features)
+- **CUDA version**: 12.5 (for stable GPU support and features)
 
 #### Key Features:
 1. Builds wheels for all Python versions in parallel on Linux
@@ -59,7 +59,7 @@ Helper script for Windows wheels:
 pip install cibuildwheel
 ```
 
-2. Install CUDA Toolkit 12.8 (or compatible version)
+2. Install CUDA Toolkit 12.5 (or compatible version)
 
 ### Build Commands
 
@@ -75,7 +75,7 @@ CIBW_BUILD="cp311-*" cibuildwheel --output-dir wheelhouse
 
 Build with custom CUDA path (Linux):
 ```bash
-export CUDA_HOME=/usr/local/cuda-12.8
+export CUDA_HOME=/usr/local/cuda-12.5
 cibuildwheel --output-dir wheelhouse
 ```
 
@@ -84,23 +84,23 @@ cibuildwheel --output-dir wheelhouse
 ### Linux (manylinux)
 
 - Uses manylinux2014 base image for broad Linux distribution compatibility
-- CUDA 12.8 is installed inside the container via yum package manager
+- CUDA 12.5 is installed inside the container via yum package manager
 - Wheels are repaired with `auditwheel` to bundle CUDA shared libraries
 - Resulting wheels are compatible with most Linux distributions (CentOS 7+, Ubuntu 16.04+, etc.)
 - Supports x86_64 architecture only
 
 ## CUDA Architecture Support
 
-The project uses CUDA 12.8 and targets CUDA compute capability 7.5 (as specified in CMakeLists.txt). 
+The project uses CUDA 12.5 and targets CUDA compute capability 7.5 (as specified in CMakeLists.txt). 
 
-### CUDA 12.8 Benefits:
-- **Latest Features**: Support for newest CUDA APIs and libraries
-- **Performance**: Enhanced compiler optimizations and runtime performance
+### CUDA 12.5 Benefits:
+- **Stability**: Mature and well-tested CUDA version with proven stability
+- **Performance**: Excellent compiler optimizations and runtime performance
 - **GPU Architecture**: Full support for Ada Lovelace (RTX 40) and Hopper architectures
-- **Memory Management**: Improved unified memory and memory pool APIs
-- **Driver Compatibility**: Works with the latest NVIDIA drivers (550+)
-- **Developer Tools**: Enhanced debugging and profiling capabilities
-- **Stability**: Latest bug fixes and security updates
+- **Memory Management**: Advanced unified memory and memory pool APIs
+- **Driver Compatibility**: Works with NVIDIA drivers 550+ and earlier versions
+- **Developer Tools**: Comprehensive debugging and profiling capabilities
+- **Ecosystem Support**: Wide compatibility with CUDA libraries and frameworks
 
 ### Supported GPU Architectures:
 - GeForce RTX 40 series (Ada Lovelace) - compute capability 8.9
@@ -196,7 +196,7 @@ This configuration provides automated wheel building for the CCC-GPU project wit
 
 - **Platform**: Ubuntu 24.04 (Linux only)
 - **Python Versions**: 3.10, 3.11, 3.12, 3.13, 3.14
-- **CUDA Version**: 12.8 with latest features and GPU architecture support
+- **CUDA Version**: 12.5 with stable features and GPU architecture support
 - **Wheel Type**: manylinux2014 for broad Linux distribution compatibility
 - **Architecture**: x86_64 only
 
