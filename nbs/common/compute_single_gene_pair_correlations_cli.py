@@ -31,18 +31,63 @@ except ImportError:
     sys.exit(1)
 
 
-def setup_logging(debug: bool = False) -> None:
+def setup_logging(debug: bool = False, output_dir: Optional[Path] = None) -> Optional[Path]:
     """Configure logging for the script.
     
     Args:
         debug: Enable debug level logging if True
+        output_dir: Directory to write log files to (optional)
+        
+    Returns:
+        Path to log file if output_dir provided, None otherwise
     """
     level = logging.DEBUG if debug else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format='%(asctime)s - %(levelname)s - %(message)s',
+    
+    # Clear any existing handlers
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    
+    # Setup formatters
+    console_formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s',
         datefmt='%H:%M:%S'
     )
+    file_formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Setup handlers
+    handlers = []
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(console_formatter)
+    handlers.append(console_handler)
+    
+    # File handler (if output directory provided)
+    log_file = None
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = output_dir / f"gene_pair_correlation_analysis_{timestamp}.log"
+        
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(file_formatter)
+        handlers.append(file_handler)
+    
+    # Configure root logger
+    logging.basicConfig(
+        level=level,
+        handlers=handlers,
+        force=True
+    )
+    
+    if log_file:
+        logging.info(f"Log file created: {log_file}")
+        
+    return log_file
 
 
 class GeneExpressionAnalyzer:
@@ -345,6 +390,54 @@ class GeneExpressionAnalyzer:
             raise ValueError(f"Gene {gene_symbol} ({gene_id}) not found in tissue data")
 
 
+def save_results(results: Dict[str, Union[float, str]], output_dir: Path) -> Tuple[Path, Path]:
+    """Save correlation results to files.
+    
+    Args:
+        results: Dictionary containing correlation results
+        output_dir: Directory to save files
+        
+    Returns:
+        Tuple of (json_file_path, pickle_file_path)
+    """
+    import json
+    import pickle
+    from datetime import datetime
+    
+    # Create filenames
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    gene1_symbol = results['gene1_symbol']
+    gene2_symbol = results['gene2_symbol'] 
+    tissue = results['tissue']
+    
+    base_filename = f"{gene1_symbol}_{gene2_symbol}_{tissue}_{timestamp}"
+    json_file = output_dir / f"{base_filename}_correlation_results.json"
+    pickle_file = output_dir / f"{base_filename}_correlation_results.pkl"
+    
+    # Ensure output directory exists
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save as JSON (human readable)
+    json_data = {}
+    for key, value in results.items():
+        if isinstance(value, (int, float, str)):
+            json_data[key] = value
+        else:
+            json_data[key] = str(value)
+    
+    with open(json_file, 'w') as f:
+        json.dump(json_data, f, indent=2)
+    
+    # Save as pickle (preserves data types)
+    with open(pickle_file, 'wb') as f:
+        pickle.dump(results, f)
+    
+    logging.info(f"Results saved to: {json_file}")
+    logging.info(f"Results saved to: {pickle_file}")
+    
+    return json_file, pickle_file
+
+
 def main():
     """Main function to handle command line arguments and execute analysis."""
     parser = argparse.ArgumentParser(
@@ -361,10 +454,15 @@ Examples:
   # Compute correlations between TP53 and BRCA1 in whole blood
   python compute_single_gene_pair_correlations_cli.py TP53 BRCA1 --tissue whole_blood
   
+  # Save results and logs to output directory
+  python compute_single_gene_pair_correlations_cli.py TP53 BRCA1 --tissue liver \\
+    --output-dir ./results --debug
+  
   # Use custom data directory and gene mapping
   python compute_single_gene_pair_correlations_cli.py TP53 BRCA1 --tissue liver \\
     --data-dir /custom/path/data \\
-    --gene-mapping /custom/path/mappings.pkl
+    --gene-mapping /custom/path/mappings.pkl \\
+    --output-dir ./custom_results
         """
     )
     
@@ -417,6 +515,13 @@ Examples:
         help='Number of genes to show (default: 20)'
     )
     
+    # Output options
+    parser.add_argument(
+        '--output-dir',
+        type=str,
+        help='Directory to save output files and logs (optional)'
+    )
+    
     # Utility options
     parser.add_argument(
         '--debug',
@@ -426,8 +531,11 @@ Examples:
     
     args = parser.parse_args()
     
+    # Setup output directory
+    output_dir = Path(args.output_dir) if args.output_dir else None
+    
     # Setup logging
-    setup_logging(debug=args.debug)
+    log_file = setup_logging(debug=args.debug, output_dir=output_dir)
     
     try:
         # Initialize analyzer
@@ -462,6 +570,15 @@ Examples:
         gene1, gene2 = args.genes
         results = analyzer.compute_gene_pair_correlations(gene1, gene2, args.tissue)
         
+        # Save results to files if output directory provided
+        saved_files = None
+        if output_dir:
+            try:
+                saved_files = save_results(results, output_dir)
+                logging.info(f"Results saved to output directory: {output_dir}")
+            except Exception as e:
+                logging.error(f"Failed to save results: {e}")
+        
         # Print results
         print("\n" + "="*60)
         print("GENE PAIR CORRELATION RESULTS")
@@ -480,6 +597,16 @@ Examples:
                 print(f"{method.upper():>12}: Failed to compute")
         
         print("="*60)
+        
+        # Show saved files info
+        if saved_files:
+            print(f"Results saved to:")
+            print(f"  JSON: {saved_files[0].name}")
+            print(f"  Pickle: {saved_files[1].name}")
+        
+        if log_file:
+            print(f"Log file: {log_file.name}")
+        
         print()
         
         # Also return as dict for programmatic use

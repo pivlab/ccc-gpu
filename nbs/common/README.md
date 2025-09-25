@@ -58,13 +58,26 @@ python compute_single_gene_pair_correlations_cli.py ENSG00000141510.16 ENSG00000
 python compute_single_gene_pair_correlations_cli.py TP53 ENSG00000012048.20 --tissue brain_cortex
 ```
 
-### 3. Custom Data Paths
+### 3. Save Results and Logs
+
+```bash
+# Save results and logs to a specific directory
+python compute_single_gene_pair_correlations_cli.py TP53 BRCA1 --tissue whole_blood \
+    --output-dir ./results
+
+# Combine with debug logging for detailed output
+python compute_single_gene_pair_correlations_cli.py TP53 BRCA1 --tissue liver \
+    --output-dir ./detailed_analysis --debug
+```
+
+### 4. Custom Data Paths
 
 ```bash
 # Use custom data directory and gene mapping file
 python compute_single_gene_pair_correlations_cli.py TP53 BRCA1 --tissue whole_blood \
     --data-dir /custom/path/to/tissue/data \
-    --gene-mapping /custom/path/to/gene_mappings.pkl
+    --gene-mapping /custom/path/to/gene_mappings.pkl \
+    --output-dir ./custom_results
 ```
 
 ## Command Line Options
@@ -75,6 +88,7 @@ python compute_single_gene_pair_correlations_cli.py TP53 BRCA1 --tissue whole_bl
 | `--tissue` | str | Required | Tissue name for correlation analysis |
 | `--data-dir` | str | `/mnt/data/proj_data/ccc-gpu/data/tutorial/data_by_tissue` | Directory containing tissue expression data |
 | `--gene-mapping` | str | `/mnt/data/proj_data/ccc-gpu/data/tutorial/gtex_gene_id_symbol_mappings.pkl` | Gene mapping file path |
+| `--output-dir` | str | None | Directory to save output files and logs (optional) |
 | `--list-tissues` | flag | False | List all available tissues and exit |
 | `--show-genes` | str | None | Show genes for specified tissue and exit |
 | `--n-genes` | int | 20 | Number of genes to display |
@@ -118,6 +132,39 @@ Samples: 755
      PEARSON: 0.234567
     SPEARMAN: 0.345678
 ============================================================
+Results saved to:
+  JSON: TP53_BRCA1_whole_blood_20240925_143022_correlation_results.json
+  Pickle: TP53_BRCA1_whole_blood_20240925_143022_correlation_results.pkl
+Log file: gene_pair_correlation_analysis_20240925_143022.log
+```
+
+### Output Files (when --output-dir is used)
+
+1. **JSON Results File**: `{gene1}_{gene2}_{tissue}_{timestamp}_correlation_results.json`
+   - Human-readable format with all correlation results
+   - Can be easily imported into other tools or scripts
+
+2. **Pickle Results File**: `{gene1}_{gene2}_{tissue}_{timestamp}_correlation_results.pkl`
+   - Python-specific format preserving exact data types
+   - Optimal for downstream analysis in Python
+
+3. **Log File**: `gene_pair_correlation_analysis_{timestamp}.log`
+   - Detailed processing information and debug messages
+   - Useful for troubleshooting and audit trails
+
+Example JSON output:
+```json
+{
+  "gene1_symbol": "TP53",
+  "gene1_ensembl_id": "ENSG00000141510.16",
+  "gene2_symbol": "BRCA1", 
+  "gene2_ensembl_id": "ENSG00000012048.20",
+  "tissue": "whole_blood",
+  "n_samples": 755,
+  "ccc": 0.123456,
+  "pearson": 0.234567,
+  "spearman": 0.345678
+}
 ```
 
 ## Input Data Format
@@ -156,8 +203,12 @@ Samples: 755
 ```bash
 # Explore brain tissues for TP53-related genes
 python compute_single_gene_pair_correlations_cli.py --list-tissues | grep brain
-python compute_single_gene_pair_correlations_cli.py TP53 MDM2 --tissue brain_cortex
-python compute_single_gene_pair_correlations_cli.py TP53 CDKN1A --tissue brain_hippocampus
+
+# Analyze TP53 interactions in different brain regions with output saving
+python compute_single_gene_pair_correlations_cli.py TP53 MDM2 --tissue brain_cortex \
+    --output-dir ./cancer_gene_analysis --debug
+python compute_single_gene_pair_correlations_cli.py TP53 CDKN1A --tissue brain_hippocampus \
+    --output-dir ./cancer_gene_analysis --debug
 ```
 
 ### 2. Housekeeping Gene Analysis
@@ -287,7 +338,7 @@ python metadata_corr_cli.py GENE --list-metadata-columns
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `gene_symbols` | str+ | Required | Gene symbol(s) to analyze (e.g., RASSF2 TP53) |
-| `--expr-data-dir` | str | `/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8/gene_selection/all` | Directory containing expression data files |
+| `--expr-data-dir` | str | `/mnt/data/proj_data/ccc-gpu/data/tutorial/data_by_tissue` | Directory containing expression data files |
 | `--include` | str* | None | Include only tissues matching these patterns |
 | `--exclude` | str* | None | Exclude tissues matching these patterns |
 | `--permutations` | int | 100,000 | Number of permutations for p-value calculation |

@@ -32,7 +32,7 @@ def find_expression_files(expr_data_dir, include_patterns=None, exclude_patterns
         raise FileNotFoundError(f"Expression data directory not found: {expr_data_dir}")
 
     # Find all .pkl files with the expected pattern
-    pattern = re.compile(r"gtex_v8_data_(.+)-var_pc_log2\.pkl$")
+    pattern = re.compile(r"gtex_v8_data_(.+)\.pkl$")
     all_files = []
 
     for file_path in expr_data_dir.glob("*.pkl"):
@@ -383,7 +383,7 @@ def main():
 
     parser.add_argument(
         "--expr-data-dir",
-        default="/pividori_lab/haoyu_projects/ccc-gpu/data/gtex/gene_selection/all",
+        default="/mnt/data/proj_data/ccc-gpu/data/tutorial/data_by_tissue",
         help="Directory containing expression data files",
     )
 
@@ -408,7 +408,7 @@ def main():
     )
 
     parser.add_argument(
-        "--n-jobs", type=int, default=24, help="Number of parallel jobs for computation"
+        "--n-jobs", type=int, default=4, help="Number of parallel jobs for computation"
     )
 
     parser.add_argument(
@@ -449,7 +449,7 @@ def main():
     
     parser.add_argument(
         "--data-dir",
-        default="/pividori_lab/haoyu_projects/ccc-gpu/data/gtex",
+        default="/mnt/data/proj_data/ccc-gpu/data/tutorial",
         help="Directory containing GTEx data files (metadata and gene mappings)",
     )
 
