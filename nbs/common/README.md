@@ -1,6 +1,198 @@
-# Gene Expression-Metadata Correlation Analysis Tool
+# Common Analysis Tools
 
-A comprehensive command-line tool for analyzing correlations between gene expression and metadata using the Clustered Correlation Coefficient (CCC) across multiple tissues and genes.
+This directory contains command-line tools for gene expression analysis using the CCC-GPU package.
+
+## Available Tools
+
+1. **[Single Gene Pair Correlation Analysis](#single-gene-pair-correlation-analysis)** (`compute_single_gene_pair_correlations_cli.py`)
+2. **[Gene Expression-Metadata Correlation Analysis](#gene-expression-metadata-correlation-analysis)** (`metadata_corr_cli.py`)
+
+---
+
+# Single Gene Pair Correlation Analysis
+
+A command-line tool for exploring gene expression data and computing correlations between specific gene pairs using CCC (Clustered Correlation Coefficient), Spearman, and Pearson correlation methods.
+
+## Features
+
+- **Data Exploration**: Browse available tissues and genes with their symbols
+- **Gene Pair Correlation**: Compute three correlation coefficients (CCC, Pearson, Spearman) for any gene pair
+- **Flexible Gene Input**: Accept both gene symbols (e.g., TP53) and Ensembl IDs (e.g., ENSG00000141510.16)
+- **Tissue-Specific Analysis**: Analyze correlations within specific tissue contexts
+- **Robust Gene Resolution**: Handle version numbers and case-insensitive matching
+- **Comprehensive Error Handling**: Clear error messages and debugging support
+
+## Installation Requirements
+
+```bash
+# Required packages
+pip install pandas numpy
+# CCC-GPU package (install from source as per project instructions)
+```
+
+## Quick Start
+
+### 1. Explore Available Data
+
+```bash
+# List all available tissues
+python compute_single_gene_pair_correlations_cli.py --list-tissues
+
+# Show genes available in whole blood tissue
+python compute_single_gene_pair_correlations_cli.py --show-genes whole_blood
+
+# Show more genes (default is 20)
+python compute_single_gene_pair_correlations_cli.py --show-genes liver --n-genes 50
+```
+
+### 2. Compute Gene Pair Correlations
+
+```bash
+# Basic correlation analysis between TP53 and BRCA1 in whole blood
+python compute_single_gene_pair_correlations_cli.py TP53 BRCA1 --tissue whole_blood
+
+# Use Ensembl IDs instead of symbols
+python compute_single_gene_pair_correlations_cli.py ENSG00000141510.16 ENSG00000012048.20 --tissue liver
+
+# Mixed input (symbol and Ensembl ID)
+python compute_single_gene_pair_correlations_cli.py TP53 ENSG00000012048.20 --tissue brain_cortex
+```
+
+### 3. Custom Data Paths
+
+```bash
+# Use custom data directory and gene mapping file
+python compute_single_gene_pair_correlations_cli.py TP53 BRCA1 --tissue whole_blood \
+    --data-dir /custom/path/to/tissue/data \
+    --gene-mapping /custom/path/to/gene_mappings.pkl
+```
+
+## Command Line Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `genes` | str+ | Required | Two gene symbols or Ensembl IDs for correlation analysis |
+| `--tissue` | str | Required | Tissue name for correlation analysis |
+| `--data-dir` | str | `/mnt/data/proj_data/ccc-gpu/data/tutorial/data_by_tissue` | Directory containing tissue expression data |
+| `--gene-mapping` | str | `/mnt/data/proj_data/ccc-gpu/data/tutorial/gtex_gene_id_symbol_mappings.pkl` | Gene mapping file path |
+| `--list-tissues` | flag | False | List all available tissues and exit |
+| `--show-genes` | str | None | Show genes for specified tissue and exit |
+| `--n-genes` | int | 20 | Number of genes to display |
+| `--debug` | flag | False | Enable debug logging |
+
+## Output Format
+
+### Tissue and Gene Discovery
+```
+=== Available Tissues (49) ===
+ 1. adipose_subcutaneous
+ 2. adipose_visceral_omentum
+ 3. adrenal_gland
+ ...
+
+=== Tissue: whole_blood ===
+Total genes: 56,200
+Total samples: 755
+
+First 20 genes:
+------------------------------------------------------------
+#    Gene Symbol     Ensembl ID          
+------------------------------------------------------------
+1    DDX11L1         ENSG00000223972.5   
+2    WASH7P          ENSG00000227232.5   
+3    MIR6859-1       ENSG00000278267.1   
+...
+```
+
+### Correlation Results
+```
+============================================================
+GENE PAIR CORRELATION RESULTS
+============================================================
+Gene 1: TP53 (ENSG00000141510.16)
+Gene 2: BRCA1 (ENSG00000012048.20)
+Tissue: whole_blood
+Samples: 755
+------------------------------------------------------------
+         CCC: 0.123456
+     PEARSON: 0.234567
+    SPEARMAN: 0.345678
+============================================================
+```
+
+## Input Data Format
+
+### Tissue Expression Files
+- **Format**: Pickle (.pkl) files
+- **Naming**: `gtex_v8_data_{tissue_name}.pkl`
+- **Structure**: DataFrame with Ensembl gene IDs as index, sample IDs as columns
+- **Content**: Log2-transformed gene expression values
+
+### Gene Mapping File
+- **Format**: Pickle (.pkl) file
+- **Structure**: DataFrame with columns `gene_ens_id` and `gene_symbol`
+- **Content**: Mapping between Ensembl gene IDs and HUGO gene symbols
+
+## Statistical Methods
+
+### Correlation Coefficients
+
+1. **CCC (Clustered Correlation Coefficient)**
+   - GPU-accelerated implementation
+   - Robust to outliers and non-linear relationships
+   - Particularly suited for detecting complex correlation patterns
+
+2. **Pearson Correlation**
+   - Standard linear correlation coefficient
+   - Measures linear relationship strength
+
+3. **Spearman Correlation**
+   - Rank-based correlation coefficient
+   - Robust to outliers and monotonic relationships
+
+## Example Workflows
+
+### 1. Cancer Gene Analysis
+```bash
+# Explore brain tissues for TP53-related genes
+python compute_single_gene_pair_correlations_cli.py --list-tissues | grep brain
+python compute_single_gene_pair_correlations_cli.py TP53 MDM2 --tissue brain_cortex
+python compute_single_gene_pair_correlations_cli.py TP53 CDKN1A --tissue brain_hippocampus
+```
+
+### 2. Housekeeping Gene Analysis
+```bash
+# Compare expression correlation of housekeeping genes
+python compute_single_gene_pair_correlations_cli.py GAPDH ACTB --tissue whole_blood
+python compute_single_gene_pair_correlations_cli.py GAPDH ACTB --tissue liver
+python compute_single_gene_pair_correlations_cli.py GAPDH ACTB --tissue muscle_skeletal
+```
+
+### 3. Tissue-Specific Gene Discovery
+```bash
+# Find genes in specific tissues and analyze their relationships
+python compute_single_gene_pair_correlations_cli.py --show-genes heart_left_ventricle --n-genes 100 | grep MYH
+python compute_single_gene_pair_correlations_cli.py MYH6 MYH7 --tissue heart_left_ventricle
+```
+
+## Error Handling
+
+The tool provides comprehensive error handling:
+
+- **Gene not found**: Suggestions to check spelling or use `--show-genes`
+- **Tissue not found**: List of available tissues
+- **Data issues**: Clear messages about insufficient samples or missing data
+- **Path issues**: Validation of data directory and gene mapping file
+
+## Performance Considerations
+
+- **Memory usage**: ~100-500MB depending on tissue size
+- **Computation time**: 1-5 seconds per gene pair
+- **CCC computation**: GPU-accelerated when available
+
+---
+
+# Gene Expression-Metadata Correlation Analysis
 
 ## Overview
 
