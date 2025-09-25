@@ -189,7 +189,10 @@ CCC-GPU is particularly useful for genomics applications:
 
 ```python
 import pandas as pd
-from ccc.coef import ccc
+# New CCC-GPU implementation import
+from ccc.coef.impl_gpu import ccc
+# Original CCC implementation import
+# from ccc.coef.impl import ccc
 
 # Load gene expression data
 # Assume genes are in columns, samples in rows
