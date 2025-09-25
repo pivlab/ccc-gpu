@@ -139,6 +139,10 @@ bash ./scripts/run_tests.sh python
 ```
 
 ## Usage
+### End-to-End Tutorial
+
+You can find a tutorial showing simplified analysis steps for those we used in our paper in this [notebook](nbs/99-tutorials/05-walkthrough-with-gtex-data.ipynb) using the GTEx v8 data.
+
 
 ### Basic Usage
 
@@ -160,28 +164,6 @@ y = x**2 + np.random.randn(1000) * 0.1  # Non-linear relationship
 correlation = ccc(x, y)
 print(f"CCC coefficient: {correlation:.3f}")
 ```
-
-### Controlling Debug Logging
-
-By default, CCC-GPU runs silently without debug output. You can enable detailed logging (including CUDA device information, memory usage, and processing details) using the `CCC_GPU_LOGGING` environment variable:
-
-```bash
-# Run with default behavior (no debug output)
-python your_script.py
-
-# Enable debug logging for troubleshooting
-CCC_GPU_LOGGING=1 python your_script.py
-
-# Or set it for the session
-export CCC_GPU_LOGGING=1
-python your_script.py
-```
-
-This is particularly useful for:
-- Debugging GPU memory issues
-- Understanding CUDA device utilization
-- Monitoring batch processing performance
-- Troubleshooting installation problems
 
 ### Working with Gene Expression Data
 
@@ -219,6 +201,28 @@ for i, j in zip(top_indices[0], top_indices[1]):
 ```
 
 Refer to the original CCC Repository for more usage examples: [https://github.com/greenelab/ccc](https://github.com/greenelab/ccc)
+
+### Controlling Debug Logging
+
+By default, CCC-GPU runs silently without debug output. You can enable detailed logging (including CUDA device information, memory usage, and processing details) using the `CCC_GPU_LOGGING` environment variable:
+
+```bash
+# Run with default behavior (no debug output)
+python your_script.py
+
+# Enable debug logging for troubleshooting
+CCC_GPU_LOGGING=1 python your_script.py
+
+# Or set it for the session
+export CCC_GPU_LOGGING=1
+python your_script.py
+```
+
+This is particularly useful for:
+- Debugging GPU memory issues
+- Understanding CUDA device utilization
+- Monitoring batch processing performance
+- Troubleshooting installation problems
 
 ## Performance Benchmarks
 
