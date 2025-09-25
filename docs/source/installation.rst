@@ -65,19 +65,15 @@ Install from source using the provided conda-lock environment:
 2. Setup Environment with conda-lock
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This process uses a temporary environment to manage the conda-lock installation, keeping your base environment clean:
+This process uses pipx to install conda-lock in an isolated environment, keeping your base environment clean:
 
 .. note::
    **Why conda-lock?** We use conda-lock to ensure **reproducible installations** across different systems. Unlike regular ``environment.yml`` files, conda-lock provides exact version pins for all packages and their dependencies, preventing version conflicts and ensuring you get the same environment that was tested during development.
 
 .. code-block:: bash
 
-    # Create temporary environment for conda-lock
-    conda create -n ccc-gpu-setup python=3.10 -y  # or: mamba create -n ccc-gpu-setup python=3.10 -y
-    conda activate ccc-gpu-setup
-
-    # Install conda-lock in temporary environment
-    conda install --channel=conda-forge conda-lock -y  # or: mamba install --channel=conda-forge conda-lock -y
+    # Install conda-lock using pipx (installs in isolated environment)
+    pipx install conda-lock
 
     # Create the main ccc-gpu environment from lock file
     conda-lock install --name ccc-gpu conda-lock.yml  # or: conda-lock install --name ccc-gpu conda-lock.yml --conda mamba
@@ -88,21 +84,23 @@ This process uses a temporary environment to manage the conda-lock installation,
     # Install the package from source
     pip install .
 
-3. Optional: Clean up temporary environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. note::
+   If you don't have pipx installed, you can install it with ``pip install pipx`` or follow the `pipx installation guide <https://pypa.github.io/pipx/installation/>`_.
 
-Once installation is complete, you can optionally remove the temporary setup environment:
+3. Optional: Remove conda-lock
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you no longer need conda-lock after installation, you can remove it:
 
 .. code-block:: bash
 
-    # Remove temporary environment (optional)
-    conda deactivate  # Make sure you're not in ccc-gpu-setup
-    conda remove -n ccc-gpu-setup --all -y  # or: mamba remove -n ccc-gpu-setup --all -y
+    # Remove conda-lock (optional)
+    pipx uninstall conda-lock
 
 Alternative: Install conda-lock in base environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you prefer to install conda-lock directly in your base environment:
+If you prefer to install conda-lock directly in your base environment instead of using pipx:
 
 .. code-block:: bash
 

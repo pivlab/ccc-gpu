@@ -73,17 +73,13 @@ cd ccc-gpu
 
 #### 2. Setup Environment with conda-lock
 
-This process uses a temporary environment to manage the conda-lock installation, keeping your base environment clean:
+This process uses [pipx](https://pipx.pypa.io/stable/) to install conda-lock in an isolated environment, keeping your base environment clean:
 
 > **Why conda-lock?** We use conda-lock to ensure **reproducible installations** across different systems. Unlike regular `environment.yml` files, conda-lock provides exact version pins for all packages and their dependencies, preventing version conflicts and ensuring you get the same environment that was tested during development.
 
 ```bash
-# Create temporary environment for conda-lock
-conda create -n ccc-gpu-setup python=3.10 -y  # or: mamba create -n ccc-gpu-setup python=3.10 -y
-conda activate ccc-gpu-setup
-
-# Install conda-lock in temporary environment
-conda install --channel=conda-forge conda-lock -y  # or: mamba install --channel=conda-forge conda-lock -y
+# Install conda-lock using pipx (installs in isolated environment)
+pipx install conda-lock
 
 # Create the main ccc-gpu environment from lock file
 conda-lock install --name ccc-gpu conda-lock.yml  # or: conda-lock install --name ccc-gpu conda-lock.yml --conda mamba
@@ -95,32 +91,6 @@ conda activate ccc-gpu
 pip install .
 ```
 
-#### 3. Optional: Clean up temporary environment
-
-Once installation is complete, you can optionally remove the temporary setup environment:
-
-```bash
-# Remove temporary environment (optional)
-conda deactivate  # Make sure you're not in ccc-gpu-setup
-conda remove -n ccc-gpu-setup --all -y  # or: mamba remove -n ccc-gpu-setup --all -y
-```
-
-#### Alternative: Install conda-lock in base environment
-
-If you prefer to install conda-lock directly in your base environment:
-
-```bash
-# Option 1: Using pip
-pip install conda-lock
-
-# Option 2: Using conda
-conda install --channel=conda-forge conda-lock -y  # or: mamba install --channel=conda-forge conda-lock -y
-
-# Then create environment directly
-conda-lock install --name ccc-gpu conda-lock.yml  # or: conda-lock install --name ccc-gpu conda-lock.yml --conda mamba
-conda activate ccc-gpu
-pip install .
-```
 
 > **Note**: If you prefer to use Mamba for faster package resolution, you can install MiniForge which includes Mamba:
 > ```bash
