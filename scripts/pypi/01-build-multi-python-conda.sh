@@ -10,7 +10,7 @@ echo "========================================================================="
 echo ""
 
 # Python versions to build for
-PYTHON_VERSIONS=("3.10" "3.11" "3.12" "3.13" "3.14" "3.15")
+PYTHON_VERSIONS=("3.10" "3.11" "3.12" "3.13" "3.14")
 
 # Base environment to clone from
 BASE_ENV="ccc-gpu"
@@ -19,7 +19,11 @@ BASE_ENV="ccc-gpu"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# Extract package version from pyproject.toml
+PACKAGE_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+
 echo "Project root: $PROJECT_ROOT"
+echo "Package version: $PACKAGE_VERSION"
 echo "Base environment: $BASE_ENV"
 echo "Python versions to build: ${PYTHON_VERSIONS[*]}"
 echo ""
@@ -67,12 +71,15 @@ for PY_VERSION in "${PYTHON_VERSIONS[@]}"; do
     # Environment name
     ENV_NAME="ccc-gpu-py${PY_VERSION/./}"  # e.g., ccc-gpu-py310
 
-    # Check if Python version is available in conda
-    echo "Checking if Python ${PY_VERSION} is available..."
-    if ! conda search "python=${PY_VERSION}*" -c conda-forge | grep -q "python"; then
-        echo "⚠ Warning: Python ${PY_VERSION} not found in conda-forge"
-        echo "  Skipping this version..."
-        FAILED_VERSIONS+=("${PY_VERSION} (not available)")
+    # Check if stable Python version is available (skip RC/alpha/beta)
+    echo "Checking if Python ${PY_VERSION} (stable) is available..."
+    if ! conda search "python=${PY_VERSION}.*" -c conda-forge 2>/dev/null | \
+         grep -E "python\s+${PY_VERSION}\.[0-9]+" | \
+         grep -v "rc\|alpha\|beta" | \
+         grep -q .; then
+        echo "⚠ Warning: Python ${PY_VERSION} stable version not available"
+        echo "  Only pre-release versions found, skipping..."
+        FAILED_VERSIONS+=("${PY_VERSION} (not stable yet)")
         echo ""
         continue
     fi
