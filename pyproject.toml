@@ -50,7 +50,7 @@ cmake.args = [
 build.verbose = true
 wheel.packages = ["libs/ccc"]  # Directory containing your Python packages
 wheel.exclude = ["*.cpp", "*.h"]  # Exclude C++ headers from wheel
-wheel.py-api = "cp310"  # Python API version
+# Note: wheel.py-api removed to support multiple Python versions (3.10-3.15)
 wheel.platlib = true  # Contains compiled extensions
 
 [tool.pytest.ini_options]
@@ -59,3 +59,28 @@ addopts = "-ra -q"
 testpaths = [
     "tests",
 ]
+
+[tool.cibuildwheel]
+# Build wheels for Python 3.10-3.15 on Linux x86_64
+build = "cp3{10,11,12,13,14,15}-manylinux_x86_64"
+skip = ["*-musllinux*", "*-manylinux_i686"]
+
+# Use manylinux_2_28 which has newer toolchain (GCC 11+)
+manylinux-x86_64-image = "manylinux_2_28"
+
+# Install CUDA toolkit before building wheels
+[tool.cibuildwheel.linux]
+before-all = [
+    "yum install -y wget",
+    "wget https://developer.download.nvidia.com/compute/cuda/12.6.3/local_installers/cuda-repo-rhel8-12-6-local-12.6.3_560.35.05-1.x86_64.rpm",
+    "rpm -i cuda-repo-rhel8-12-6-local-12.6.3_560.35.05-1.x86_64.rpm",
+    "yum clean all",
+    "yum install -y cuda-toolkit-12-6",
+]
+
+# Set CUDA environment variables
+environment = { CUDA_HOME="/usr/local/cuda-12.6", PATH="/usr/local/cuda-12.6/bin:$PATH", LD_LIBRARY_PATH="/usr/local/cuda-12.6/lib64:$LD_LIBRARY_PATH" }
+
+# Test the built wheels (optional, can be disabled)
+# test-requires = ["pytest", "numpy", "scipy"]
+# test-command = "pytest {project}/tests -v"

@@ -1,12 +1,29 @@
 #!/bin/bash
-# Script to build cccgpu package for PyPI distribution
-# This script builds both source distribution and wheels
+# ============================================================================
+# Legacy Script: Build cccgpu package for single Python version (3.10)
+# ============================================================================
+#
+# This script is the original single-version builder, kept for backwards
+# compatibility. It builds a wheel for Python 3.10 only.
+#
+# For building wheels for multiple Python versions (3.10-3.15), use:
+#   • Fast local builds:    ./01-build-multi-python-conda.sh
+#   • Production builds:    ./02-build-with-cibuildwheel.sh
+#
+# See README.md for detailed documentation.
+# ============================================================================
 
 set -e  # Exit on error
 
 echo "====================================="
-echo "Building cccgpu package for PyPI"
+echo "Building cccgpu package (Python 3.10)"
 echo "====================================="
+echo ""
+echo "⚠️  Note: This script builds for Python 3.10 only"
+echo "    For multiple Python versions, use:"
+echo "      • ./01-build-multi-python-conda.sh (recommended)"
+echo "      • ./02-build-with-cibuildwheel.sh"
+echo ""
 
 # Activate conda environment
 echo "Activating conda environment..."
