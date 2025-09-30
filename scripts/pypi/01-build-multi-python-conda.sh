@@ -155,10 +155,22 @@ for PY_VERSION in "${PYTHON_VERSIONS[@]}"; do
         echo "⚠ Warning: Failed to install runtime dependencies (continuing anyway)"
     }
 
-    # Install auditwheel for wheel repair (optional but recommended)
+    # Install patchelf (required by auditwheel)
+    echo "Installing patchelf..."
+    conda install -y patchelf || pip install patchelf || {
+        echo "✗ Error: Failed to install patchelf"
+        FAILED_VERSIONS+=("${PY_VERSION} (patchelf install failed)")
+        conda deactivate
+        continue
+    }
+
+    # Install auditwheel for wheel repair (required for PyPI)
     echo "Installing auditwheel..."
     pip install auditwheel || {
-        echo "⚠ Warning: auditwheel not installed (wheel may not be portable)"
+        echo "✗ Error: Failed to install auditwheel"
+        FAILED_VERSIONS+=("${PY_VERSION} (auditwheel install failed)")
+        conda deactivate
+        continue
     }
 
     echo "✓ All dependencies installed and verified"
@@ -187,20 +199,28 @@ for PY_VERSION in "${PYTHON_VERSIONS[@]}"; do
         if [ -n "$WHEEL_FILE" ]; then
             echo "Wheel file: ${WHEEL_FILE}"
 
-            # Try to repair wheel with auditwheel
+            # Repair wheel with auditwheel (required for PyPI)
             if command -v auditwheel &> /dev/null; then
                 echo "Checking wheel with auditwheel..."
-                if auditwheel show "${WHEEL_FILE}"; then
-                    echo "Attempting to repair wheel..."
-                    # Try to repair, but don't fail if it doesn't work
-                    if auditwheel repair "${WHEEL_FILE}" --plat manylinux_2_17_x86_64 -w dist/ 2>/dev/null; then
-                        echo "✓ Wheel repaired successfully"
-                        # Remove the old unrepaired wheel
-                        rm "${WHEEL_FILE}"
-                    else
-                        echo "⚠ Could not repair wheel (keeping original)"
-                    fi
+                auditwheel show "${WHEEL_FILE}"
+
+                echo "Attempting to repair wheel for manylinux compatibility..."
+                if auditwheel repair "${WHEEL_FILE}" -w dist/; then
+                    echo "✓ Wheel repaired successfully"
+                    # Remove the old unrepaired wheel
+                    rm "${WHEEL_FILE}"
+                else
+                    echo "✗ Error: auditwheel repair failed"
+                    echo "  PyPI requires manylinux wheels, not linux_x86_64"
+                    echo "  The wheel will not be uploadable to PyPI"
+                    FAILED_VERSIONS+=("${PY_VERSION} (auditwheel repair failed)")
+                    continue
                 fi
+            else
+                echo "✗ Error: auditwheel not found"
+                echo "  auditwheel is required to create PyPI-compatible wheels"
+                FAILED_VERSIONS+=("${PY_VERSION} (auditwheel not available)")
+                continue
             fi
 
             BUILT_COUNT=$((BUILT_COUNT + 1))
