@@ -41,23 +41,17 @@ echo ""
 # Check if cibuildwheel is installed
 echo "Checking for cibuildwheel..."
 if ! command -v cibuildwheel &> /dev/null; then
-    echo "cibuildwheel not found. Installing..."
-
-    # Try to use current Python environment
-    if command -v pip &> /dev/null; then
-        pip install cibuildwheel
-    elif command -v pip3 &> /dev/null; then
-        pip3 install cibuildwheel
+    echo "cibuildwheel not found. Installing with pipx..."
+    if command -v pipx &> /dev/null; then
+        pipx install cibuildwheel
     else
-        echo "✗ Error: pip not found"
-        echo "  Please install cibuildwheel manually:"
-        echo "    pip install cibuildwheel"
+        echo "✗ Error: pipx not found"
+        echo "  Please install pipx and try again"
         exit 1
     fi
 fi
 
-CIBW_VERSION=$(cibuildwheel --version 2>&1 || echo "unknown")
-echo "✓ cibuildwheel installed: ${CIBW_VERSION}"
+echo "✓ cibuildwheel installed."
 echo ""
 
 # Clean previous builds
@@ -72,11 +66,11 @@ echo "========================================================================="
 echo "Build Configuration"
 echo "========================================================================="
 echo "Platform: Linux"
-echo "Python versions: 3.10, 3.11, 3.12, 3.13, 3.14, 3.15"
+echo "Python versions: 3.10, 3.11, 3.12, 3.13"
 echo "Image: manylinux_2_28"
 echo "CUDA: 12.6 (will be installed in container)"
 echo ""
-echo "Note: First build may take 1-2 hours due to CUDA download"
+echo "Note: First build may be slow due to CUDA download"
 echo "      Subsequent builds will be faster due to Docker caching"
 echo ""
 
@@ -127,11 +121,11 @@ else
     echo "Build failed!"
     echo "========================================================================="
     echo ""
-    echo "Common issues:"
-    echo "  1. Docker out of disk space: Run 'docker system prune -a'"
-    echo "  2. CUDA download failed: Check internet connection"
-    echo "  3. Python version not available: Check cibuildwheel output"
-    echo ""
-    echo "For more troubleshooting, see scripts/pypi/README.md"
-    exit 1
-fi
+#     echo "Common issues:"
+#     echo "  1. Docker out of disk space: Run 'docker system prune -a'"
+#     echo "  2. CUDA download failed: Check internet connection"
+#     echo "  3. Python version not available: Check cibuildwheel output"
+#     echo ""
+#     echo "For more troubleshooting, see scripts/pypi/README.md"
+#     exit 1
+# fi
