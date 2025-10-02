@@ -18,20 +18,22 @@ set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # Set Python Standard
-# Get Python version dynamically
-execute_process(
-    COMMAND "${Python_EXECUTABLE}" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
-    OUTPUT_VARIABLE PYTHON_VERSION_FULL
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-# Set the paths using the detected version
-set(Python_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)
-set(PYTHON_INCLUDE_DIR $ENV{CONDA_PREFIX}/include/python${PYTHON_VERSION_FULL})
-set(PYTHON_LIBRARY $ENV{CONDA_PREFIX}/lib/libpython${PYTHON_VERSION_FULL}.so)
+# Note: Conda-specific paths removed for manylinux compatibility
+# CMake's FindPython will automatically detect Python in manylinux containers
+# Uncomment below if building locally with conda:
+# execute_process(
+#     COMMAND "${Python_EXECUTABLE}" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
+#     OUTPUT_VARIABLE PYTHON_VERSION_FULL
+#     OUTPUT_STRIP_TRAILING_WHITESPACE
+# )
+# set(Python_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)
+# set(PYTHON_INCLUDE_DIR $ENV{CONDA_PREFIX}/include/python${PYTHON_VERSION_FULL})
+# set(PYTHON_LIBRARY $ENV{CONDA_PREFIX}/lib/libpython${PYTHON_VERSION_FULL}.so)
 
 
 # Set up pybind11
-find_package(Python REQUIRED Development)
+# Use Development.Module for manylinux compatibility (not Development.Embed)
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 set(PYBIND11_NEWPYTHON ON)
 
@@ -49,6 +51,8 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG v1.15.3
 )
+# Build spdlog with -fPIC for compatibility with shared libraries
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 FetchContent_MakeAvailable(spdlog)
 
 # include_directories("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
