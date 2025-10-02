@@ -1,10 +1,10 @@
 [build-system]
 requires = [
-    "scikit-build-core>=0.10",
+    "scikit-build-core",
     "pybind11>=2.11.0",
-    "cmake>=3.15",
+    "cmake>=4.0",
     "ninja",
-    "setuptools>=42",
+    "setuptools",
     "wheel"
 ]
 build-backend = "scikit_build_core.build"
@@ -14,14 +14,14 @@ name = "cccgpu"
 version = "0.2.2"
 description = "The Clustermatch Correlation Coefficient (CCC) with GPU acceleration"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "BSD-2-Clause Plus Patent"}
 authors = [
     {name = "Milton Pividori", email = "milton.pividori@cuanschutz.edu"},
     {name = "Haoyu Zhang", email = "haoyu_z@outlook.com"},
 ]
 dependencies = [
-    "numpy>=1.21.0",
+    "numpy",
     "scipy",
     "numba",
     "pandas",
@@ -43,7 +43,7 @@ test = [
 
 [tool.scikit-build]
 # Configure scikit-build-core
-cmake.version = ">=3.15"
+cmake.version = ">=4.0"
 cmake.args = [
     "-DCMAKE_CUDA_ARCHITECTURES=75",  # Adjust for your target CUDA architecture
 ]
@@ -62,8 +62,8 @@ testpaths = [
 
 [tool.cibuildwheel]
 # Build wheels for Python 3.10-3.15 on Linux x86_64
-build = "cp3{10,11,12,13,14,15}-manylinux_x86_64"
-skip = ["*-musllinux*", "*-manylinux_i686"]
+# build = "cp3{10,11,12,13,14}-{manylinux_x86_64, musllinux_x86_64}"
+build = "cp3{10,11,12,13,14}-manylinux_x86_64"
 
 # Use manylinux_2_28 which has newer toolchain (GCC 11+)
 manylinux-x86_64-image = "manylinux_2_28"
@@ -71,15 +71,21 @@ manylinux-x86_64-image = "manylinux_2_28"
 # Install CUDA toolkit before building wheels
 [tool.cibuildwheel.linux]
 before-all = [
-    "yum install -y wget",
-    "wget https://developer.download.nvidia.com/compute/cuda/12.6.3/local_installers/cuda-repo-rhel8-12-6-local-12.6.3_560.35.05-1.x86_64.rpm",
-    "rpm -i cuda-repo-rhel8-12-6-local-12.6.3_560.35.05-1.x86_64.rpm",
+    # Install yum-utils to get yum-config-manager
+    "yum install -y yum-utils",
+    # Add NVIDIA CUDA repository for RHEL 8 (manylinux_2_28 is based on AlmaLinux 8)
+    "yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo",
+    # Clean yum cache
     "yum clean all",
-    "yum install -y cuda-toolkit-12-6",
+    # Install CUDA 12.9 toolkit (supports GCC 6.x - 15.x, compatible with GCC 14 in manylinux_2_28)
+    "yum install -y cuda-toolkit-12-9",
 ]
 
+# Set CUDA environment variables for yum-installed CUDA
+environment = { CUDA_HOME="/usr/local/cuda", CUDACXX="/usr/local/cuda/bin/nvcc", PATH="/usr/local/cuda/bin:$PATH", LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH" }
+
 # Set CUDA environment variables
-environment = { CUDA_HOME="/usr/local/cuda-12.6", PATH="/usr/local/cuda-12.6/bin:$PATH", LD_LIBRARY_PATH="/usr/local/cuda-12.6/lib64:$LD_LIBRARY_PATH" }
+# environment = { CUDA_HOME="/usr/local/cuda-12.6", PATH="/usr/local/cuda-12.6/bin:$PATH", LD_LIBRARY_PATH="/usr/local/cuda-12.6/lib64:$LD_LIBRARY_PATH" }
 
 # Test the built wheels (optional, can be disabled)
 # test-requires = ["pytest", "numpy", "scipy"]
