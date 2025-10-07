@@ -5,7 +5,7 @@ requires = [
     "cmake>=4.0",
     "ninja",
     "setuptools",
-    "wheel"
+    "wheel",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -15,18 +15,12 @@ version = "0.2.2"
 description = "The Clustermatch Correlation Coefficient (CCC) with GPU acceleration"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "BSD-2-Clause Plus Patent"}
+license = { text = "BSD-2-Clause Plus Patent" }
 authors = [
-    {name = "Milton Pividori", email = "milton.pividori@cuanschutz.edu"},
-    {name = "Haoyu Zhang", email = "haoyu_z@outlook.com"},
+    { name = "Milton Pividori", email = "milton.pividori@cuanschutz.edu" },
+    { name = "Haoyu Zhang", email = "haoyu_z@outlook.com" },
 ]
-dependencies = [
-    "numpy",
-    "scipy",
-    "numba",
-    "pandas",
-    "scikit-learn",
-]
+dependencies = ["numpy", "scipy", "numba", "pandas", "scikit-learn"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: BSD License",
@@ -36,29 +30,24 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-cov",
-]
+test = ["pytest", "pytest-cov"]
 
 [tool.scikit-build]
 # Configure scikit-build-core
 cmake.version = ">=4.0"
 cmake.args = [
-    "-DCMAKE_CUDA_ARCHITECTURES=75",  # Adjust for your target CUDA architecture
+    "-DCMAKE_CUDA_ARCHITECTURES=75", # Adjust for your target CUDA architecture
 ]
 build.verbose = true
-wheel.packages = ["libs/ccc"]  # Directory containing your Python packages
-wheel.exclude = ["*.cpp", "*.h"]  # Exclude C++ headers from wheel
+wheel.packages = ["libs/ccc"] # Directory containing your Python packages
+wheel.exclude = ["*.cpp", "*.h"] # Exclude C++ headers from wheel
 # Note: wheel.py-api removed to support multiple Python versions (3.10-3.15)
-wheel.platlib = true  # Contains compiled extensions
+wheel.platlib = true # Contains compiled extensions
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
-testpaths = [
-    "tests",
-]
+testpaths = ["tests"]
 
 [tool.cibuildwheel]
 # Build wheels for Python 3.10-3.15 on Linux x86_64
@@ -77,12 +66,20 @@ before-all = [
     "yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo",
     # Clean yum cache
     "yum clean all",
+    # Install GCC 13 toolset (provides GCC 13.2 under /opt/rh/gcc-toolset-13)
+    "yum install -y gcc-toolset-13",
     # Install CUDA 12.9 toolkit (supports GCC 6.x - 15.x, compatible with GCC 14 in manylinux_2_28)
-    "yum install -y cuda-toolkit-12-9",
+    "yum install -y cuda-toolkit-12-5",
+    # Print nvcc version with green prefix
+    "echo -e '\\033[32m[cccgpu-info]:\\033[0m'",
+    "nvcc --version",
+    # Print gcc version with green prefix
+    "echo -e '\\033[32m[cccgpu-info]:\\033[0m'",
+    "/opt/rh/gcc-toolset-13/root/usr/bin/gcc --version",
 ]
 
-# Set CUDA environment variables for yum-installed CUDA
-environment = { CUDA_HOME="/usr/local/cuda", CUDACXX="/usr/local/cuda/bin/nvcc", PATH="/usr/local/cuda/bin:$PATH", LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH" }
+# Set CUDA and GCC 13 environment variables (prefer gcc-toolset-13 in PATH)
+environment = { CUDA_HOME = "/usr/local/cuda", CUDACXX = "/usr/local/cuda/bin/nvcc", CC = "/opt/rh/gcc-toolset-13/root/usr/bin/gcc", CXX = "/opt/rh/gcc-toolset-13/root/usr/bin/g++", CUDAHOSTCXX = "/opt/rh/gcc-toolset-13/root/usr/bin/g++", CMAKE_C_COMPILER = "/opt/rh/gcc-toolset-13/root/usr/bin/gcc", CMAKE_CXX_COMPILER = "/opt/rh/gcc-toolset-13/root/usr/bin/g++", PATH = "/opt/rh/gcc-toolset-13/root/usr/bin:/usr/local/cuda/bin:$PATH", LD_LIBRARY_PATH = "/usr/local/cuda/lib64:/opt/rh/gcc-toolset-13/root/usr/lib64:$LD_LIBRARY_PATH" }
 
 # Set CUDA environment variables
 # environment = { CUDA_HOME="/usr/local/cuda-12.6", PATH="/usr/local/cuda-12.6/bin:$PATH", LD_LIBRARY_PATH="/usr/local/cuda-12.6/lib64:$LD_LIBRARY_PATH" }
