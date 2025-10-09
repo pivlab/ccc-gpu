@@ -35,6 +35,7 @@ CCC is based on the simple idea of clustering data points and then computing the
 - Nvidia driver with CUDA 12.5 or higher (for GPU acceleration)
 
 > **Note**: You can use command `nvidia-smi` to check your Nvidia driver and CUDA version.
+
 > **Note**: If you are using another operating system, or architecture other than x86_64, you need to build from source.
 
 ### Quick Install with pip
