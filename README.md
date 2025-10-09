@@ -23,12 +23,19 @@ CCC is based on the simple idea of clustering data points and then computing the
 ### Requirements
 
 **Hardware:**
-- GPU with CUDA Compute Capability 8.6 or higher
+- Nvidia GPU with CUDA Compute Capability 8.6 or higher
 
 **Software:**
-- OS: Linux x86_64, Windows x86_64 (not tested yet)
-- Python 3.10 (support for more versions coming soon)
-- CUDA 12.0 or higher (for GPU acceleration)
+- OS: Linux x86_64 distributions using glibc 2.28 or later, including:
+  - Debian 10+
+  - Ubuntu 18.10+
+  - Fedora 29+
+  - CentOS/RHEL 8+
+- Python 3.10 to 3.14
+- Nvidia driver with CUDA 12.5 or higher (for GPU acceleration)
+
+> **Note**: You can use command `nvidia-smi` to check your Nvidia driver and CUDA version.
+> **Note**: If you are using another operating system, or architecture other than x86_64, you need to build from source.
 
 ### Quick Install with pip
 
