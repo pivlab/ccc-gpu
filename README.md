@@ -31,34 +31,35 @@ CCC is based on the simple idea of clustering data points and then computing the
   - Ubuntu 18.10+
   - Fedora 29+
   - CentOS/RHEL 8+
-- Python 3.10 to 3.14
+- Python 3.10 to 3.13 (3.14 will be supported soon)
 - Nvidia driver with CUDA 12.5 or higher (for GPU acceleration)
 
 > **Note**: You can use command `nvidia-smi` to check your Nvidia driver and CUDA version.
 
-> **Note**: If you are using another operating system, or architecture other than x86_64, you need to build from source.
+> **Note**: If you are using another operating system, or architecture other than those noted above, you need to build from source.
 
 ### Quick Install with pip
 
-The `cccgpu` package is available via pip from test PyPI. However, note that cccgpu depends on `libstdc++`. For a smooth installation without compatibility issues with your local system, we recommend using a wrapper conda environment to install it:
 
-```bash
-# Create conda environment with required dependencies
-conda create -n ccc-gpu-env -c conda-forge python=3.10 pip pytest libstdcxx-ng
-conda activate ccc-gpu-env
+```
+# Create conda environment if you want to test it out in a separate environment
+# conda create -n ccc-gpu -c conda-forge python=3.10 (or 3.11, 3.12, 3.13)
+# conda activate ccc-gpu
 
 # Install cccgpu from test PyPI
 pip install --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple/ \
             --only-binary=cccgpu cccgpu
+```
 
-# Verify installation
+Then we can verify the installation using a simple one-liner:
+```bash
 python -c "from ccc.coef.impl_gpu import ccc as ccc_gpu; import numpy as np; print(ccc_gpu(np.random.rand(100), np.random.rand(100)))"
 ```
 
 Support for more Python versions and architectures requires extra effort, and will be added soon.
 
-**Note:** This installs from test PyPI while the package is in testing phase. Once stable, it will be available from the main PyPI repository with `pip install cccgpu`.
+> **Note:** This installs from test PyPI while the package is in testing phase. Once stable, it will be available from the main PyPI repository with `pip install cccgpu`.
 
 **Command options explained:**
 
@@ -109,7 +110,7 @@ pip install .
 
 
 ## Testing
-To execute all the test suites, at the root of the repository, run:
+To execute all the test suites, install the package from source first (or you can use the pip install command to install both cccgpu and pytest), then at the root of the repository, run:
 
 ```bash
 conda activate ccc-gpu
