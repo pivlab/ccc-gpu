@@ -41,15 +41,13 @@ CCC is based on the simple idea of clustering data points and then computing the
 ### Quick Install with pip
 
 
-```
+```bash
 # Create conda environment if you want to test it out in a separate environment
 # conda create -n ccc-gpu -c conda-forge python=3.10 (or 3.11, 3.12, 3.13)
 # conda activate ccc-gpu
 
-# Install cccgpu from test PyPI
-pip install --index-url https://test.pypi.org/simple/ \
-            --extra-index-url https://pypi.org/simple/ \
-            --only-binary=cccgpu cccgpu
+# Install cccgpu from PyPI
+pip install cccgpu
 ```
 
 Then we can verify the installation using a simple one-liner:
@@ -58,15 +56,6 @@ python -c "from ccc.coef.impl_gpu import ccc as ccc_gpu; import numpy as np; pri
 ```
 
 Support for more Python versions and architectures requires extra effort, and will be added soon.
-
-> **Note:** This installs from test PyPI while the package is in testing phase. Once stable, it will be available from the main PyPI repository with `pip install cccgpu`.
-
-**Command options explained:**
-
-- ``--index-url https://test.pypi.org/simple/``: Specifies test PyPI as the primary package index to search for ``cccgpu``
-- ``--extra-index-url https://pypi.org/simple/``: Adds the main PyPI repository as a fallback to install dependencies (numpy, scipy, numba, etc.) that may not be available on test PyPI
-- ``--only-binary=cccgpu``: Ensures that only binary wheels are installed for ``cccgpu`` package, so you don't need to compile it from source
-- ``cccgpu``: The package name to install
 
 ### Install from Source
 

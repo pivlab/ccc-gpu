@@ -29,6 +29,10 @@ classifiers = [
     "Environment :: Console",
 ]
 
+[project.urls]
+Homepage = "https://github.com/pivlab/ccc-gpu"
+Issues = "https://github.com/pivlab/ccc-gpu/issues"
+
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov"]
 
