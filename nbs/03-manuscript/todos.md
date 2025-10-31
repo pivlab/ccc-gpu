@@ -1,5 +1,0 @@
-- [ ] Generate full upset plot for all tissues
-- [ ] Generate one upset plot per tissue
-- [ ] Filter out genes of interest (high ccc value, low pearson value, low spearman value)
-- [ ] Correlate expression of the genes of interest with GTEX metadata
-- [ ] Future analysis
