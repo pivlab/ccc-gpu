@@ -1,6 +1,6 @@
 # Gene Pair Selector
 
-This script processes gene intersection files from a data directory and allows users to select from predefined combinations of boolean indicators for a specific tissue, then filters and sorts the data based on CCC distance to Pearson and Spearman values. **Designed for batch processing and sbatch job submission.**
+This script processes gene intersection files from a data directory and allows users to select from predefined combinations of boolean indicators for a specific tissue, then filters and sorts the data based on CCC distance to Pearson and Spearman values. **Designed for batch processing and sbatch job submission since this step takes a long time to run.**
 
 ## Features
 
