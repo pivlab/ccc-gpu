@@ -14,7 +14,6 @@ The dataset should have columns:
 Usage:
     python gene_pair_selector.py input_file.pkl output_dir
 
-Author: AI Assistant
 """
 
 import pandas as pd
