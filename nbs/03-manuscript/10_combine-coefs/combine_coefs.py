@@ -150,7 +150,7 @@ class Config:
     data_dir: Path = Path("/mnt/data/proj_data/ccc-gpu/gene_expr/data/gtex_v8")
     include_patterns: List[str] = None
     exclude_patterns: List[str] = None
-    gene_selection_strategy: str = "var_pc_log2"
+    gene_selection_strategy: str = ""
     log_level: str = "INFO"
     log_dir: Path = Path("logs")  # Will be resolved relative to script location
     temp_dir: Path = (
@@ -1051,7 +1051,7 @@ EXAMPLES:
     parser.add_argument(
         "--gene-selection-strategy",
         type=str,
-        default="var_pc_log2",
+        default="",
         help="Gene selection strategy",
     )
 
