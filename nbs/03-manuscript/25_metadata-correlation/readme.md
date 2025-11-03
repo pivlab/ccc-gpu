@@ -32,7 +32,7 @@ ccc  # Clustered Correlation Coefficient library
 
 The tool expects specific data files in predetermined locations:
 
-1. **Expression Data**: GTEx v8 expression files in the format `gtex_v8_data_{tissue_name}-var_pc_log2.pkl`
+1. **Expression Data**: GTEx v8 expression files in the format `gtex_v8_data_{tissue_name}.pkl`
 2. **Metadata**: GTEx v8 sample metadata (`gtex_v8-sample_metadata.pkl`)
 3. **Gene Mappings**: Gene ID to symbol mappings (`gtex_gene_id_symbol_mappings.pkl`)
 
@@ -109,7 +109,7 @@ python metadata_corr_cli.py GENE --list-metadata-columns
 ### Expression Data Files
 - **Format**: Pickle (.pkl) files
 - **Structure**: DataFrame with genes as rows, samples as columns
-- **Naming**: `gtex_v8_data_{tissue_name}-var_pc_log2.pkl`
+- **Naming**: `gtex_v8_data_{tissue_name}.pkl`
 - **Content**: Log2-transformed, variance-filtered gene expression data
 
 ### Metadata File
