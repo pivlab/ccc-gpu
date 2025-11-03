@@ -32,7 +32,7 @@ def find_expression_files(expr_data_dir, include_patterns=None, exclude_patterns
         raise FileNotFoundError(f"Expression data directory not found: {expr_data_dir}")
 
     # Find all .pkl files with the expected pattern
-    pattern = re.compile(r"gtex_v8_data_(.+)-var_pc_log2\.pkl$")
+    pattern = re.compile(r"gtex_v8_data_(.+)\.pkl$")
     all_files = []
 
     for file_path in expr_data_dir.glob("*.pkl"):
