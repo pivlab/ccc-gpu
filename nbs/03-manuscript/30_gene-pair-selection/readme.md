@@ -215,26 +215,13 @@ python gene_pair_selector.py \
 ```
 
 ### Multiple Tissues and Combinations (sbatch)
+
+Use the provided SLURM script to process multiple tissues and combinations:
 ```bash
-#!/bin/bash
-#SBATCH --job-name=gene_selector
-#SBATCH --array=0-19
-#SBATCH --output=logs/gene_selector_%A_%a.out
-#SBATCH --error=logs/gene_selector_%A_%a.err
-
-# Define tissues array
-TISSUES=(liver lung brain_cortex heart_left_ventricle muscle_skeletal)
-
-# Process each tissue with the current combination
-for tissue in "${TISSUES[@]}"; do
-    python gene_pair_selector.py \
-        --data-dir /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections \
-        --tissue ${tissue} \
-        --output ./output/ \
-        --combination-index ${SLURM_ARRAY_TASK_ID}
-done
-# This will create directories like: ./output/c-high-p-high-s-high/
+sbatch run_slurm_job.sh
 ```
+
+The script processes all 54 GTEx tissues for specified combinations (default: combinations 8-12). You can modify the `COMBINATIONS` array in `run_slurm_job.sh` to process different combination indices.
 
 ## Error Handling
 
