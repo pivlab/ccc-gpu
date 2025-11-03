@@ -715,8 +715,8 @@ def find_intersection_files(data_dir: str, tissue: str = None) -> List[Path]:
     
     if tissue:
         # Find specific tissue file
-        # Expected format: gene_pair_intersections-gtex_v8-{tissue}-var_pc_log2.pkl
-        specific_pattern = f"gene_pair_intersections-gtex_v8-{tissue}-var_pc_log2.pkl"
+        # Expected format: gene_pair_intersections-gtex_v8-{tissue}.pkl
+        specific_pattern = f"gene_pair_intersections-gtex_v8-{tissue}.pkl"
         intersection_files = list(data_path.glob(specific_pattern))
         
         if not intersection_files:
