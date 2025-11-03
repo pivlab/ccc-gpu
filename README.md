@@ -109,7 +109,7 @@ bash ./scripts/run_tests.sh python
 ## Usage
 ### End-to-End Tutorial
 
-You can find a tutorial showing simplified analysis steps for those we used in our paper in this [notebook](/analysis/05-walkthrough-with-gtex-data.ipynb) using the public GTEx v8 data.
+You can find a tutorial showing simplified analysis steps for those we used in our paper in this [notebook](/analysis/99-tutorials/05-walkthrough-with-gtex-data.ipynb) using the public GTEx v8 data.
 
 
 ### Basic Usage
