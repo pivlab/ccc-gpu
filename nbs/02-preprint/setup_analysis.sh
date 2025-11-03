@@ -1,1 +1,0 @@
-export MANUSCRIPT_DIR=""
