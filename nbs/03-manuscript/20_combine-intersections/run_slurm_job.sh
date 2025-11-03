@@ -79,4 +79,4 @@ TISSUES=(
     "whole_blood"
 )
 
-python gene_pair_counter.py --data-dir /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/ ./counts_for_all_tissues.pkl --plot --threads 4
+python coef_intersection_counter.py --data-dir /pividori_lab/haoyu_projects/ccc-gpu/results/gene_pair_intersections/ ./counts_for_all_tissues.pkl --plot --threads 4
