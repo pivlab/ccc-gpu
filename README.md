@@ -16,7 +16,7 @@ CCC is based on the simple idea of clustering data points and then computing the
 - **libs/ccc**: Python code for CCC-GPU
 - **libs/ccc_cuda_ext**: CUDA C++ code for CCC-GPU
 - **tests**: Test suits
-- **nbs**: Notebooks for analysis and visualization
+- **analysis**: Notebooks and scripts for analysis and visualization
 
 ## Installation
 
@@ -109,7 +109,7 @@ bash ./scripts/run_tests.sh python
 ## Usage
 ### End-to-End Tutorial
 
-You can find a tutorial showing simplified analysis steps for those we used in our paper in this [notebook](nbs/99-tutorials/05-walkthrough-with-gtex-data.ipynb) using the public GTEx v8 data.
+You can find a tutorial showing simplified analysis steps for those we used in our paper in this [notebook](/analysis/05-walkthrough-with-gtex-data.ipynb) using the public GTEx v8 data.
 
 
 ### Basic Usage
