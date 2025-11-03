@@ -33,7 +33,7 @@ def parse_arguments():
     
     parser.add_argument(
         "--gene-sel-strategy",
-        default="var_pc_log2",
+        default="",
         help="Gene selection strategy"
     )
     
