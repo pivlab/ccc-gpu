@@ -1,13 +1,12 @@
 import time
 import pytest
-import numpy as np
-from typing import Tuple, Optional, Dict, Any
 import os
+import numpy as np
 import pandas as pd
+
+from typing import Tuple, Optional, Dict, Any
 from ccc.coef.impl_gpu import ccc as ccc_gpu
 from ccc.coef.impl import ccc
-from utils import clean_gpu_memory, generate_categorical_data
-
 
 def setup_logging(
     seed: int,
@@ -29,7 +28,7 @@ def setup_logging(
     if not generate_logs:
         return None
 
-    logs_dir = os.path.join("tests", "logs")
+    logs_dir = os.path.join("benchmark", "logs")
     os.makedirs(logs_dir, exist_ok=True)
 
     base_filename = f"test_ccc_gpu_{seed}_f{shape[0]}_n{shape[1]}_c{n_cpu_cores}"
@@ -148,7 +147,6 @@ def log_statistics(
         file=log_file,
     )
 
-
 @pytest.mark.parametrize(
     "seed", [42]
 )  # More seeds for simple cases, only 42 for large cases
@@ -190,7 +188,6 @@ def log_statistics(
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [24])
-@clean_gpu_memory
 def test_ccc_gpu_with_numerical_input(
     seed: int,
     shape: Tuple[int, int],
@@ -265,41 +262,3 @@ def test_ccc_gpu_with_numerical_input(
     # assert (
     #     not_close_percentage <= max_not_close_percentage
     # ), f"Results differ for shape={shape}, seed={seed}"
-
-
-@pytest.mark.parametrize(
-    "seed", [42]
-)  # More seeds for simple cases, only 42 for large cases
-@pytest.mark.parametrize(
-    "shape, n_categories, str_length",
-    [
-        # Simple cases
-        ((10, 20), 10, 2),
-        ((20, 200), 50, 3),
-        ((30, 300), 200, 4),
-        ((9, 10000), 500, 5)
-    ],
-)
-@pytest.mark.parametrize("n_cpu_cores", [48])
-@clean_gpu_memory
-def test_ccc_gpu_with_categorical_input(
-    seed: int,
-    shape: Tuple[int, int],
-    n_categories: int,
-    str_length: int,
-    n_cpu_cores: int,
-):
-    n_features, n_samples = shape
-    df = generate_categorical_data(
-        n_features, n_samples, n_categories, str_length=str_length, random_state=seed
-    )
-    res_cpu = ccc(df, n_jobs=n_cpu_cores)
-    res_gpu = ccc_gpu(df)
-
-    cpu_df = pd.DataFrame(res_cpu)
-    gpu_df = pd.DataFrame(res_gpu.astype(np.float64))
-    pd.testing.assert_frame_equal(gpu_df, cpu_df, atol=1e-6, rtol=1e-6)
-
-# @clean_gpu_memory
-# def test_ccc_gpu_with_mixed_input():
-#     return
