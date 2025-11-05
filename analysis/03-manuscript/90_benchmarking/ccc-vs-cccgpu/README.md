@@ -7,10 +7,9 @@ This directory contains an interactive Jupyter notebook for benchmarking GPU-acc
 
 ## Files
 
-- `benchmark_analysis.ipynb` - Main benchmark notebook (input)
-- `benchmark_analysis_output.ipynb` - Results notebook with outputs (created after execution)
-- `run_benchmark.sh` - Script to run notebook in background using Papermill
-- `check_status.sh` - Check execution status and view progress
+- `notebook/benchmark_analysis.ipynb` - Main benchmark notebook (input)
+- `notebook/benchmark_analysis_output.ipynb` - Results notebook with outputs (created after execution)
+- `notebook/run_benchmark_analysis_notebook.sh` - Script to run notebook in background using Papermill
 
 ## Quick Start
 
@@ -19,6 +18,7 @@ This directory contains an interactive Jupyter notebook for benchmarking GPU-acc
 Open and run the notebook interactively:
 
 ```bash
+cd analysis/03-manuscript/90_benchmarking/ccc-vs-cccgpu/notebook
 jupyter notebook benchmark_analysis.ipynb
 ```
 
@@ -27,16 +27,13 @@ jupyter notebook benchmark_analysis.ipynb
 Execute the notebook in background and preserve all outputs:
 
 ```bash
-cd analysis/03-manuscript/90_benchmarking/ccc-vs-cccgpu
-./run_benchmark.sh
+cd analysis/03-manuscript/90_benchmarking/ccc-vs-cccgpu/notebook
+./run_benchmark_analysis_notebook.sh
 ```
 
 **Monitoring:**
 
 ```bash
-# Quick status check (recommended)
-./check_status.sh
-
 # View live execution output
 tail -f benchmark_execution_*.log
 
@@ -48,8 +45,8 @@ cat benchmark_execution_*.log | tail -50
 ```
 
 **After completion:**
-- Open `benchmark_analysis_output.ipynb` to view all results and plots
-- Original `benchmark_analysis.ipynb` remains unmodified
+- Open `notebook/benchmark_analysis_output.ipynb` to view all results and plots
+- Original `notebook/benchmark_analysis.ipynb` remains unmodified
 - Log file contains complete execution details
 
 ## Configuration
