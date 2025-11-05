@@ -11,6 +11,8 @@ The **Clustermatch Correlation Coefficient (CCC)** is a highly-efficient, next-g
 
 CCC is based on the simple idea of clustering data points and then computing the Adjusted Rand Index (ARI) between the two clusterings. It is a robust and efficient method that can detect linear and non-linear relationships, making it suitable for a wide range of applications in genomics, machine learning, and data science.
 
+Original notebooks and scripts used for the manuscript, as well as other analyses are available in the [analysis](https://github.com/pivlab/ccc-gpu/tree/main/analysis) directory.
+
 ## Code Structure
 
 - **libs/ccc**: Python code for CCC-GPU
