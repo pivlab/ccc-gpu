@@ -28,9 +28,10 @@ analysis/
 │   ├── 25_metadata-correlation/    # Metadata correlation analysis
 │   ├── 30_gene-pair-selection/     # Select interesting gene pairs
 │   ├── 35_explore-gene-pairs/      # Deep-dive analysis
+│   ├── 80-general-analysis/    # General exploratory analysis
+│   │   └── kendall-and-spearman/   # Method comparison
 │   └── 90_benchmarking/        # Performance benchmarking
 │       ├── ccc-vs-cccgpu/      # GPU vs CPU comparison
-│       ├── kendall-and-spearman/   # Method comparison
 │       └── spearman-and-pearson/   # Execution time analysis
 ├── 99-tutorials/               # Tutorial notebooks
 └── common/                     # Shared analysis tools
@@ -53,7 +54,8 @@ The `03-manuscript/` directory uses a **two-digit prefix numbering system** to i
 - **30**: Selection - Identify interesting gene pairs
 - **35**: Exploration - Deep-dive analysis and visualization
 
-### Supplementary Analyses (90+)
+### Supplementary Analyses (80+)
+- **80**: General Analysis - Exploratory analysis and method comparisons
 - **90**: Benchmarking - Performance validation and comparisons
 
 This numbering ensures scripts are executed in the correct order for reproducible research.
@@ -106,6 +108,24 @@ GTEx v8 Raw Data
 ---
 
 ## Directory Details
+
+### `80-general-analysis/`
+
+**Purpose**: General exploratory analysis and method comparisons for manuscript validation
+
+**Subdirectories**:
+
+#### `kendall-and-spearman/`
+- Comparative analysis between Kendall's tau and Spearman's rho correlation methods
+- Includes analysis on both real GTEx v8 data and synthetic random data
+- **Key Files**:
+  - `correlation_comparison_gtex.ipynb` - Method comparison using real GTEx whole blood gene expression data
+  - `correlation_comparison_random_data.ipynb` - Method comparison using synthetic data with controlled properties
+- **Function**: Validate that Kendall and Spearman correlations are highly redundant (r > 0.95), justifying the manuscript's focus on Spearman coefficient only
+- **Output**: Scatter plots, correlation statistics, and linear regression analysis demonstrating method agreement
+
+---
+
 ### `90_benchmarking/`
 
 **Purpose**: Performance benchmarking and validation
@@ -117,9 +137,6 @@ GTEx v8 Raw Data
 - Speedup analysis across different core counts (6, 12, 24)
 - Scaling tests (features and samples)
 - **Documentation**: [90_benchmarking/ccc-vs-cccgpu/readme.md](03-manuscript/90_benchmarking/ccc-vs-cccgpu/readme.md)
-
-#### `kendall-and-spearman/`
-- Correlation method comparison between Kendall and Spearman
 
 #### `spearman-and-pearson/`
 - Execution time benchmarking
