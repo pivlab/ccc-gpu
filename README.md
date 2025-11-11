@@ -135,6 +135,64 @@ correlation = ccc(x, y)
 print(f"CCC coefficient: {correlation:.3f}")
 ```
 
+### API Specification
+
+```python
+from ccc.coef.impl_gpu import ccc
+
+ccc(
+    x: NDArray,
+    y: NDArray = None,
+    internal_n_clusters: Union[int, Iterable[int]] = None,
+    return_parts: bool = False,
+    n_chunks_threads_ratio: int = 1,
+    n_jobs: int = 1,
+    pvalue_n_perms: int = None,
+    partitioning_executor: str = "thread",
+) -> Union[float, NDArray, tuple]
+```
+
+**Parameters:**
+
+**Note:** Several parameters control CPU parallelization for non-core computations (e.g., `n_jobs`, `partitioning_executor`), maintaining compatibility with the original CCC implementation. Future iterations may implement these procedures with CUDA, potentially deprecating these parameters.
+
+- **`x`** *(NDArray, required)*: 1d or 2d numerical array with the data. NaN values are not supported. If 2d numpy array: features in rows, objects in columns. If pandas DataFrame: features in columns, objects in rows. If 1d: must provide `y` parameter.
+
+- **`y`** *(NDArray, optional)*: Optional 1d numerical array. Only used when `x` is 1d. Must have the same shape as `x`. Computes coefficient between `x` and `y`.
+
+- **`internal_n_clusters`** *(int or Iterable[int], optional)*: Controls the number of clusters used for partitioning. If integer: maximum number of clusters (starts from k=2). If iterable: custom list of k values. Default: range from 2 to sqrt(n_objects), capped at 10.
+
+- **`return_parts`** *(bool, default=False)*: If True, returns the partitions that maximized the coefficient for each object pair. If False, only returns CCC values.
+
+- **`n_chunks_threads_ratio`** *(int, default=1)*: Modifies how pairwise comparisons are split across threads. Controls the ratio of chunks to threads for better load balancing.
+
+- **`n_jobs`** *(int, default=1)*: Number of CPU cores/threads for internal parallelization. `None` uses all available cores. Negative values use `os.cpu_count() + n_jobs`. Must yield a value >= 1.
+
+- **`pvalue_n_perms`** *(int, optional)*: If provided and > 0, computes p-value using the specified number of permutations. If None or 0, p-values are not computed.
+
+- **`partitioning_executor`** *(str, default="thread")*: Executor type for data partitioning. `"thread"` uses ThreadPoolExecutor (less memory), `"process"` uses ProcessPoolExecutor (potentially faster), any other value disables parallelization for partitioning.
+
+**Returns:**
+
+Return type varies based on input dimensionality and parameters:
+
+- **For 1d input (x and y pair)**:
+  - Default: `float` (scalar CCC value)
+  - With `pvalue_n_perms`: `tuple[float, float]` (coefficient, p-value)
+  - With `return_parts=True`: adds partition arrays to the tuple
+
+- **For 2d input (multiple pairs)**:
+  - Default: `NDArray[float]` (condensed 1d array of size `n*(n-1)/2`)
+  - With `pvalue_n_perms`: `tuple[NDArray[float], NDArray[float]]` (coefficients, p-values)
+  - With `return_parts=True`: adds partition arrays to the tuple
+
+**Notes:**
+
+- Coefficient range: [0, 1] inclusive
+- Returns `np.nan` if a variable has no variation
+- Uses GPU acceleration (CUDA) for coefficient computation
+- NaN values in input data are not supported
+
 ### Working with Gene Expression Data
 
 CCC-GPU is particularly useful for genomics applications:
