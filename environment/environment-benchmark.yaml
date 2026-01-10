@@ -1,0 +1,23 @@
+# Environment for benchmarking and profiling ccc-gpu
+#
+# Usage:
+#   conda env create -f environment/environment-benchmark.yaml
+#   conda activate ccc-gpu-benchmark
+#
+name: ccc-gpu-benchmark
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy=1.26.*
+  - pandas=2.2.*
+  - matplotlib=3.*
+  - jupyter
+  - ipykernel
+  - numba=0.60.*
+  - scipy=1.15.*
+  - pip
+  - pip:
+    - cccgpu  
+platforms:
+  - linux-64
