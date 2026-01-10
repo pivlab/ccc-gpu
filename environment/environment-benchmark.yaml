@@ -16,6 +16,7 @@ dependencies:
   - ipykernel
   - numba=0.60.*
   - scipy=1.15.*
+  - seaborn
   - pip
   - pip:
     - cccgpu  
