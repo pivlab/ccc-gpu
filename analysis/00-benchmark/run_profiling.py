@@ -29,17 +29,14 @@ FUNCTION_CATEGORIES = {
     'adjusted_rand_index': 'ARI',
     'get_pair_confusion_matrix': 'ARI',
     'get_contingency_matrix': 'ARI',
-
     # Partitioning
     'get_parts': 'Partitioning',
     'run_quantile_clustering': 'Partitioning',
     'get_feature_parts': 'Partitioning',
     'get_range_n_clusters': 'Partitioning',
     'get_perc_from_k': 'Partitioning',
-
     # Ranking
     'rank': 'Ranking',
-
     # Coordination/Orchestration
     'cdist_parts_basic': 'Coordination',
     'compute_ccc': 'Coordination',
@@ -49,6 +46,9 @@ FUNCTION_CATEGORIES = {
     'get_coords_from_index': 'Coordination',
     'get_feature_type_and_encode': 'Coordination',
 }
+
+# Category order for display
+CATEGORY_ORDER = ['ARI', 'Coordination', 'Partitioning', 'NumPy/Numba', 'Ranking', 'Other CCC', 'Other']
 
 
 def categorize_function(func_name: str, filename: str) -> str:
@@ -136,12 +136,19 @@ def profile_workload(n_features: int, n_samples: int, name: str) -> dict:
     category_totals['Percentage'] = (category_totals['TotTime'] / total_time) * 100
     category_totals = category_totals.sort_values('TotTime', ascending=False)
 
+    # Calculate ARI percentage
+    ari_row = category_totals[category_totals['Category'] == 'ARI']
+    ari_pct = ari_row['Percentage'].values[0] if len(ari_row) > 0 else 0
+    ari_time = ari_row['TotTime'].values[0] if len(ari_row) > 0 else 0
+
     return {
         'name': name,
         'n_features': n_features,
         'n_samples': n_samples,
         'n_pairs': n_pairs,
         'total_time': total_time,
+        'ari_time': ari_time,
+        'ari_pct': ari_pct,
         'func_df': func_df,
         'category_totals': category_totals
     }
@@ -150,16 +157,16 @@ def profile_workload(n_features: int, n_samples: int, name: str) -> dict:
 def print_comprehensive_results(result: dict):
     """Print comprehensive profiling results."""
     print(f"\n{'='*80}")
-    print(f"{result['name']} Workload: {result['n_features']} features x {result['n_samples']} samples")
+    print(f"{result['name']}: {result['n_features']} features x {result['n_samples']} samples")
     print(f"Pairwise comparisons: {result['n_pairs']:,}")
-    print(f"Total time: {result['total_time']:.4f}s")
+    print(f"Total time: {result['total_time']:.2f}s")
     print(f"{'='*80}")
 
     # Category summary
     print("\nCategory Breakdown:")
     print("-" * 50)
     for _, row in result['category_totals'].iterrows():
-        print(f"  {row['Category']:15s}: {row['TotTime']:.4f}s ({row['Percentage']:5.1f}%) - {int(row['Calls']):,} calls")
+        print(f"  {row['Category']:15s}: {row['TotTime']:.2f}s ({row['Percentage']:5.1f}%) - {int(row['Calls']):,} calls")
 
     # Top functions
     print("\nTop Functions by Runtime:")
@@ -167,8 +174,80 @@ def print_comprehensive_results(result: dict):
     print(f"{'Function':<30s} {'Category':<15s} {'Calls':>10s} {'TotTime':>10s} {'%':>8s}")
     print("-" * 80)
 
-    for _, row in result['func_df'].head(15).iterrows():
+    for _, row in result['func_df'].head(10).iterrows():
         print(f"{row['Function']:<30s} {row['Category']:<15s} {row['Calls']:>10,} {row['TotTime']:>10.4f} {row['TotTime%']:>7.1f}%")
+
+
+def run_features_scaling():
+    """Run benchmarks scaling n_features (fixed n_samples)."""
+    print("\n" + "=" * 80)
+    print("PART 1: Scaling n_features (fixed n_samples=500)")
+    print("=" * 80)
+
+    workloads = [
+        ('Small', 500, 500),
+        ('Medium', 2500, 500),
+        ('Large', 5000, 500),
+    ]
+
+    results = []
+    for name, n_features, n_samples in workloads:
+        print(f"\nProfiling {name} workload...")
+        result = profile_workload(n_features, n_samples, name)
+        results.append(result)
+        print_comprehensive_results(result)
+
+    return results
+
+
+def run_samples_scaling():
+    """Run benchmarks scaling n_samples (fixed n_features)."""
+    print("\n" + "=" * 80)
+    print("PART 2: Scaling n_samples (fixed n_features=500)")
+    print("=" * 80)
+
+    workloads = [
+        ('500 samples', 500, 500),
+        ('1000 samples', 500, 1000),
+        ('2000 samples', 500, 2000),
+        ('4000 samples', 500, 4000),
+    ]
+
+    results = []
+    for name, n_features, n_samples in workloads:
+        print(f"\nProfiling {name}...")
+        result = profile_workload(n_features, n_samples, name)
+        results.append(result)
+
+        print(f"  Total time: {result['total_time']:.2f}s")
+        print(f"  ARI: {result['ari_pct']:.1f}%")
+
+    # Summary table
+    print("\n" + "-" * 60)
+    print("n_samples Scaling Summary:")
+    print("-" * 60)
+    print(f"{'Samples':>10s} {'Time (s)':>12s} {'ARI %':>10s}")
+    print("-" * 60)
+    for r in results:
+        print(f"{r['n_samples']:>10,} {r['total_time']:>12.2f} {r['ari_pct']:>9.1f}%")
+
+    return results
+
+
+def print_overall_summary(features_results, samples_results):
+    """Print overall summary."""
+    print("\n" + "=" * 80)
+    print("OVERALL SUMMARY")
+    print("=" * 80)
+
+    # ARI percentage across all workloads
+    all_ari_pcts = [r['ari_pct'] for r in features_results + samples_results]
+
+    print(f"\nARI Computation Percentage (across all workloads):")
+    print(f"  Average: {np.mean(all_ari_pcts):.1f}%")
+    print(f"  Range: {min(all_ari_pcts):.1f}% - {max(all_ari_pcts):.1f}%")
+    print(f"\nConclusion: ARI computation is the dominant bottleneck,")
+    print(f"consuming approximately {np.mean(all_ari_pcts):.0f}% of total CCC runtime.")
 
 
 if __name__ == '__main__':
@@ -176,32 +255,13 @@ if __name__ == '__main__':
     print("CCC Comprehensive Profiling: Runtime Breakdown by Function")
     print("=" * 80)
 
-    results = []
-
-    # Run workloads
-    for name, n_features, n_samples in [('Small', 10, 100), ('Medium', 50, 500), ('Large', 100, 1000)]:
-        print(f"\nProfiling {name} workload...")
-        result = profile_workload(n_features, n_samples, name)
-        results.append(result)
-        print_comprehensive_results(result)
+    # Run both scaling analyses
+    features_results = run_features_scaling()
+    samples_results = run_samples_scaling()
 
     # Overall summary
+    print_overall_summary(features_results, samples_results)
+
     print("\n" + "=" * 80)
-    print("OVERALL SUMMARY")
+    print("Profiling complete.")
     print("=" * 80)
-
-    # Get ARI percentage across workloads
-    ari_pcts = []
-    for r in results:
-        ari_row = r['category_totals'][r['category_totals']['Category'] == 'ARI']
-        if len(ari_row) > 0:
-            ari_pcts.append(ari_row['Percentage'].values[0])
-
-    if ari_pcts:
-        print(f"\nARI Computation Percentage:")
-        print(f"  Average: {np.mean(ari_pcts):.1f}%")
-        print(f"  Range: {min(ari_pcts):.1f}% - {max(ari_pcts):.1f}%")
-        print(f"\nConclusion: ARI computation is the dominant bottleneck,")
-        print(f"consuming approximately {np.mean(ari_pcts):.0f}% of total CCC runtime.")
-
-    print("\n" + "=" * 80)
