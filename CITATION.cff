@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "CCC-GPU: A GPU-accelerated nonlinear correlation coefficient for large-scale transcriptomic analyses"
+version: v1.0.0
+date-released: 2026-01-16
+authors:
+  - family-names: Zhang
+    given-names: Haoyu
+    orcid: https://orcid.org/0009-0005-6025-0217
+    email: haoyu.zhang@cuanschutz.edu
+    affiliation: "Department of Biomedical Informatics, University of Colorado Anschutz, Aurora, CO 80045, USA"
+  - family-names: Fotso
+    given-names: Kevin
+    orcid: https://orcid.org/0009-0002-2196-6157
+    email: kevin.fotso@cuanschutz.edu
+    affiliation: "Office of Information Technology, University of Colorado Anschutz, Aurora, CO 80045, USA"
+  - family-names: Subirana-Granés
+    given-names: Marc
+    orcid: https://orcid.org/0000-0003-3934-839X
+    email: marc.subiranagranes@cuanschutz.edu
+    affiliation: "Department of Biomedical Informatics, University of Colorado Anschutz, Aurora, CO 80045, USA"
+  - family-names: Pividori
+    given-names: Milton
+    orcid: https://orcid.org/0000-0002-3035-4403
+    email: milton.pividori@cuanschutz.edu
+    affiliation: "Department of Biomedical Informatics, University of Colorado School of Medicine, Aurora, CO 80045, USA"
+keywords:
+  - correlation coefficient
+  - GPU computing
+  - gene expression
+  - RNA-seq analysis
+  - nonlinear patterns
+license: MIT
+repository-code: https://github.com/pivlab/ccc-gpu
