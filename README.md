@@ -285,12 +285,12 @@ If using VS Code, the `Live Preview` extension provides convenient in-editor vie
 
 ## Citation
 
-If you use CCC-GPU in your research, please cite the original CCC paper:
+If you use CCC-GPU in your research, please cite:
 
 ```bibtex
 @article{zhang2025cccgpu,
-  title={CCC-GPU: A graphics processing unit (GPU)-optimized nonlinear correlation coefficient for large transcriptomic analyses},
-  author={Zhang, Haoyu and Fotso, Kevin and Pividori, Milton},
+  title={CCC-GPU: A GPU-accelerated nonlinear correlation coefficient for large-scale transcriptomic analyses},
+  author={Zhang, Haoyu and Fotso, Kevin and Subirana-Gran{\'e}s, Marc and Pividori, Milton},
   journal={bioRxiv},
   year={2025},
   doi={10.1101/2025.06.03.657735},
