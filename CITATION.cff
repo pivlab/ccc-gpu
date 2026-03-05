@@ -1,6 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "CCC-GPU: A GPU-accelerated nonlinear correlation coefficient for large-scale transcriptomic analyses"
+title: "CCC-GPU: A graphics processing unit (GPU)-accelerated nonlinear correlation coefficient for large-scale transcriptomic analyses"
+doi: 10.1093/bioinformatics/btag068
 version: v1.0.0
 date-released: 2026-01-16
 authors:
@@ -32,3 +33,18 @@ keywords:
   - nonlinear patterns
 license: MIT
 repository-code: https://github.com/pivlab/ccc-gpu
+preferred-citation:
+  type: article
+  title: "CCC-GPU: A graphics processing unit (GPU)-accelerated nonlinear correlation coefficient for large-scale transcriptomic analyses"
+  authors:
+    - family-names: Zhang
+      given-names: Haoyu
+    - family-names: Fotso
+      given-names: Kevin
+    - family-names: Subirana-Granés
+      given-names: Marc
+    - family-names: Pividori
+      given-names: Milton
+  journal: Bioinformatics
+  year: 2026
+  doi: 10.1093/bioinformatics/btag068
