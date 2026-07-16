@@ -142,3 +142,12 @@ libs/ccc/sklearn/metrics
 
 # Wheels
 wheelhouse/
+
+# Log files (benchmark/test/run logs are generated artifacts)
+*.log
+tests/**/logs/
+
+# CMake / scikit-build / CUDA build artifacts
+_skbuild/
+cmake-build-*/
+compile_commands.json

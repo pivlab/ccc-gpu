@@ -20,7 +20,7 @@ authors = [
     { name = "Milton Pividori", email = "milton.pividori@cuanschutz.edu" },
     { name = "Haoyu Zhang", email = "haoyu_z@outlook.com" },
 ]
-dependencies = ["numpy", "scipy", "numba", "pandas", "scikit-learn"]
+dependencies = ["numpy", "scipy", "numba", "pandas", "scikit-learn", "pyyaml"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: BSD License",
@@ -44,7 +44,19 @@ cmake.args = [
 ]
 build.verbose = true
 wheel.packages = ["libs/ccc"] # Directory containing your Python packages
-wheel.exclude = ["*.cpp", "*.h"] # Exclude C++ headers from wheel
+# Exclude C++ headers and the research/analysis-only modules (they import
+# undeclared heavy deps -- IPython/minepy/requests -- and are kept in-repo for
+# `analysis/`, not the published wheel). `log.py`/`log_config.yaml` stay in the
+# wheel because `ccc.utils.curl` and the test suite use them; `pyyaml` is a
+# declared dependency so `ccc.log` imports cleanly.
+wheel.exclude = [
+    "*.cpp",
+    "*.h",
+    "ccc/plots.py",
+    "ccc/methods.py",
+    "ccc/giant.py",
+    "ccc/corr.py",
+]
 # Note: wheel.py-api removed to support multiple Python versions (3.10-3.15)
 wheel.platlib = true # Contains compiled extensions
 
