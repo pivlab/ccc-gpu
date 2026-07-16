@@ -1,0 +1,9 @@
+# clang-format configuration for the CUDA/C++ extension (libs/ccc_cuda_ext).
+# Microsoft base style already uses Allman braces and 4-space indentation,
+# which matches the majority style of the existing sources, minimizing churn.
+---
+BasedOnStyle: Microsoft
+IndentWidth: 4
+ColumnLimit: 120
+PointerAlignment: Right
+SortIncludes: CaseSensitive
