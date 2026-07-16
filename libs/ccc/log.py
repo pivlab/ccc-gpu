@@ -1,8 +1,10 @@
 """
 Provides logging functions.
 """
+
 import logging
 import logging.config
+
 import yaml
 
 from ccc import conf
@@ -10,7 +12,7 @@ from ccc import conf
 
 def _get_logger_config():
     """Reads the logging config file in YAML format."""
-    with open(conf.GENERAL["LOG_CONFIG_FILE"], "r") as f:
+    with open(conf.GENERAL["LOG_CONFIG_FILE"]) as f:
         return yaml.safe_load(f.read())
 
 

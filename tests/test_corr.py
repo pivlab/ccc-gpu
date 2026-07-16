@@ -1,9 +1,9 @@
 """
 Tests the corr.py module.
 """
+
 import numpy as np
 import pandas as pd
-
 from ccc import corr
 
 
@@ -250,6 +250,7 @@ def test_corr_clustermatch_outputs_same_as_original_clustermatch():
     # implementation (https://github.com/sinc-lab/clustermatch) plus some
     # patches (see README.md in tests/data about ccc data).
     from pathlib import Path
+
     from pandas.testing import assert_frame_equal
 
     input_data_dir = Path(__file__).parent / "data"

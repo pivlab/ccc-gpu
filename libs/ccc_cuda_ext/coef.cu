@@ -1,32 +1,31 @@
-#include <cuda_runtime.h>
 #include <cub/cub.cuh>
-#include <thrust/device_vector.h>
-#include <thrust/random.h>
-#include <thrust/shuffle.h>
-#include <thrust/reduce.h>
-#include <thrust/extrema.h>
-#include <thrust/functional.h>
-#include <thrust/fill.h>
+#include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include <spdlog/spdlog.h>
+#include <thrust/device_vector.h>
+#include <thrust/extrema.h>
+#include <thrust/fill.h>
+#include <thrust/functional.h>
+#include <thrust/random.h>
+#include <thrust/reduce.h>
+#include <thrust/shuffle.h>
 
-#include <execution>
-#include <iostream>
-#include <iomanip>
-#include <limits>
-#include <optional>
-#include <vector>
 #include <algorithm>
 #include <cstdlib>
+#include <execution>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <optional>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <vector>
 
 #include "coef.cuh"
-#include "metrics.cuh"
 #include "math.cuh"
+#include "metrics.cuh"
 #include "utils.cuh"
 namespace py = pybind11;
-
 
 /**
  * @brief CUDA kernel to find maximum ARI values and their corresponding partition pairs
@@ -43,10 +42,7 @@ namespace py = pybind11;
  * @param reduction_range Number of partition pairs to process per feature comparison
  */
 template <typename T>
-__global__ void findMaxAriKernel(const T *aris,
-                                 uint8_t *max_parts,
-                                 T *cm_values,
-                                 const int n_partitions,
+__global__ void findMaxAriKernel(const T *aris, uint8_t *max_parts, T *cm_values, const int n_partitions,
                                  const int reduction_range)
 {
     /*
@@ -67,8 +63,8 @@ __global__ void findMaxAriKernel(const T *aris,
      */
     typedef cub::KeyValuePair<int, T> KeyValuePairT;
     KeyValuePairT thread_data;
-    thread_data.key = -1;  // Initialize to invalid index
-    thread_data.value = -1.0f;  // Initialize to very small value
+    thread_data.key = -1;      // Initialize to invalid index
+    thread_data.value = -1.0f; // Initialize to very small value
     bool has_nan = false;
 
     /*
@@ -92,7 +88,7 @@ __global__ void findMaxAriKernel(const T *aris,
         if (val > thread_data.value)
         {
             thread_data.value = val;
-            thread_data.key = i;  // Store the local index
+            thread_data.key = i; // Store the local index
         }
     }
 
@@ -108,13 +104,13 @@ __global__ void findMaxAriKernel(const T *aris,
         block_has_nan = false;
     }
     __syncthreads();
-    
+
     if (has_nan)
     {
         block_has_nan = true;
     }
     __syncthreads();
-    
+
     if (block_has_nan)
     {
         if (threadIdx.x == 0)
@@ -135,10 +131,7 @@ __global__ void findMaxAriKernel(const T *aris,
     __shared__ typename BlockReduceT::TempStorage temp_storage;
 
     // Use standard ArgMax but rely on CUB's tie-breaking behavior
-    KeyValuePairT aggregate = BlockReduceT(temp_storage).Reduce(
-        thread_data, 
-        cub::ArgMax()
-    );
+    KeyValuePairT aggregate = BlockReduceT(temp_storage).Reduce(thread_data, cub::ArgMax());
 
     /*
      * Result Writing
@@ -194,21 +187,21 @@ __global__ void initRandomStates(curandState *states, const uint32_t n_states, c
  * @param n_perms Number of permutations
  * @param n_objects Number of objects to permute
  */
-__global__ void generatePermutations(curandState *states, uint32_t *perm_indices, 
-                                   const uint32_t n_perms, const uint32_t n_objects)
+__global__ void generatePermutations(curandState *states, uint32_t *perm_indices, const uint32_t n_perms,
+                                     const uint32_t n_objects)
 {
     uint32_t perm_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (perm_idx < n_perms)
     {
         curandState *state = &states[perm_idx];
         uint32_t *perm = &perm_indices[perm_idx * n_objects];
-        
+
         // Initialize sequential indices
         for (uint32_t i = 0; i < n_objects; ++i)
         {
             perm[i] = i;
         }
-        
+
         // Fisher-Yates shuffle
         for (uint32_t i = n_objects - 1; i > 0; --i)
         {
@@ -240,21 +233,27 @@ __global__ void generatePermutations(curandState *states, uint32_t *perm_indices
  * @return ARI value
  */
 template <typename T, typename R>
-__device__ R computePermutedARI(const T *part_i, const T *part_j,
-                                const uint32_t *perm, const uint32_t n_objects,
+__device__ R computePermutedARI(const T *part_i, const T *part_j, const uint32_t *perm, const uint32_t n_objects,
                                 const int k, int *scratch)
 {
     // Quick validation
-    if (n_objects == 0) return 0.0f;
-    if (k <= 0) return 0.0f;
+    if (n_objects == 0)
+        return 0.0f;
+    if (k <= 0)
+        return 0.0f;
 
     int *contingency = scratch;          // k * k ints
     int *sum_rows = contingency + k * k; // k ints
     int *sum_cols = sum_rows + k;        // k ints
 
     // Initialize scratch arrays
-    for (int i = 0; i < k * k; ++i) contingency[i] = 0;
-    for (int i = 0; i < k; ++i) { sum_rows[i] = 0; sum_cols[i] = 0; }
+    for (int i = 0; i < k * k; ++i)
+        contingency[i] = 0;
+    for (int i = 0; i < k; ++i)
+    {
+        sum_rows[i] = 0;
+        sum_cols[i] = 0;
+    }
 
     // Build contingency matrix and compute sum of squares in a single pass.
     long long sum_squares = 0;
@@ -343,14 +342,14 @@ __device__ R computePermutedARI(const T *part_i, const T *part_j,
  * @param scratch_stride Ints per thread: k*k + 2*k
  */
 template <typename T, typename R>
-__global__ void computePermutationCCC(const T *parts_i, const T *parts_j,
-                                     const uint32_t *perm_indices, R *perm_ccc_values,
-                                     const uint32_t perm_offset, const uint32_t perm_count,
-                                     const uint32_t n_partitions, const uint32_t n_objects,
-                                     const int k, int *scratch, const uint64_t scratch_stride)
+__global__ void computePermutationCCC(const T *parts_i, const T *parts_j, const uint32_t *perm_indices,
+                                      R *perm_ccc_values, const uint32_t perm_offset, const uint32_t perm_count,
+                                      const uint32_t n_partitions, const uint32_t n_objects, const int k, int *scratch,
+                                      const uint64_t scratch_stride)
 {
     const uint32_t local_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (local_idx >= perm_count) return;
+    if (local_idx >= perm_count)
+        return;
     const uint32_t perm_idx = perm_offset + local_idx;
 
     // Permutation for this thread. Scratch is indexed by the LOCAL id so the
@@ -430,8 +429,8 @@ __global__ void computePermutationCCC(const T *parts_i, const T *parts_j,
  * @param n_perms Number of permutations per comparison
  */
 template <typename R>
-__global__ void computePValues(const R *perm_ccc_values, const R *observed_ccc_values,
-                              R *pvalues, const uint64_t n_comparisons, const uint32_t n_perms)
+__global__ void computePValues(const R *perm_ccc_values, const R *observed_ccc_values, R *pvalues,
+                               const uint64_t n_comparisons, const uint32_t n_perms)
 {
     const uint64_t comp_idx = static_cast<uint64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (comp_idx < n_comparisons)
@@ -464,7 +463,8 @@ void check_feature_comp_bounds(const size_t n_features)
 {
     if (n_features > 1 && n_features > UINT64_MAX / (n_features - 1))
     {
-        throw std::range_error("Feature comparison count would exceed maximum representable value: n_features too large");
+        throw std::range_error(
+            "Feature comparison count would exceed maximum representable value: n_features too large");
     }
 }
 
@@ -479,12 +479,14 @@ void check_ari_count_bounds(const uint64_t n_feature_comp, const size_t n_partit
 {
     if (n_feature_comp > UINT64_MAX / n_partitions)
     {
-        throw std::range_error("ARI count would exceed maximum representable value: n_feature_comp * n_partitions too large");
+        throw std::range_error(
+            "ARI count would exceed maximum representable value: n_feature_comp * n_partitions too large");
     }
     const uint64_t temp = n_feature_comp * n_partitions;
     if (temp > UINT64_MAX / n_partitions)
     {
-        throw std::range_error("ARI count would exceed maximum representable value: n_feature_comp * n_partitions * n_partitions too large");
+        throw std::range_error("ARI count would exceed maximum representable value: n_feature_comp * n_partitions * "
+                               "n_partitions too large");
     }
 }
 
@@ -516,12 +518,8 @@ uint64_t calculate_total_aris(const uint64_t n_feature_comp, const size_t n_part
 }
 
 template <typename T, typename R>
-auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
-                  const size_t n_features,
-                  const size_t n_partitions,
-                  const size_t n_objects,
-                  const bool return_parts,
-                  std::optional<uint32_t> pvalue_n_perms) -> py::object
+auto compute_coef(const py::array_t<T, py::array::c_style> &parts, const size_t n_features, const size_t n_partitions,
+                  const size_t n_objects, const bool return_parts, std::optional<uint32_t> pvalue_n_perms) -> py::object
 {
     /*
      * Input validation (before any device work)
@@ -533,24 +531,21 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         py::buffer_info buffer = parts.request();
         if (buffer.format != py::format_descriptor<T>::format())
         {
-            throw py::value_error(
-                std::string("Partitions array has an incompatible dtype: expected numpy format '") +
-                py::format_descriptor<T>::format() + "', got '" + buffer.format + "'");
+            throw py::value_error(std::string("Partitions array has an incompatible dtype: expected numpy format '") +
+                                  py::format_descriptor<T>::format() + "', got '" + buffer.format + "'");
         }
-        if (buffer.ndim != 3 ||
-            buffer.shape[0] != static_cast<py::ssize_t>(n_features) ||
+        if (buffer.ndim != 3 || buffer.shape[0] != static_cast<py::ssize_t>(n_features) ||
             buffer.shape[1] != static_cast<py::ssize_t>(n_partitions) ||
             buffer.shape[2] != static_cast<py::ssize_t>(n_objects))
         {
             std::string got = buffer.ndim == 3
-                                  ? ("(" + std::to_string(buffer.shape[0]) + ", " +
-                                     std::to_string(buffer.shape[1]) + ", " +
-                                     std::to_string(buffer.shape[2]) + ")")
+                                  ? ("(" + std::to_string(buffer.shape[0]) + ", " + std::to_string(buffer.shape[1]) +
+                                     ", " + std::to_string(buffer.shape[2]) + ")")
                                   : ("ndim=" + std::to_string(buffer.ndim));
             throw py::value_error(
                 "Partitions array shape mismatch: expected (n_features, n_partitions, n_objects) = (" +
-                std::to_string(n_features) + ", " + std::to_string(n_partitions) + ", " +
-                std::to_string(n_objects) + ") but got " + got);
+                std::to_string(n_features) + ", " + std::to_string(n_partitions) + ", " + std::to_string(n_objects) +
+                ") but got " + got);
         }
     }
     if (n_partitions == 0)
@@ -566,15 +561,18 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     }
 
     // Check for CCC_GPU_LOGGING environment variable to enable debug logging
-    const char* logging_env = std::getenv("CCC_GPU_LOGGING");
-    if (logging_env != nullptr) {
+    const char *logging_env = std::getenv("CCC_GPU_LOGGING");
+    if (logging_env != nullptr)
+    {
         spdlog::set_level(spdlog::level::debug);
         // Check CUDA info
         spdlog::debug("CUDA Device Info:");
         print_cuda_device_info();
         spdlog::debug("CUDA Memory Info:");
         print_cuda_memory_info();
-    } else {
+    }
+    else
+    {
         // Disable debug logging by default
         spdlog::set_level(spdlog::level::err);
     }
@@ -665,8 +663,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
      */
     for (uint64_t batch_start = 0; batch_start < n_aris; batch_start += batch_n_aris)
     {
-        spdlog::debug("Processing batch {} of {}",
-                      (batch_start / batch_n_aris + 1),
+        spdlog::debug("Processing batch {} of {}", (batch_start / batch_n_aris + 1),
                       (n_aris + batch_n_aris - 1) / batch_n_aris);
         spdlog::debug("  Start index: {}", batch_start);
         spdlog::debug("  Batch size: {}", batch_n_aris);
@@ -678,22 +675,18 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         spdlog::debug("  Current batch size: {}", current_batch_size);
 
         // Compute ARIs for this batch
-        const auto d_aris = ari_core_device<T, R>(
-            parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
+        const auto d_aris =
+            ari_core_device<T, R>(parts, n_features, n_partitions, n_objects, batch_start, current_batch_size);
 
         // Configure kernel launch parameters
         const int threadsPerBlock = 128;
         const int numBlocks = current_batch_size / (n_partitions * n_partitions);
-        spdlog::debug("  Launching reduction kernel with {} blocks, {} threads per block",
-                      numBlocks, threadsPerBlock);
+        spdlog::debug("  Launching reduction kernel with {} blocks, {} threads per block", numBlocks, threadsPerBlock);
 
         // Launch kernel to find maximum values and their partition pairs
         findMaxAriKernel<R><<<numBlocks, threadsPerBlock>>>(
-            thrust::raw_pointer_cast(d_aris->data()),
-            thrust::raw_pointer_cast(d_max_parts.data()),
-            thrust::raw_pointer_cast(d_cm_values.data()),
-            n_partitions,
-            reduction_range);
+            thrust::raw_pointer_cast(d_aris->data()), thrust::raw_pointer_cast(d_max_parts.data()),
+            thrust::raw_pointer_cast(d_cm_values.data()), n_partitions, reduction_range);
 
         // Check for kernel errors
         cudaError_t kernelError = cudaGetLastError();
@@ -712,7 +705,8 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         // Copy batch results back to host
         thrust::copy(d_cm_values.begin(), d_cm_values.begin() + current_batch_size / (n_partitions * n_partitions),
                      batch_cm_values.begin());
-        thrust::copy(d_max_parts.begin(), d_max_parts.begin() + (current_batch_size / (n_partitions * n_partitions)) * 2,
+        thrust::copy(d_max_parts.begin(),
+                     d_max_parts.begin() + (current_batch_size / (n_partitions * n_partitions)) * 2,
                      batch_max_parts.begin());
 
         // Update main result arrays with batch results
@@ -752,7 +746,8 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         // removes the old MAX_CLUSTERS=16 cliff that silently returned ARI 0.0.
         int k_global = static_cast<int>(
             thrust::reduce(d_parts.begin(), d_parts.end(), static_cast<T>(-1), thrust::maximum<T>()) + 1);
-        if (k_global < 1) k_global = 1;
+        if (k_global < 1)
+            k_global = 1;
         const uint64_t scratch_stride = static_cast<uint64_t>(k_global) * k_global + 2ULL * k_global;
 
         // Per-permutation contingency/sum scratch. Its size scales as k^2 per
@@ -765,9 +760,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         const uint64_t scratch_elem_bytes = std::max<uint64_t>(scratch_stride * sizeof(int), 1);
         const uint64_t scratch_budget =
             std::min<uint64_t>(free_scratch / 4, static_cast<uint64_t>(1) << 30); // cap at 1 GiB
-        uint32_t perm_batch =
-            static_cast<uint32_t>(std::max<uint64_t>(1, scratch_budget / scratch_elem_bytes));
-        if (perm_batch > n_perms) perm_batch = n_perms;
+        uint32_t perm_batch = static_cast<uint32_t>(std::max<uint64_t>(1, scratch_budget / scratch_elem_bytes));
+        if (perm_batch > n_perms)
+            perm_batch = n_perms;
         thrust::device_vector<int> d_perm_scratch(static_cast<size_t>(perm_batch) * scratch_stride);
 
         // Allocate device memory for p-value computation
@@ -780,20 +775,14 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         const uint32_t block_size = 256;
         const uint32_t grid_size_states = (n_perms + block_size - 1) / block_size;
 
-        initRandomStates<<<grid_size_states, block_size>>>(
-            thrust::raw_pointer_cast(d_rand_states.data()),
-            n_perms,
-            rand_seed
-        );
+        initRandomStates<<<grid_size_states, block_size>>>(thrust::raw_pointer_cast(d_rand_states.data()), n_perms,
+                                                           rand_seed);
         CUDA_CHECK_KERNEL("initRandomStates");
 
         // Generate permutation indices
-        generatePermutations<<<grid_size_states, block_size>>>(
-            thrust::raw_pointer_cast(d_rand_states.data()),
-            thrust::raw_pointer_cast(d_perm_indices.data()),
-            n_perms,
-            n_objects
-        );
+        generatePermutations<<<grid_size_states, block_size>>>(thrust::raw_pointer_cast(d_rand_states.data()),
+                                                               thrust::raw_pointer_cast(d_perm_indices.data()), n_perms,
+                                                               n_objects);
         CUDA_CHECK_KERNEL("generatePermutations");
 
         /*
@@ -809,8 +798,10 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         const size_t perm_value_bytes = std::max<size_t>(static_cast<size_t>(n_perms) * sizeof(R), 1);
         const size_t budget = std::min<size_t>(free_mem / 4, static_cast<size_t>(512) * 1024 * 1024);
         uint64_t chunk_comps = static_cast<uint64_t>(budget / perm_value_bytes);
-        if (chunk_comps < 1) chunk_comps = 1;
-        if (chunk_comps > n_feature_comp) chunk_comps = n_feature_comp;
+        if (chunk_comps < 1)
+            chunk_comps = 1;
+        if (chunk_comps > n_feature_comp)
+            chunk_comps = n_feature_comp;
 
         thrust::device_vector<R> d_perm_ccc_values(static_cast<size_t>(chunk_comps) * n_perms);
 
@@ -830,39 +821,41 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                 uint64_t feat_i, feat_j;
                 get_coords_from_index(static_cast<uint64_t>(n_features), comp_idx, feat_i, feat_j);
 
-                R *out_slice = thrust::raw_pointer_cast(d_perm_ccc_values.data()) +
-                               local * static_cast<uint64_t>(n_perms);
+                R *out_slice =
+                    thrust::raw_pointer_cast(d_perm_ccc_values.data()) + local * static_cast<uint64_t>(n_perms);
 
                 // Validate feature indices to prevent memory corruption. This
                 // should not trigger for a valid comp_idx; fill the slice so the
                 // stale reuse of the batch buffer cannot corrupt the p-value.
                 if (feat_i >= n_features || feat_j >= n_features)
                 {
-                    spdlog::error("Invalid feature indices: feat_i={}, feat_j={}, n_features={}",
-                                  feat_i, feat_j, n_features);
+                    spdlog::error("Invalid feature indices: feat_i={}, feat_j={}, n_features={}", feat_i, feat_j,
+                                  n_features);
                     thrust::fill(d_perm_ccc_values.begin() + local * static_cast<uint64_t>(n_perms),
                                  d_perm_ccc_values.begin() + (local + 1) * static_cast<uint64_t>(n_perms),
                                  static_cast<R>(0));
                     continue;
                 }
 
-                const T* d_parts_i = thrust::raw_pointer_cast(d_parts.data()) + feat_i * n_partitions * n_objects;
-                const T* d_parts_j = thrust::raw_pointer_cast(d_parts.data()) + feat_j * n_partitions * n_objects;
+                const T *d_parts_i = thrust::raw_pointer_cast(d_parts.data()) + feat_i * n_partitions * n_objects;
+                const T *d_parts_j = thrust::raw_pointer_cast(d_parts.data()) + feat_j * n_partitions * n_objects;
 
                 // Count valid partitions on host (small operation)
                 uint32_t valid_count_i = 0, valid_count_j = 0;
-                const T* host_parts_i = parts.data() + feat_i * n_partitions * n_objects;
-                const T* host_parts_j = parts.data() + feat_j * n_partitions * n_objects;
+                const T *host_parts_i = parts.data() + feat_i * n_partitions * n_objects;
+                const T *host_parts_j = parts.data() + feat_j * n_partitions * n_objects;
                 for (uint32_t p = 0; p < n_partitions; ++p)
                 {
-                    if (host_parts_i[p * n_objects] >= 0) valid_count_i++;
-                    if (host_parts_j[p * n_objects] >= 0) valid_count_j++;
+                    if (host_parts_i[p * n_objects] >= 0)
+                        valid_count_i++;
+                    if (host_parts_j[p * n_objects] >= 0)
+                        valid_count_j++;
                 }
 
                 // Permute the feature that generated MORE valid partitions,
                 // matching the CPU reference (impl.py compute_coef).
-                const T* d_parts_to_permute = (valid_count_i > valid_count_j) ? d_parts_i : d_parts_j;
-                const T* d_parts_fixed      = (valid_count_i > valid_count_j) ? d_parts_j : d_parts_i;
+                const T *d_parts_to_permute = (valid_count_i > valid_count_j) ? d_parts_i : d_parts_j;
+                const T *d_parts_fixed = (valid_count_i > valid_count_j) ? d_parts_j : d_parts_i;
 
                 // Process permutations in sub-batches bounded by the scratch budget.
                 for (uint32_t p_off = 0; p_off < n_perms; p_off += perm_batch)
@@ -870,18 +863,9 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                     const uint32_t p_cnt = std::min(perm_batch, n_perms - p_off);
                     const uint32_t p_grid = (p_cnt + block_size - 1) / block_size;
                     computePermutationCCC<<<p_grid, block_size>>>(
-                        d_parts_fixed,
-                        d_parts_to_permute,
-                        thrust::raw_pointer_cast(d_perm_indices.data()),
-                        out_slice,
-                        p_off,
-                        p_cnt,
-                        n_partitions,
-                        n_objects,
-                        k_global,
-                        thrust::raw_pointer_cast(d_perm_scratch.data()),
-                        scratch_stride
-                    );
+                        d_parts_fixed, d_parts_to_permute, thrust::raw_pointer_cast(d_perm_indices.data()), out_slice,
+                        p_off, p_cnt, n_partitions, n_objects, k_global,
+                        thrust::raw_pointer_cast(d_perm_scratch.data()), scratch_stride);
                     CUDA_CHECK_KERNEL("computePermutationCCC");
                 }
             }
@@ -891,10 +875,7 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
             computePValues<<<pval_grid_size, block_size>>>(
                 thrust::raw_pointer_cast(d_perm_ccc_values.data()),
                 thrust::raw_pointer_cast(d_observed_ccc_values.data()) + chunk_start,
-                thrust::raw_pointer_cast(d_computed_pvalues.data()) + chunk_start,
-                chunk_len,
-                n_perms
-            );
+                thrust::raw_pointer_cast(d_computed_pvalues.data()) + chunk_start, chunk_len, n_perms);
             CUDA_CHECK_KERNEL("computePValues");
         }
 
@@ -922,12 +903,10 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
     const auto cm_pvalues_py = pvalue_n_perms.has_value()
                                    ? py::object(py::array_t<R>(cm_pvalues.size(), cm_pvalues.data()))
                                    : py::object(py::none());
-    const auto max_parts_py = py::array_t<uint8_t>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, static_cast<uint64_t>(2)});
+    const auto max_parts_py =
+        py::array_t<uint8_t>(max_parts.size(), max_parts.data()).reshape({n_feature_comp, static_cast<uint64_t>(2)});
 
-    return py::make_tuple(
-        cm_values_py,
-        cm_pvalues_py,
-        max_parts_py);
+    return py::make_tuple(cm_values_py, cm_pvalues_py, max_parts_py);
 }
 
 // Below is the explicit instantiation of the ari template function.
@@ -937,8 +916,6 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
 // implementation of the template functions, we need to explicitly instantiate them here, so that they can be picked up
 // by the linker.
 template auto compute_coef<int16_t, float>(const py::array_t<int16_t, py::array::c_style> &parts,
-                                          const size_t n_features,
-                                          const size_t n_partitions,
-                                          const size_t n_objects,
-                                          const bool return_parts,
-                                          std::optional<unsigned int> pvalue_n_perms) -> py::object;
+                                           const size_t n_features, const size_t n_partitions, const size_t n_objects,
+                                           const bool return_parts, std::optional<unsigned int> pvalue_n_perms)
+    -> py::object;

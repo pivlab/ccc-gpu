@@ -1,8 +1,9 @@
 """
 General utility functions.
 """
-import re
+
 import hashlib
+import re
 from pathlib import Path
 from subprocess import run
 
@@ -122,13 +123,13 @@ def human_format(num):
     Formats numbers with a shortened style.
     Taken from: https://stackoverflow.com/a/45846841
     """
-    num = float("{:.3g}".format(num))
+    num = float(f"{num:.3g}")
     magnitude = 0
     while abs(num) >= 1000:
         magnitude += 1
         num /= 1000.0
     return "{}{}".format(
-        "{:f}".format(num).rstrip("0").rstrip("."), ["", "K", "M", "B", "T"][magnitude]
+        f"{num:f}".rstrip("0").rstrip("."), ["", "K", "M", "B", "T"][magnitude]
     )
 
 

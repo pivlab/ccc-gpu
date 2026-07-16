@@ -9,8 +9,7 @@ if not sys.platform.startswith("linux"):
         "Skipping REST test on GIANT in non-Linux systems", allow_module_level=True
     )
 
-from ccc.giant import gene_exists, predict_tissue, get_network
-
+from ccc.giant import gene_exists, get_network, predict_tissue
 
 # Gene mappings used in unit tests
 gene_mappings = pd.DataFrame(

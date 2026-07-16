@@ -1,9 +1,10 @@
 """
 Tests the utility_functions.py module.
 """
+
 import sys
-from unittest.mock import MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
@@ -18,8 +19,8 @@ def reload_package(root_module):
 
     Taken and adapted from here: https://stackoverflow.com/a/2918951/3120414
     """
-    from importlib import import_module
     import types
+    from importlib import import_module
 
     package_name = root_module.__name__
 

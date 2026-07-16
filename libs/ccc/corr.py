@@ -16,9 +16,8 @@ structure:
 
 from __future__ import annotations
 
-import pandas as pd
-
 import numpy as np
+import pandas as pd
 from sklearn.metrics import pairwise_distances
 
 
@@ -60,9 +59,9 @@ def mic(data: pd.DataFrame, estimator="mic_approx", n_jobs=None) -> pd.DataFrame
     Compute the Maximal Correlation Coefficient (MIC).
     """
     from minepy import pstats
+    from scipy.spatial.distance import squareform
 
     from ccc.methods import mic as mic_single
-    from scipy.spatial.distance import squareform
 
     if n_jobs is None:
         corr_mat = pstats(
@@ -87,8 +86,9 @@ def ccc(data: pd.DataFrame, internal_n_clusters=None, n_jobs=1) -> pd.DataFrame:
     """
     Compute the Clustermatch Correlation Coefficient (CCC).
     """
-    from ccc.coef import ccc
     from scipy.spatial.distance import squareform
+
+    from ccc.coef import ccc
 
     corr_mat = ccc(
         data.to_numpy(),
@@ -110,8 +110,9 @@ def ccc_gpu(data: pd.DataFrame, internal_n_clusters=10, n_jobs=24) -> pd.DataFra
     """
     Compute the Clustermatch Correlation Coefficient (CCC).
     """
-    from ccc.coef.impl_gpu import ccc as ccc_gpu
     from scipy.spatial.distance import squareform
+
+    from ccc.coef.impl_gpu import ccc as ccc_gpu
 
     corr_mat = ccc_gpu(
         data.to_numpy(),

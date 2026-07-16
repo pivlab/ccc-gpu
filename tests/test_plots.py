@@ -1,4 +1,5 @@
 import sys
+
 import pytest
 
 if sys.platform.startswith("win"):
@@ -9,12 +10,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from ccc.plots import (
-    plot_histogram,
-    plot_cumulative_histogram,
-    jointplot,
     MyUpSet,
+    jointplot,
+    plot_cumulative_histogram,
+    plot_histogram,
 )
 
 
