@@ -627,13 +627,10 @@ auto ari_core_device(const T *parts,
     const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<T>()) + 1;
     const auto sz_int = sizeof(int);
     // Compute shared memory size
-    auto s_mem_size = 0;
-    s_mem_size += k * k * sz_int; // For contingency matrix (always int)
-    s_mem_size += 2 * k * sz_int; // For the internal sum arrays (always int)
     // Align to 8-byte boundary for long long and add space for pair confusion matrix
     int offset_ints = k * k + 2 * k;
     int aligned_offset_ints = ((offset_ints + 1) / 2) * 2;  // Align to 8-byte (2 int) boundary
-    s_mem_size = aligned_offset_ints * sz_int + 4 * sizeof(long long);  // Total size
+    int s_mem_size = aligned_offset_ints * sz_int + 4 * sizeof(long long);  // Total size
 
     // Check if shared memory size exceeds device limits
     auto [is_valid, message] = check_shared_memory_size(s_mem_size);
@@ -799,25 +796,6 @@ auto ari(const py::array_t<T, py::array::c_style> &parts,
                                                static_cast<int64_t>(n_parts),
                                                static_cast<int64_t>(n_objs));
     return ari_core_host(parts_ptr, n_features, n_parts, n_objs, batch_start, batch_size);
-}
-
-/**
- * @brief API exposed to Python for computing ARI using CUDA upon a 3D Numpy NDArray of partitions
- * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_parts, n_objs)
- * @throws std::invalid_argument if "parts" is invalid
- * @return std::vector<float> Reduced(max) ARI value for each pair of partitions
- */
-template <typename T>
-auto ari_reduced(const py::array_t<T, py::array::c_style> &parts,
-                 const size_t n_features,
-                 const size_t n_parts,
-                 const size_t n_objs) -> std::vector<float>
-{
-    const auto parts_ptr = process_input_array(parts,
-                                               static_cast<int64_t>(n_features),
-                                               static_cast<int64_t>(n_parts),
-                                               static_cast<int64_t>(n_objs));
-    throw std::logic_error("Function not yet implemented");
 }
 
 // Below is the explicit instantiation of the ari template function.
