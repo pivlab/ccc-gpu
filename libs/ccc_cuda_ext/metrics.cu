@@ -11,6 +11,7 @@
 #include <iostream>
 #include <cmath>
 #include <assert.h>
+#include <pybind11/pybind11.h>
 #include "metrics.cuh"
 #include "utils.cuh"
 
@@ -335,8 +336,10 @@ __global__ void ari_kernel_global(T *parts,
     T *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
     T *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
 
-    // Check for invalid partitions
-    if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
+    // Apply the shared invalid-partition semantics: categorical (-1) -> 0.0,
+    // singleton (-2) -> leave NaN so the max reduction poisons the comparison.
+    const PartPairValidity validity = classify_partition_pair(t_data_part0[0], t_data_part1[0]);
+    if (validity == PartPairValidity::CATEGORICAL)
     {
         if (threadIdx.x == 0)
         {
@@ -344,9 +347,7 @@ __global__ void ari_kernel_global(T *parts,
         }
         return;
     }
-    
-    // Check for singletons - these should remain as NaN
-    if (t_data_part0[0] == -2 || t_data_part1[0] == -2)
+    if (validity == PartPairValidity::SINGLETON)
     {
         return;
     }
@@ -461,9 +462,14 @@ __global__ void ari_kernel(T *parts,
     T *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
     T *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
 
-    // Check on categorical partition marker, if the first object of either partition is -1 (actually all the objects are -1),
-    // then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of 0.0.
-    if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
+    // Apply the shared invalid-partition semantics (see classify_partition_pair):
+    //  - categorical marker (-1): the first object of either partition is -1 (in
+    //    fact the whole partition is -1); this pair contributes an ARI of 0.0.
+    //  - singleton marker (-2): a partition collapsed to a single cluster
+    //    (usually constant input); leave the slot as NaN so the max reduction
+    //    marks the whole comparison NaN.
+    const PartPairValidity validity = classify_partition_pair(t_data_part0[0], t_data_part1[0]);
+    if (validity == PartPairValidity::CATEGORICAL)
     {
         if (threadIdx.x == 0)
         {
@@ -471,11 +477,7 @@ __global__ void ari_kernel(T *parts,
         }
         return;
     }
-
-    // Check on singletons.  -2 is used when singletons have been detected (partitions with one cluster), usually because of problems with the
-    // input data (it has all the same values, for example).
-    // Then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of NaN.
-    if (t_data_part0[0] == -2 || t_data_part1[0] == -2)
+    if (validity == PartPairValidity::SINGLETON)
     {
         return;
     }
@@ -522,21 +524,47 @@ __global__ void ari_kernel(T *parts,
 }
 
 /**
- * @brief Helper function to process and validate input numpy array
+ * @brief Helper function to process and validate an input numpy array
+ *
+ * Validates the dtype and dimensionality of the partitions array and, when the
+ * expected dimensions are supplied (>= 0), that its shape matches
+ * (n_features, n_parts, n_objs). Shape/dtype problems raise a Python ValueError
+ * (via py::value_error) before any device work is done.
+ *
  * @param parts Input numpy array to process
+ * @param n_features Expected number of features (-1 to skip the shape check)
+ * @param n_parts Expected number of partitions per feature (-1 to skip)
+ * @param n_objs Expected number of objects per partition (-1 to skip)
  * @return Pointer to the underlying data
+ * @throws py::value_error on dtype, dimensionality, or shape mismatch
  */
 template <typename T>
-T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
+T *process_input_array(const py::array_t<T, py::array::c_style> &parts,
+                       int64_t n_features = -1, int64_t n_parts = -1, int64_t n_objs = -1)
 {
     py::buffer_info buffer = parts.request();
     if (buffer.format != py::format_descriptor<T>::format())
     {
-        throw std::runtime_error("Incompatible format: expected an int array!");
+        throw py::value_error(
+            std::string("Partitions array has an incompatible dtype: expected numpy format '") +
+            py::format_descriptor<T>::format() + "' (e.g. int16), got '" + buffer.format + "'");
     }
     if (buffer.ndim != 3)
     {
-        throw std::runtime_error("Incompatible buffer dimension!");
+        throw py::value_error(
+            "Partitions array must be 3-dimensional (n_features, n_parts, n_objs); got ndim=" +
+            std::to_string(buffer.ndim));
+    }
+    if (n_features >= 0 && n_parts >= 0 && n_objs >= 0)
+    {
+        if (buffer.shape[0] != n_features || buffer.shape[1] != n_parts || buffer.shape[2] != n_objs)
+        {
+            throw py::value_error(
+                "Partitions array shape mismatch: expected (" + std::to_string(n_features) + ", " +
+                std::to_string(n_parts) + ", " + std::to_string(n_objs) + ") but got (" +
+                std::to_string(buffer.shape[0]) + ", " + std::to_string(buffer.shape[1]) + ", " +
+                std::to_string(buffer.shape[2]) + ")");
+        }
     }
     return static_cast<T *>(buffer.ptr);
 }
@@ -569,9 +597,12 @@ auto ari_core_device(const T *parts,
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
+    // Guard the unsigned subtraction below: check the bound BEFORE computing
+    // (n_aris - batch_start), which would underflow to a huge value otherwise.
+    if (batch_start >= n_aris) { throw std::invalid_argument("Batch start index exceeds total number of ARIs"); }
+
     // Determine the actual batch size
     const auto actual_batch_size = batch_size == 0 ? n_aris : std::min(batch_size, n_aris - batch_start);
-    if (batch_start >= n_aris) { throw std::invalid_argument("Batch start index exceeds total number of ARIs"); }
 
     /*
      * Memory Allocation
@@ -633,6 +664,7 @@ auto ari_core_device(const T *parts,
             k,
             batch_start,
             thrust::raw_pointer_cast(d_out->data()));
+        CUDA_CHECK_KERNEL("ari_kernel");
     } else {
         // Use global memory kernel for larger contingency matrices
         spdlog::debug("Using global memory kernel for k={}", k);
@@ -659,6 +691,7 @@ auto ari_core_device(const T *parts,
             batch_start,
             reinterpret_cast<int*>(thrust::raw_pointer_cast(d_global_cont_matrices->data())),
             thrust::raw_pointer_cast(d_out->data()));
+        CUDA_CHECK_KERNEL("ari_kernel_global");
     }
 
     // Track memory after kernel launch
@@ -687,7 +720,10 @@ auto ari_core_device(const py::array_t<T, py::array::c_style> &parts,
                      const uint64_t batch_start,
                      const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<R>>
 {
-    const auto parts_ptr = process_input_array(parts);
+    const auto parts_ptr = process_input_array(parts,
+                                               static_cast<int64_t>(n_features),
+                                               static_cast<int64_t>(n_parts),
+                                               static_cast<int64_t>(n_objs));
     return ari_core_device<T, R>(parts_ptr, n_features, n_parts, n_objs, batch_start, batch_size);
 }
 
@@ -712,9 +748,12 @@ auto ari_core_host(const T *parts,
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
+    // Guard the unsigned subtraction below (see ari_core_device): validate the
+    // bound before computing (n_aris - batch_start).
+    if (batch_start >= n_aris) { throw std::invalid_argument("Batch start index exceeds total number of ARIs"); }
+
     // Determine the actual batch size
     const auto actual_batch_size = batch_size == 0 ? n_aris : std::min(batch_size, n_aris - batch_start);
-    if (batch_start >= n_aris) { throw std::invalid_argument("Batch start index exceeds total number of ARIs"); }
 
     /*
      * Memory Allocation
@@ -755,7 +794,10 @@ auto ari(const py::array_t<T, py::array::c_style> &parts,
          const uint64_t batch_start,
          const uint64_t batch_size) -> std::vector<float>
 {
-    const auto parts_ptr = process_input_array(parts);
+    const auto parts_ptr = process_input_array(parts,
+                                               static_cast<int64_t>(n_features),
+                                               static_cast<int64_t>(n_parts),
+                                               static_cast<int64_t>(n_objs));
     return ari_core_host(parts_ptr, n_features, n_parts, n_objs, batch_start, batch_size);
 }
 
@@ -771,7 +813,10 @@ auto ari_reduced(const py::array_t<T, py::array::c_style> &parts,
                  const size_t n_parts,
                  const size_t n_objs) -> std::vector<float>
 {
-    const auto parts_ptr = process_input_array(parts);
+    const auto parts_ptr = process_input_array(parts,
+                                               static_cast<int64_t>(n_features),
+                                               static_cast<int64_t>(n_parts),
+                                               static_cast<int64_t>(n_objs));
     throw std::logic_error("Function not yet implemented");
 }
 
