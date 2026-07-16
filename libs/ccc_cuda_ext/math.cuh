@@ -12,6 +12,7 @@
 #pragma once
 
 #include <cuda_runtime.h>
+#include <cstdint>
 
 /**
  * @brief Unravel a flat (linear) index into corresponding 2D indices
@@ -108,4 +109,58 @@ __device__ __host__ inline void get_coords_from_index(unsigned int n_obj, unsign
     }
     
     y = static_cast<unsigned int>(y_64);
+}
+
+/**
+ * @brief 64-bit overload of get_coords_from_index for the condensed index.
+ *
+ * Identical math to the 32-bit overload but accepts and returns 64-bit values so
+ * that a condensed flat index exceeding 2^32 (which happens once
+ * n_feature_comp = n_obj*(n_obj-1)/2 grows large) is not truncated. The object
+ * count n_obj remains well within 32 bits for any realistic feature count; only
+ * the flat index and the resulting coordinates are widened.
+ *
+ * @param[in] n_obj The size of one dimension of the square symmetric matrix.
+ * @param[in] idx The 64-bit flat index from the condensed array.
+ * @param[out] x Reference to store the calculated row coordinate.
+ * @param[out] y Reference to store the calculated column coordinate.
+ */
+__device__ __host__ inline void get_coords_from_index(uint64_t n_obj, uint64_t idx,
+                                                      uint64_t &x, uint64_t &y)
+{
+    const int64_t n_obj_64 = static_cast<int64_t>(n_obj);
+    const int64_t idx_64 = static_cast<int64_t>(idx);
+
+    const int64_t b = 1 - 2 * n_obj_64;
+
+    // Use double precision for the discriminant to avoid intermediate overflow.
+    const double discriminant =
+        static_cast<double>(b) * static_cast<double>(b) - 8.0 * static_cast<double>(idx_64);
+
+    if (discriminant < 0)
+    {
+        x = 0;
+        y = 0;
+        return;
+    }
+
+    const double x_float = (-static_cast<double>(b) - sqrt(discriminant)) / 2.0;
+    const int64_t x_64 = static_cast<int64_t>(floor(x_float));
+
+    if (x_64 < 0)
+    {
+        x = 0;
+        y = 0;
+        return;
+    }
+    x = static_cast<uint64_t>(x_64);
+
+    const int64_t y_64 = idx_64 + x_64 * (b + x_64 + 2) / 2 + 1;
+    if (y_64 < 0)
+    {
+        x = 0;
+        y = 0;
+        return;
+    }
+    y = static_cast<uint64_t>(y_64);
 }

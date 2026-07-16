@@ -671,8 +671,8 @@ def ccc(
             partition indexes in parts, respectively: parts[0][max_parts[0]]
             points to the partition for x, and parts[1][max_parts[1]] points to
             the partition for y. Values could be negative in case
-            singleton cases were found (-1; usually because input data has all the same
-            value) or for categorical features (-2).
+            singleton cases were found (-2; usually because input data has all the same
+            value) or for categorical features (-1).
     """
     n_objects = None
     n_features = None
