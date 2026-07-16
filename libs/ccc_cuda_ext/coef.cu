@@ -930,38 +930,6 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         max_parts_py);
 }
 
-auto example_return_optional_vectors(bool include_first,
-                                     bool include_second,
-                                     bool include_third) -> py::object
-{
-    // Example vectors
-    std::optional<std::vector<float>> vec1;
-    std::optional<std::vector<int>> vec2;
-    std::optional<std::vector<double>> vec3;
-
-    // Fill vectors if included
-    if (include_first)
-    {
-        vec1 = std::vector<float>{1.0f, 2.0f, 3.0f};
-    }
-    if (include_second)
-    {
-        vec2 = std::vector<int>{4, 5, 6};
-    }
-    if (include_third)
-    {
-        vec3 = std::vector<double>{7.0, 8.0, 9.0};
-    }
-
-    // Convert to Python objects
-    py::object py_vec1 = vec1.has_value() ? py::cast(vec1.value()) : py::none();
-    py::object py_vec2 = vec2.has_value() ? py::cast(vec2.value()) : py::none();
-    py::object py_vec3 = vec3.has_value() ? py::cast(vec3.value()) : py::none();
-
-    // Return as tuple
-    return py::make_tuple(py_vec1, py_vec2, py_vec3);
-}
-
 // Below is the explicit instantiation of the ari template function.
 //
 // Generally people would write the implementation of template classes and functions in the header file. However, we
