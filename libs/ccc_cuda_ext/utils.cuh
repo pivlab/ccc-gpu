@@ -18,15 +18,15 @@
 
 #pragma once
 
-#include <cuda_runtime.h>
-#include <stdio.h>
-#include <tuple>
-#include <string>
-#include <stdexcept>
-#include <iostream>
-#include <iomanip>
 #include <cmath>
+#include <cuda_runtime.h>
+#include <iomanip>
+#include <iostream>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
+#include <stdio.h>
+#include <string>
+#include <tuple>
 
 /**
  * @brief Internal function for CUDA error checking
@@ -46,8 +46,8 @@ inline void gpu_assert(cudaError_t code, const char *file, int line, bool abort 
 {
     if (code != cudaSuccess)
     {
-        const std::string msg = std::string("CUDA Error: ") + cudaGetErrorString(code) +
-                                " at " + file + ":" + std::to_string(line);
+        const std::string msg =
+            std::string("CUDA Error: ") + cudaGetErrorString(code) + " at " + file + ":" + std::to_string(line);
         spdlog::error(msg);
         if (abort)
         {
@@ -64,10 +64,10 @@ inline void gpu_assert(cudaError_t code, const char *file, int line, bool abort 
  *
  * @param ans The CUDA operation to check (e.g., cudaMalloc, cudaMemcpy)
  */
-#define CUDA_CHECK(ans)                              \
-    do                                               \
-    {                                                \
-        gpu_assert((ans), __FILE__, __LINE__, true); \
+#define CUDA_CHECK(ans)                                                                                                \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        gpu_assert((ans), __FILE__, __LINE__, true);                                                                   \
     } while (0)
 
 /**
@@ -80,10 +80,10 @@ inline void gpu_assert(cudaError_t code, const char *file, int line, bool abort 
  * @brief Optional error checking macro that only logs errors (never throws).
  * Use for cleanup/best-effort operations where failure can be tolerated.
  */
-#define CUDA_CHECK_OPTIONAL(ans)                      \
-    do                                                \
-    {                                                 \
-        gpu_assert((ans), __FILE__, __LINE__, false); \
+#define CUDA_CHECK_OPTIONAL(ans)                                                                                       \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        gpu_assert((ans), __FILE__, __LINE__, false);                                                                  \
     } while (0)
 
 /**
@@ -97,29 +97,27 @@ inline void gpu_assert(cudaError_t code, const char *file, int line, bool abort 
  *
  * @param kernel_name A human-readable name for the launched kernel.
  */
-#define CUDA_CHECK_KERNEL(kernel_name)                                            \
-    do                                                                            \
-    {                                                                             \
-        cudaError_t _launch_err = cudaGetLastError();                             \
-        if (_launch_err != cudaSuccess)                                           \
-        {                                                                         \
-            const std::string _msg =                                              \
-                std::string("CUDA kernel launch failed for '") + (kernel_name) +  \
-                "': " + cudaGetErrorString(_launch_err) + " at " + __FILE__ +     \
-                ":" + std::to_string(__LINE__);                                   \
-            spdlog::error(_msg);                                                  \
-            throw std::runtime_error(_msg);                                       \
-        }                                                                         \
-        cudaError_t _sync_err = cudaDeviceSynchronize();                          \
-        if (_sync_err != cudaSuccess)                                             \
-        {                                                                         \
-            const std::string _msg =                                              \
-                std::string("CUDA kernel execution failed for '") + (kernel_name) + \
-                "': " + cudaGetErrorString(_sync_err) + " at " + __FILE__ +       \
-                ":" + std::to_string(__LINE__);                                   \
-            spdlog::error(_msg);                                                  \
-            throw std::runtime_error(_msg);                                       \
-        }                                                                         \
+#define CUDA_CHECK_KERNEL(kernel_name)                                                                                 \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        cudaError_t _launch_err = cudaGetLastError();                                                                  \
+        if (_launch_err != cudaSuccess)                                                                                \
+        {                                                                                                              \
+            const std::string _msg = std::string("CUDA kernel launch failed for '") + (kernel_name) +                  \
+                                     "': " + cudaGetErrorString(_launch_err) + " at " + __FILE__ + ":" +               \
+                                     std::to_string(__LINE__);                                                         \
+            spdlog::error(_msg);                                                                                       \
+            throw std::runtime_error(_msg);                                                                            \
+        }                                                                                                              \
+        cudaError_t _sync_err = cudaDeviceSynchronize();                                                               \
+        if (_sync_err != cudaSuccess)                                                                                  \
+        {                                                                                                              \
+            const std::string _msg = std::string("CUDA kernel execution failed for '") + (kernel_name) +               \
+                                     "': " + cudaGetErrorString(_sync_err) + " at " + __FILE__ + ":" +                 \
+                                     std::to_string(__LINE__);                                                         \
+            spdlog::error(_msg);                                                                                       \
+            throw std::runtime_error(_msg);                                                                            \
+        }                                                                                                              \
     } while (0)
 
 /**
@@ -183,21 +181,21 @@ inline std::tuple<bool, std::string> check_shared_memory_size(const size_t reque
 
     if (requested_size > max_shared_mem)
     {
-        return std::make_tuple(false,
-                               std::string("Required shared memory (") + std::to_string(requested_size) +
-                                   " bytes) exceeds device limit (" + std::to_string(max_shared_mem) + " bytes)");
+        return std::make_tuple(false, std::string("Required shared memory (") + std::to_string(requested_size) +
+                                          " bytes) exceeds device limit (" + std::to_string(max_shared_mem) +
+                                          " bytes)");
     }
 
     // Optionally warn if close to limit (e.g., using more than 90%)
     if (requested_size > (max_shared_mem * 0.9))
     {
-        return std::make_tuple(true,
-                               std::string("Warning: Shared memory usage (") + std::to_string(requested_size) +
-                                   " bytes) is close to device limit (" + std::to_string(max_shared_mem) + " bytes)");
+        return std::make_tuple(true, std::string("Warning: Shared memory usage (") + std::to_string(requested_size) +
+                                         " bytes) is close to device limit (" + std::to_string(max_shared_mem) +
+                                         " bytes)");
     }
 
     return std::make_tuple(true, std::string("Required shared memory size: ") + std::to_string(requested_size) +
-                                   " bytes, within available: " + std::to_string(max_shared_mem) + " bytes");
+                                     " bytes, within available: " + std::to_string(max_shared_mem) + " bytes");
 }
 
 /**
@@ -251,27 +249,19 @@ inline void print_cuda_device_info(int device_id = 0)
 
     cudaDriverGetVersion(&driverVersion);
     cudaRuntimeGetVersion(&runtimeVersion);
-    spdlog::debug("  CUDA Driver Version / Runtime Version          {}.{} / {}.{}",
-                  driverVersion / 1000, (driverVersion % 100) / 10,
-                  runtimeVersion / 1000, (runtimeVersion % 100) / 10);
-    spdlog::debug("  CUDA Capability Major/Minor version number:    {}.{}",
-                  deviceProp.major, deviceProp.minor);
+    spdlog::debug("  CUDA Driver Version / Runtime Version          {}.{} / {}.{}", driverVersion / 1000,
+                  (driverVersion % 100) / 10, runtimeVersion / 1000, (runtimeVersion % 100) / 10);
+    spdlog::debug("  CUDA Capability Major/Minor version number:    {}.{}", deviceProp.major, deviceProp.minor);
     spdlog::debug("  Total amount of global memory:                 {:.2f} GBytes ({} bytes)",
-                  (float)deviceProp.totalGlobalMem / pow(1024.0, 3),
-                  (unsigned long long)deviceProp.totalGlobalMem);
+                  (float)deviceProp.totalGlobalMem / pow(1024.0, 3), (unsigned long long)deviceProp.totalGlobalMem);
     spdlog::debug("  GPU Clock rate:                                {:.0f} MHz ({:.2f} GHz)",
-                  deviceProp.clockRate * 1e-3f,
-                  deviceProp.clockRate * 1e-6f);
-    spdlog::debug("  Memory Clock rate:                             {:.0f} Mhz",
-                  deviceProp.memoryClockRate * 1e-3f);
-    spdlog::debug("  Memory Bus Width:                              {}-bit",
-                  deviceProp.memoryBusWidth);
-    spdlog::debug("  Shared Memory per Block:                       {:.2f} KB",
-                  deviceProp.sharedMemPerBlock / 1024.0f);
+                  deviceProp.clockRate * 1e-3f, deviceProp.clockRate * 1e-6f);
+    spdlog::debug("  Memory Clock rate:                             {:.0f} Mhz", deviceProp.memoryClockRate * 1e-3f);
+    spdlog::debug("  Memory Bus Width:                              {}-bit", deviceProp.memoryBusWidth);
+    spdlog::debug("  Shared Memory per Block:                       {:.2f} KB", deviceProp.sharedMemPerBlock / 1024.0f);
     spdlog::debug("  Shared Memory per Multiprocessor:              {:.2f} KB",
                   deviceProp.sharedMemPerMultiprocessor / 1024.0f);
-    spdlog::debug("  Number of Multiprocessors:                     {}",
-                  deviceProp.multiProcessorCount);
+    spdlog::debug("  Number of Multiprocessors:                     {}", deviceProp.multiProcessorCount);
 }
 
 /**
@@ -296,8 +286,7 @@ inline size_t print_cuda_memory_info(int device_id = 0)
     cudaMemGetInfo(&free_mem, &total_mem);
 
     // Helper function to format memory size with appropriate unit
-    auto format_memory = [](size_t bytes) -> std::string
-    {
+    auto format_memory = [](size_t bytes) -> std::string {
         const size_t KB = 1024;
         const size_t MB = KB * 1024;
         const size_t GB = MB * 1024;
@@ -320,8 +309,7 @@ inline size_t print_cuda_memory_info(int device_id = 0)
         }
     };
 
-    spdlog::debug("Free memory: {}, Total memory: {}",
-                  format_memory(free_mem), format_memory(total_mem));
+    spdlog::debug("Free memory: {}, Total memory: {}", format_memory(free_mem), format_memory(total_mem));
     return free_mem;
 }
 

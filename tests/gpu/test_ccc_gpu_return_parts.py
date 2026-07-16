@@ -1,20 +1,21 @@
-import time
-import pytest
-import numpy as np
-from typing import Tuple, Optional, Dict, Any
 import os
+import time
+from typing import Any
+
+import numpy as np
 import pandas as pd
-from ccc.coef.impl_gpu import ccc as ccc_gpu
+import pytest
 from ccc.coef.impl import ccc
-from utils import clean_gpu_memory, generate_categorical_data
+from ccc.coef.impl_gpu import ccc as ccc_gpu
+from utils import clean_gpu_memory
 
 
 def setup_logging(
     seed: int,
-    shape: Tuple[int, int],
+    shape: tuple[int, int],
     n_cpu_cores: int,
     generate_logs: bool,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Setup logging infrastructure if logging is enabled.
 
     Args:
@@ -47,7 +48,7 @@ def setup_logging(
     return {"files": log_files, "log_file": open(log_files["log"], "w")}
 
 
-def log_test_info(log_file, shape: Tuple[int, int], seed: int) -> None:
+def log_test_info(log_file, shape: tuple[int, int], seed: int) -> None:
     """Log basic test information."""
     print(
         f"\nTesting with {shape[0]} features, {shape[1]} samples, seed {seed}",
@@ -69,9 +70,9 @@ def log_performance_metrics(
 def analyze_differences(
     c1: np.ndarray,
     c2: np.ndarray,
-    shape: Tuple[int, int],
-    log_file: Optional[Any] = None,
-) -> Tuple[int, float, float, int]:
+    shape: tuple[int, int],
+    log_file: Any | None = None,
+) -> tuple[int, float, float, int]:
     """Analyze differences between GPU and CPU results.
 
     Returns:
@@ -101,7 +102,7 @@ def log_differences(
     c1: np.ndarray,
     c2: np.ndarray,
     not_close_indices: np.ndarray,
-    shape: Tuple[int, int],
+    shape: tuple[int, int],
     log_file: Any,
 ) -> None:
     """Log detailed information about differences between results."""
@@ -182,7 +183,7 @@ def test_cm_return_parts_quadratic():
     #   - k == 3 for feature0
     #   - k == 2 for feature1
     np.testing.assert_array_equal(max_parts, np.array([1, 0]))
-    
+
 
 def test_cm_return_parts_linear():
     # Prepare
@@ -236,7 +237,7 @@ def test_cm_return_parts_linear():
 @clean_gpu_memory
 def test_ccc_gpu_with_numerical_input(
     seed: int,
-    shape: Tuple[int, int],
+    shape: tuple[int, int],
     contain_singletons: bool,
     n_cpu_cores: int,
     generate_logs: bool,
@@ -304,48 +305,57 @@ def test_ccc_gpu_with_numerical_input(
     # Check if return_parts is correctly implemented
     assert g_max_parts.shape == c_max_parts.shape
     assert g_parts.shape == c_parts.shape
-    
+
     for i in range(len(g_parts)):
-        pd.testing.assert_frame_equal(pd.DataFrame(g_parts[i].astype(np.int16)), pd.DataFrame(c_parts[i]), check_exact=True)
-    
+        pd.testing.assert_frame_equal(
+            pd.DataFrame(g_parts[i].astype(np.int16)),
+            pd.DataFrame(c_parts[i]),
+            check_exact=True,
+        )
+
     # Validate max_parts: Both GPU and CPU choices should represent valid maxima
     # This handles tie-breaking differences between implementations
     for i in range(len(g_max_parts)):
         gpu_parts = g_max_parts[i]
         cpu_parts = c_max_parts[i]
-        
+
         # If they match exactly, no need for further validation
         if np.array_equal(gpu_parts, cpu_parts):
             continue
-            
+
         # For mismatches, verify both choices are valid maxima
         # We need to compute the ARI matrix to check this
         from ccc.coef.impl import cdist_parts_basic, get_coords_from_index
-        
+
         # Get feature indices for this comparison
         feat_i, feat_j = get_coords_from_index(shape[0], i)
-        
+
         # Compute ARI matrix for this feature pair
         ari_matrix = cdist_parts_basic(c_parts[feat_i], c_parts[feat_j])
         max_ari = np.max(ari_matrix)
-        
+
         # Check GPU choice
         gpu_ari = ari_matrix[gpu_parts[0], gpu_parts[1]]
-        # Check CPU choice  
+        # Check CPU choice
         cpu_ari = ari_matrix[cpu_parts[0], cpu_parts[1]]
-        
+
         # Both should be maximum values (within floating point tolerance)
-        assert np.abs(gpu_ari - max_ari) < 1e-8, f"GPU choice at comparison {i} is not maximum: {gpu_ari} vs {max_ari}"
-        assert np.abs(cpu_ari - max_ari) < 1e-8, f"CPU choice at comparison {i} is not maximum: {cpu_ari} vs {max_ari}"
-        
+        assert np.abs(gpu_ari - max_ari) < 1e-8, (
+            f"GPU choice at comparison {i} is not maximum: {gpu_ari} vs {max_ari}"
+        )
+        assert np.abs(cpu_ari - max_ari) < 1e-8, (
+            f"CPU choice at comparison {i} is not maximum: {cpu_ari} vs {max_ari}"
+        )
+
         # Print info about the tie for debugging (optional)
         ties = np.where(np.abs(ari_matrix - max_ari) < 1e-8)
         num_ties = len(ties[0])
         if num_ties > 1:
-            print(f"Tie detected at comparison {i} (features {feat_i} vs {feat_j}): {num_ties} positions with ARI={max_ari:.10f}")
+            print(
+                f"Tie detected at comparison {i} (features {feat_i} vs {feat_j}): {num_ties} positions with ARI={max_ari:.10f}"
+            )
             print(f"  GPU chose: {tuple(gpu_parts)}, CPU chose: {tuple(cpu_parts)}")
-    
-    
+
 
 # @pytest.mark.parametrize(
 #     "seed", [42]
@@ -376,4 +386,3 @@ def test_ccc_gpu_with_numerical_input(
 #     res_cpu = ccc(df, n_jobs=n_cpu_cores)
 #     res_gpu = ccc_gpu(df)
 #     assert np.allclose(res_cpu, res_gpu)
-

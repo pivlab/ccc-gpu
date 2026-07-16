@@ -1,8 +1,8 @@
 import time
-import pytest
-import numpy as np
-import ccc_cuda_ext
 
+import ccc_cuda_ext
+import numpy as np
+import pytest
 from ccc.sklearn.metrics import (
     adjusted_rand_index,
 )

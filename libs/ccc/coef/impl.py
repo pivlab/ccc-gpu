@@ -7,17 +7,16 @@ from __future__ import annotations
 import os
 from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from typing import Union
-
-from numba import njit
-from numba.typed import List
 
 import numpy as np
+from numba import njit
+from numba.typed import List
+from numpy.typing import NDArray
+
 from ccc.pytorch.core import unravel_index_2d
 from ccc.scipy.stats import rank
 from ccc.sklearn.metrics import adjusted_rand_index as ari
 from ccc.utils import DummyExecutor, chunker
-from numpy.typing import NDArray
 
 
 @njit(cache=True, nogil=True)
@@ -319,7 +318,7 @@ def get_coords_from_index(n_obj: int, idx: int) -> tuple[int]:
 
 
 def get_chunks(
-    iterable: Union[int, Iterable], n_threads: int, ratio: float = 1
+    iterable: int | Iterable, n_threads: int, ratio: float = 1
 ) -> Iterable[Iterable[int]]:
     """
     It splits elements in an iterable in chunks according to the number of
@@ -587,7 +586,7 @@ def get_n_workers(n_jobs: int | None) -> int:
 def ccc(
     x: NDArray,
     y: NDArray = None,
-    internal_n_clusters: Union[int, Iterable[int]] = None,
+    internal_n_clusters: int | Iterable[int] = None,
     return_parts: bool = False,
     n_chunks_threads_ratio: int = 1,
     n_jobs: int = 1,

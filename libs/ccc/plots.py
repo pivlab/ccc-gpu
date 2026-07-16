@@ -39,13 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
 
-import numpy as np
-from scipy import stats
-import pandas as pd
-from IPython.display import display
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
+from IPython.display import display
+from scipy import stats
 from seaborn.distributions import _freedman_diaconis_bins
 from upsetplot import UpSet
 
@@ -249,7 +249,7 @@ def jointplot(
         c = ccc(x_values, y_values)
 
         ax = grid.ax_joint
-        corr_vals = f"$r$ = {r:.2f}\n" f"$r_s$ = {rs:.2f}\n" f"$c$ = {c:.2f}"
+        corr_vals = f"$r$ = {r:.2f}\n$r_s$ = {rs:.2f}\n$c$ = {c:.2f}"
         bbox = dict(boxstyle="round", fc="white", ec="black", alpha=0.15)
         ax.text(
             0.25,
