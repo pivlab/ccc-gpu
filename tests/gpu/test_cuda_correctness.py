@@ -20,15 +20,13 @@ them needs either >2**32-element allocations or an unsafe GPU fault; see the
 change's HANDOFF notes.
 """
 
+import ccc_cuda_ext
 import numpy as np
 import pandas as pd
 import pytest
-
-import ccc_cuda_ext
-from ccc.coef.impl_gpu import ccc as ccc_gpu
 from ccc.coef.impl import ccc as ccc_cpu
+from ccc.coef.impl_gpu import ccc as ccc_gpu
 from utils import clean_gpu_memory
-
 
 # ---------------------------------------------------------------------------
 # 1. Input validation -> Python exception, no interpreter crash

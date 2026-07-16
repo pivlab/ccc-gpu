@@ -1,9 +1,10 @@
 """
 Tests the conf.py module.
 """
+
 import os
-import sys
 import runpy
+import sys
 from unittest import mock
 
 import pytest
@@ -18,8 +19,9 @@ def test_conf_module_load():
 
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_conf_entries():
-    from ccc import conf
     import importlib
+
+    from ccc import conf
 
     importlib.reload(conf)
 
@@ -57,8 +59,9 @@ def test_conf_main():
     reason="exporting variables is only supported in non-Windows platforms",
 )
 def test_conf_export_variables():
-    from pathlib import Path
     import subprocess
+    from pathlib import Path
+
     from ccc import conf
 
     conf_filepath = Path(conf.__file__).resolve()
@@ -103,8 +106,9 @@ def test_conf_export_variables():
 
 @mock.patch.dict(os.environ, {"CM_MANUSCRIPT_DIR": "/tmp/some/dir"})
 def test_conf_with_manuscript_dir():
-    from ccc import conf
     import importlib
+
+    from ccc import conf
 
     importlib.reload(conf)
 
@@ -116,8 +120,9 @@ def test_conf_with_manuscript_dir():
 
 @mock.patch.dict(os.environ, {"CM_N_JOBS": ""})
 def test_conf_cm_n_jobs_is_empty_string():
-    from ccc import conf
     import importlib
+
+    from ccc import conf
 
     importlib.reload(conf)
 

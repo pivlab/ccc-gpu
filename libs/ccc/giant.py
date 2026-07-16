@@ -2,12 +2,13 @@
 Contains functions to interact with the REST API of HumanBase (GIANT networks):
 https://hb.flatironinstitute.org/
 """
-from pathlib import Path
-import tempfile
-import json
 
-import requests
+import json
+import tempfile
+from pathlib import Path
+
 import pandas as pd
+import requests
 
 URL_GENE_INFO = "https://hb.flatironinstitute.org/api/genes/"
 URL_TISSUE_PREDICTION = "https://hb.flatironinstitute.org/api/integrations/relevant/"

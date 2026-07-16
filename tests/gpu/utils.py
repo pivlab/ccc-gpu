@@ -1,7 +1,8 @@
 import functools
+
 import cupy as cp
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def clean_gpu_memory(func):
@@ -12,11 +13,19 @@ def clean_gpu_memory(func):
         finally:
             mempool = cp.get_default_memory_pool()
             mempool.free_all_blocks()
+
     return wrapper
 
 
-def generate_categorical_data(n_features, n_objects, n_categories=3, categories=None, 
-                            str_length=None, random_state=None, feature_names=None):
+def generate_categorical_data(
+    n_features,
+    n_objects,
+    n_categories=3,
+    categories=None,
+    str_length=None,
+    random_state=None,
+    feature_names=None,
+):
     """
     Generate random categorical data as a pandas DataFrame.
 
@@ -61,10 +70,10 @@ def generate_categorical_data(n_features, n_objects, n_categories=3, categories=
     if categories is None:
         if str_length is not None:
             # Generate random string categories
-            letters = np.array(list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'))
+            letters = np.array(list("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
             categories = []
             for _ in range(n_categories):
-                cat = ''.join(np.random.choice(letters, size=str_length))
+                cat = "".join(np.random.choice(letters, size=str_length))
                 categories.append(cat)
         else:
             categories = list(range(n_categories))
@@ -75,13 +84,15 @@ def generate_categorical_data(n_features, n_objects, n_categories=3, categories=
     random_indices = np.random.randint(0, n_categories, size=(n_objects, n_features))
 
     # Convert indices to categories
-    categorical_data = np.array([[categories[idx] for idx in row] for row in random_indices])
+    categorical_data = np.array(
+        [[categories[idx] for idx in row] for row in random_indices]
+    )
 
     # Create feature names if not provided
     if feature_names is None:
-        feature_names = [f'feature_{i}' for i in range(n_features)]
+        feature_names = [f"feature_{i}" for i in range(n_features)]
 
     # Create DataFrame
     df = pd.DataFrame(categorical_data, columns=feature_names)
-    
+
     return df

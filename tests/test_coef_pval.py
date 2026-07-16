@@ -4,9 +4,8 @@ import time
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.preprocessing import minmax_scale
-
 from ccc.coef import ccc
+from sklearn.preprocessing import minmax_scale
 
 IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
@@ -276,9 +275,9 @@ def test_cm_large_n_objects_pvalue_permutations_is_parallelized():
 
     # Validate that parallel execution is consistently faster
     for i in range(n_runs):
-        assert (
-            multi_thread_times[i] < single_thread_times[i]
-        ), f"Run {i+1}: Multi-thread ({multi_thread_times[i]:.2f}s) not faster than single-thread ({single_thread_times[i]:.2f}s)"
+        assert multi_thread_times[i] < single_thread_times[i], (
+            f"Run {i + 1}: Multi-thread ({multi_thread_times[i]:.2f}s) not faster than single-thread ({single_thread_times[i]:.2f}s)"
+        )
 
 
 def test_cm_return_parts_quadratic_pvalue():
@@ -335,7 +334,7 @@ def test_cm_numerical_and_categorical_features_perfect_relationship_pvalue():
     numerical_feature0_median = np.percentile(numerical_feature0, 50)
 
     # create a categorical variable perfectly correlated with the numerical one (this is actually an ordinal feature)
-    categorical_feature1 = np.full(numerical_feature0.shape[0], "", dtype=np.unicode_)
+    categorical_feature1 = np.full(numerical_feature0.shape[0], "", dtype=np.str_)
     categorical_feature1[numerical_feature0 < numerical_feature0_median] = "l"
     categorical_feature1[numerical_feature0 >= numerical_feature0_median] = "u"
     _unique_values = np.unique(categorical_feature1)
@@ -380,7 +379,7 @@ def test_cm_numerical_and_categorical_features_weakly_relationship_pvalue():
     numerical_feature0_perc = np.percentile(numerical_feature0, 2)
 
     # create a categorical variable strongly correlated with the numerical one
-    categorical_feature1 = np.full(numerical_feature0.shape[0], "", dtype=np.unicode_)
+    categorical_feature1 = np.full(numerical_feature0.shape[0], "", dtype=np.str_)
     categorical_feature1[numerical_feature0 < numerical_feature0_perc] = "l"
     categorical_feature1[numerical_feature0 >= numerical_feature0_perc] = "u"
     _unique_values = np.unique(categorical_feature1)

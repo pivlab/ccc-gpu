@@ -1,28 +1,26 @@
+import os
+import time
 from concurrent.futures import ThreadPoolExecutor
 from random import shuffle
 from unittest.mock import patch
-import time
-import os
 
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.preprocessing import minmax_scale
-from sklearn.metrics import adjusted_rand_score as ari
-
 from ccc.coef import (
     ccc,
-    get_range_n_clusters,
-    run_quantile_clustering,
-    get_perc_from_k,
-    get_parts,
-    get_coords_from_index,
     cdist_parts_basic,
     cdist_parts_parallel,
     get_chunks,
+    get_coords_from_index,
     get_n_workers,
+    get_parts,
+    get_perc_from_k,
+    get_range_n_clusters,
+    run_quantile_clustering,
 )
-
+from sklearn.metrics import adjusted_rand_score as ari
+from sklearn.preprocessing import minmax_scale
 
 IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
@@ -796,6 +794,7 @@ def test_cm_values_equal_to_original_implementation():
     # implementation (https://github.com/sinc-lab/clustermatch) plus some
     # patches (see tests/data/README.md about ccc data).
     from pathlib import Path
+
     import pandas as pd
 
     # from pandas.testing import assert_frame_equal

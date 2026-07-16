@@ -1,20 +1,21 @@
-import time
-import pytest
-import numpy as np
-from typing import Tuple, Optional, Dict, Any
 import os
+import time
+from typing import Any
+
+import numpy as np
 import pandas as pd
-from ccc.coef.impl_gpu import ccc as ccc_gpu
+import pytest
 from ccc.coef.impl import ccc
+from ccc.coef.impl_gpu import ccc as ccc_gpu
 from utils import clean_gpu_memory, generate_categorical_data
 
 
 def setup_logging(
     seed: int,
-    shape: Tuple[int, int],
+    shape: tuple[int, int],
     n_cpu_cores: int,
     generate_logs: bool,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Setup logging infrastructure if logging is enabled.
 
     Args:
@@ -47,7 +48,7 @@ def setup_logging(
     return {"files": log_files, "log_file": open(log_files["log"], "w")}
 
 
-def log_test_info(log_file, shape: Tuple[int, int], seed: int) -> None:
+def log_test_info(log_file, shape: tuple[int, int], seed: int) -> None:
     """Log basic test information."""
     print(
         f"\nTesting with {shape[0]} features, {shape[1]} samples, seed {seed}",
@@ -69,9 +70,9 @@ def log_performance_metrics(
 def analyze_differences(
     c1: np.ndarray,
     c2: np.ndarray,
-    shape: Tuple[int, int],
-    log_file: Optional[Any] = None,
-) -> Tuple[int, float, float, int]:
+    shape: tuple[int, int],
+    log_file: Any | None = None,
+) -> tuple[int, float, float, int]:
     """Analyze differences between GPU and CPU results.
 
     Returns:
@@ -101,7 +102,7 @@ def log_differences(
     c1: np.ndarray,
     c2: np.ndarray,
     not_close_indices: np.ndarray,
-    shape: Tuple[int, int],
+    shape: tuple[int, int],
     log_file: Any,
 ) -> None:
     """Log detailed information about differences between results."""
@@ -193,7 +194,7 @@ def log_statistics(
 @clean_gpu_memory
 def test_ccc_gpu_with_numerical_input(
     seed: int,
-    shape: Tuple[int, int],
+    shape: tuple[int, int],
     contain_singletons: bool,
     n_cpu_cores: int,
     max_not_close_percentage: float,
@@ -277,14 +278,14 @@ def test_ccc_gpu_with_numerical_input(
         ((10, 20), 10, 2),
         ((20, 200), 50, 3),
         ((30, 300), 200, 4),
-        ((9, 10000), 500, 5)
+        ((9, 10000), 500, 5),
     ],
 )
 @pytest.mark.parametrize("n_cpu_cores", [48])
 @clean_gpu_memory
 def test_ccc_gpu_with_categorical_input(
     seed: int,
-    shape: Tuple[int, int],
+    shape: tuple[int, int],
     n_categories: int,
     str_length: int,
     n_cpu_cores: int,
@@ -299,6 +300,7 @@ def test_ccc_gpu_with_categorical_input(
     cpu_df = pd.DataFrame(res_cpu)
     gpu_df = pd.DataFrame(res_gpu.astype(np.float64))
     pd.testing.assert_frame_equal(gpu_df, cpu_df, atol=1e-6, rtol=1e-6)
+
 
 # @clean_gpu_memory
 # def test_ccc_gpu_with_mixed_input():

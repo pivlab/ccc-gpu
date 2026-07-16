@@ -1,6 +1,6 @@
+import ccc_cuda_ext
 import numpy as np
 import pandas as pd
-import ccc_cuda_ext
 import pytest
 from ccc.coef.impl_gpu import ccc as ccc_gpu
 
