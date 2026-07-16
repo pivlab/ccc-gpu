@@ -345,16 +345,19 @@ __device__ R computePermutedARI(const T *part_i, const T *part_j,
 template <typename T, typename R>
 __global__ void computePermutationCCC(const T *parts_i, const T *parts_j,
                                      const uint32_t *perm_indices, R *perm_ccc_values,
-                                     const uint32_t n_perms, const uint32_t n_partitions,
-                                     const uint32_t n_objects, const int k,
-                                     int *scratch, const uint64_t scratch_stride)
+                                     const uint32_t perm_offset, const uint32_t perm_count,
+                                     const uint32_t n_partitions, const uint32_t n_objects,
+                                     const int k, int *scratch, const uint64_t scratch_stride)
 {
-    uint32_t perm_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (perm_idx >= n_perms) return;
+    const uint32_t local_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (local_idx >= perm_count) return;
+    const uint32_t perm_idx = perm_offset + local_idx;
 
-    // Get permutation and private scratch for this thread
+    // Permutation for this thread. Scratch is indexed by the LOCAL id so the
+    // scratch buffer only needs `perm_count` slices — bounding memory to the
+    // permutation sub-batch regardless of the cluster count k.
     const uint32_t *perm = &perm_indices[static_cast<uint64_t>(perm_idx) * n_objects];
-    int *thread_scratch = scratch + static_cast<uint64_t>(perm_idx) * scratch_stride;
+    int *thread_scratch = scratch + static_cast<uint64_t>(local_idx) * scratch_stride;
 
     R max_ari = 0.0f;
     bool found_valid_ari = false;
@@ -752,9 +755,20 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         if (k_global < 1) k_global = 1;
         const uint64_t scratch_stride = static_cast<uint64_t>(k_global) * k_global + 2ULL * k_global;
 
-        // Per-permutation global scratch for the contingency matrix + sum arrays.
-        // Sized by n_perms (not n_feature_comp), so it is reused across comparisons.
-        thrust::device_vector<int> d_perm_scratch(static_cast<size_t>(n_perms) * scratch_stride);
+        // Per-permutation contingency/sum scratch. Its size scales as k^2 per
+        // permutation, so sizing it by the full n_perms could OOM for large
+        // cluster counts. Instead bound it to a memory budget and process the
+        // permutations in sub-batches of `perm_batch` (see the launch loop
+        // below); large k simply takes more passes rather than exhausting memory.
+        size_t free_scratch = 0, total_scratch = 0;
+        cudaMemGetInfo(&free_scratch, &total_scratch);
+        const uint64_t scratch_elem_bytes = std::max<uint64_t>(scratch_stride * sizeof(int), 1);
+        const uint64_t scratch_budget =
+            std::min<uint64_t>(free_scratch / 4, static_cast<uint64_t>(1) << 30); // cap at 1 GiB
+        uint32_t perm_batch =
+            static_cast<uint32_t>(std::max<uint64_t>(1, scratch_budget / scratch_elem_bytes));
+        if (perm_batch > n_perms) perm_batch = n_perms;
+        thrust::device_vector<int> d_perm_scratch(static_cast<size_t>(perm_batch) * scratch_stride);
 
         // Allocate device memory for p-value computation
         thrust::device_vector<curandState> d_rand_states(n_perms);
@@ -803,8 +817,6 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
         spdlog::debug("Computing permutation CCC values for {} feature comparisons ({} per chunk, k={})",
                       n_feature_comp, chunk_comps, k_global);
 
-        const uint32_t perm_grid_size = (n_perms + block_size - 1) / block_size;
-
         for (uint64_t chunk_start = 0; chunk_start < n_feature_comp; chunk_start += chunk_comps)
         {
             const uint64_t chunk_len = std::min(chunk_comps, n_feature_comp - chunk_start);
@@ -852,19 +864,26 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts,
                 const T* d_parts_to_permute = (valid_count_i > valid_count_j) ? d_parts_i : d_parts_j;
                 const T* d_parts_fixed      = (valid_count_i > valid_count_j) ? d_parts_j : d_parts_i;
 
-                computePermutationCCC<<<perm_grid_size, block_size>>>(
-                    d_parts_fixed,
-                    d_parts_to_permute,
-                    thrust::raw_pointer_cast(d_perm_indices.data()),
-                    out_slice,
-                    n_perms,
-                    n_partitions,
-                    n_objects,
-                    k_global,
-                    thrust::raw_pointer_cast(d_perm_scratch.data()),
-                    scratch_stride
-                );
-                CUDA_CHECK_KERNEL("computePermutationCCC");
+                // Process permutations in sub-batches bounded by the scratch budget.
+                for (uint32_t p_off = 0; p_off < n_perms; p_off += perm_batch)
+                {
+                    const uint32_t p_cnt = std::min(perm_batch, n_perms - p_off);
+                    const uint32_t p_grid = (p_cnt + block_size - 1) / block_size;
+                    computePermutationCCC<<<p_grid, block_size>>>(
+                        d_parts_fixed,
+                        d_parts_to_permute,
+                        thrust::raw_pointer_cast(d_perm_indices.data()),
+                        out_slice,
+                        p_off,
+                        p_cnt,
+                        n_partitions,
+                        n_objects,
+                        k_global,
+                        thrust::raw_pointer_cast(d_perm_scratch.data()),
+                        scratch_stride
+                    );
+                    CUDA_CHECK_KERNEL("computePermutationCCC");
+                }
             }
 
             // Compute p-values for the comparisons in this chunk
