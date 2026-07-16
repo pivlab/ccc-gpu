@@ -1,0 +1,11 @@
+# Revisions listed here are skipped by `git blame` so that large mechanical
+# formatting commits do not obscure authorship of the surrounding code.
+#
+# Enable locally (one-time):
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub honors this file automatically.
+#
+# Append the SHA of the isolated "apply ruff-format + clang-format" commit
+# from the add-lint-tooling change below, e.g.:
+#   <full-40-char-sha>  # style: apply ruff-format + clang-format (add-lint-tooling)
