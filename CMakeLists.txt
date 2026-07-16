@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.15...3.26)
 project(${SKBUILD_PROJECT_NAME} LANGUAGES CUDA CXX)
 
+# Export compile_commands.json so clang-tidy (and editors/LSP) can analyze the
+# CUDA/C++ sources. Run clang-tidy host-only, e.g.:
+#   clang-tidy -p build --extra-arg=--cuda-host-only libs/ccc_cuda_ext/*.cu
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Add this near the top of your file, after project()
 # Define the include directories for the whole project
 set(PROJECT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/libs)

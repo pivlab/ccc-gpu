@@ -1,0 +1,29 @@
+# clang-tidy configuration for the CUDA/C++ extension (libs/ccc_cuda_ext).
+#
+# Curated check list targeting the bug classes actually found in review
+# (integer narrowing, unchecked returns). Run against the exported
+# compile_commands.json, host-only pass:
+#
+#   mamba run -n ccc-gpu-dev clang-tidy \
+#     -p build \
+#     --extra-arg=--cuda-host-only \
+#     libs/ccc_cuda_ext/*.cu
+#
+# CI runs this report-only at first; promote to blocking once the baseline
+# is clean.
+Checks: >
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-braces-around-statements,
+  readability-else-after-return,
+  cppcoreguidelines-init-variables,
+  misc-unused-parameters,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -bugprone-easily-swappable-parameters
+WarningsAsErrors: ''
+HeaderFilterRegex: 'libs/ccc_cuda_ext/.*\.cuh$'
+FormatStyle: file

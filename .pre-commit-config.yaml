@@ -10,19 +10,19 @@ repos:
       - id: check-toml
       - id: check-added-large-files
       - id: mixed-line-ending
+  # Python: ruff is the single source of truth for lint + format (black dropped).
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.5  # Ruff version.
+    rev: v0.15.1  # Ruff version (keep in sync with the dev env / CI).
     hooks:
       - id: ruff  # Run the linter.
         types_or: [python, pyi]
         args: [--fix]
       - id: ruff-format  # Run the formatter.
         types_or: [python, pyi]
-  - repo: https://github.com/psf/black
-    rev: 24.2.0  # Replace with desired version
+  # C++/CUDA: clang-format, scoped to the extension sources via file filter.
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v22.1.8  # clang-format version (matches the dev env / CI).
     hooks:
-      - id: black
-        types_or: [python, pyi]
-      - id: black-jupyter
-        types_or: [python, pyi, jupyter]
-        additional_dependencies: [".[jupyter]"]
+      - id: clang-format
+        types_or: [c++, c, cuda]
+        files: ^libs/ccc_cuda_ext/.*\.(cu|cuh|cpp|cc|h)$
