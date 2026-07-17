@@ -1,11 +1,9 @@
 [build-system]
 requires = [
-    "scikit-build-core",
-    "pybind11>=2.11.0",
-    "cmake>=4.0",
+    "scikit-build-core>=0.10",
+    "pybind11>=2.13,<4",
+    "cmake>=3.26",
     "ninja",
-    "setuptools",
-    "wheel",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -15,7 +13,9 @@ version = "0.2.4"
 description = "The Clustermatch Correlation Coefficient (CCC) with GPU acceleration"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "BSD-2-Clause Plus Patent" }
+# SPDX license expression (PEP 639); matches the LICENSE file (BSD-2-Clause Plus
+# Patent). Per PEP 639 the deprecated `License ::` trove classifier is omitted.
+license = "BSD-2-Clause-Patent"
 authors = [
     { name = "Milton Pividori", email = "milton.pividori@cuanschutz.edu" },
     { name = "Haoyu Zhang", email = "haoyu_z@outlook.com" },
@@ -23,10 +23,15 @@ authors = [
 dependencies = ["numpy", "scipy", "numba", "pandas", "scikit-learn", "pyyaml"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: BSD License",
-    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: POSIX :: Linux",
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
+    "Environment :: GPU :: NVIDIA CUDA :: 12",
 ]
 
 [project.urls]
@@ -34,16 +39,25 @@ Homepage = "https://github.com/pivlab/ccc-gpu"
 Issues = "https://github.com/pivlab/ccc-gpu/issues"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov"]
+# Plotting helpers used by `ccc.plots` (research/analysis only; not in the wheel).
+plots = ["matplotlib", "seaborn", "upsetplot", "ipython"]
+# Extra deps for the in-repo research/analysis modules (`ccc.methods`,
+# `ccc.giant`); installable from a source checkout, kept out of the core install.
+research = ["minepy", "requests"]
+# Test-only dependencies.
+test = ["pytest"]
 
 [project.scripts]
 ccc-gpu-bench = "ccc.bench.cli:main"
 
 [tool.scikit-build]
-# Configure scikit-build-core
-cmake.version = ">=4.0"
+# Configure scikit-build-core.
+# Keep this CMake floor in sync with `cmake_minimum_required` in CMakeLists.txt.
+cmake.version = ">=3.26"
 cmake.args = [
-    "-DCMAKE_CUDA_ARCHITECTURES=75", # Adjust for your target CUDA architecture
+    # Fat wheel: native SASS for Turing (7.5) -> Hopper (9.0); PTX from 9.0
+    # forward-compats newer GPUs. The lowest arch (7.5) is the documented floor.
+    "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90",
 ]
 build.verbose = true
 wheel.packages = ["libs/ccc"] # Directory containing your Python packages
@@ -60,7 +74,7 @@ wheel.exclude = [
     "ccc/giant.py",
     "ccc/corr.py",
 ]
-# Note: wheel.py-api removed to support multiple Python versions (3.10-3.15)
+# Note: wheel.py-api removed to support multiple Python versions (3.10-3.14)
 wheel.platlib = true # Contains compiled extensions
 
 [tool.pytest.ini_options]
@@ -178,8 +192,10 @@ before-all = [
     "yum clean all",
     # Install GCC 13 toolset (provides GCC 13.2 under /opt/rh/gcc-toolset-13)
     "yum install -y gcc-toolset-13",
-    # Install CUDA 12.9 toolkit (supports GCC 6.x - 15.x, compatible with GCC 14 in manylinux_2_28)
-    "yum install -y cuda-toolkit-12-5",
+    # Install CUDA 12.8 toolkit (supports the GCC 13 toolset above; stays inside
+    # the 12.x driver-compatibility window). Keep this comment and the package
+    # version in sync.
+    "yum install -y cuda-toolkit-12-8",
     # Print nvcc version with green prefix
     "echo -e '\\033[32m[cccgpu-info]:\\033[0m'",
     "nvcc --version",

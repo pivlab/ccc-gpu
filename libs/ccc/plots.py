@@ -46,11 +46,35 @@ import pandas as pd
 import seaborn as sns
 from IPython.display import display
 from scipy import stats
-from seaborn.distributions import _freedman_diaconis_bins
 from upsetplot import UpSet
 
 from ccc.coef import ccc
 from ccc.utils import human_format
+
+
+def _freedman_diaconis_bins(a: np.ndarray) -> int:
+    """Number of histogram bins from the Freedman-Diaconis rule.
+
+    Public reimplementation of the (private) ``seaborn.distributions.
+    _freedman_diaconis_bins`` helper so we do not depend on a seaborn internal.
+    Bin width is ``2 * IQR / n**(1/3)``; falls back to ``sqrt(n)`` bins when the
+    IQR is zero.
+
+    Args:
+        a: 1d array of values.
+
+    Returns:
+        The suggested number of bins (at least 1).
+    """
+    a = np.asarray(a)
+    if len(a) < 2:
+        return 1
+    iqr = np.subtract(*np.nanpercentile(a, [75, 25]))
+    h = 2 * iqr / (len(a) ** (1 / 3))
+    # fall back to sqrt(n) bins if the IQR (and thus bin width) is zero
+    if h == 0:
+        return int(np.sqrt(a.size))
+    return int(np.ceil((a.max() - a.min()) / h))
 
 
 def plot_histogram(

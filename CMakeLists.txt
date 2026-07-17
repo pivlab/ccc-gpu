@@ -1,4 +1,7 @@
-cmake_minimum_required(VERSION 3.15...3.26)
+# Single CMake floor for the project; keep in sync with `cmake.version` in
+# pyproject.toml ([tool.scikit-build]). The `...4.0` policy ceiling opts into
+# modern CMake behavior up to 4.0.
+cmake_minimum_required(VERSION 3.26...4.0)
 project(${SKBUILD_PROJECT_NAME} LANGUAGES CUDA CXX)
 
 # When ON, build the CUDA C++ gtests under tests/cuda_ext/ and register them with
