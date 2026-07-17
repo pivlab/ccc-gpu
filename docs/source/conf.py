@@ -5,18 +5,27 @@
 
 import os
 import sys
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 
-# Add the project root to Python path for autodoc
-sys.path.insert(0, os.path.abspath('../../'))
+# Add the package source dir (libs/) to the path so autodoc can import `ccc`.
+sys.path.insert(0, os.path.abspath('../../libs'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'CCC-GPU'
-copyright = '2025, Milton Pividori, Haoyu Zhang, Kevin Fotso'
-author = 'Milton Pividori, Haoyu Zhang, Kevin Fotso'
-release = '0.2.0'
-version = '0.2.0'
+copyright = '2025-2026, Milton Pividori, Haoyu Zhang, Kevin Fotso, Marc Subirana-Granés'
+author = 'Milton Pividori, Haoyu Zhang, Kevin Fotso, Marc Subirana-Granés'
+
+# Single-source the version from the installed package metadata (which comes
+# from `[project].version` in pyproject.toml). Falls back to a literal when the
+# package is not installed in the docs-build environment (e.g. Read the Docs).
+try:
+    release = _pkg_version('cccgpu')
+except PackageNotFoundError:
+    release = '0.2.4'
+version = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -89,9 +98,9 @@ napoleon_attr_annotations = True
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-# The theme to use for HTML and HTML Help pages.
-html_theme = 'haiku'
-# Theme options for haiku theme (much simpler)
+# The theme to use for HTML and HTML Help pages. sphinx_rtd_theme is the theme
+# installed by docs/requirements.txt and used on Read the Docs.
+html_theme = 'sphinx_rtd_theme'
 html_theme_options = {}
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -167,8 +176,11 @@ epub_show_urls = 'footnote'
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 if on_rtd:
-    # Don't try to import modules that require GPU/CUDA when building docs
-    autodoc_mock_imports = ['ccc_cuda_ext', 'cupy', 'numba', 'rmm']
+    # Mock only the compiled CUDA extension and CUDA-only libraries, which cannot
+    # be built/installed on the Read the Docs runners. The pure-Python runtime
+    # deps (numpy, numba, scipy, ...) are installed via docs/requirements.txt so
+    # autodoc can import and render the real `ccc` docstrings.
+    autodoc_mock_imports = ['ccc_cuda_ext', 'cupy', 'rmm']
 
 # MathJax configuration for mathematical expressions
 mathjax3_config = {

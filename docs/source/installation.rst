@@ -5,47 +5,39 @@ Prerequisites
 -----------------
 
 Hardware requirements:
-- GPU with CUDA Compute Capability 8.6 or higher
+
+- NVIDIA GPU with CUDA compute capability 7.5 or higher (the wheels ship native
+  code for 7.5, 8.0, 8.6, 8.9, and 9.0)
+
 Software requirements:
-- OS: Linux x86_64
+
+- OS: Linux x86_64 (glibc 2.28 or later)
+- Python 3.10 to 3.14
+- NVIDIA driver providing CUDA 12.0 or higher
 
 Quick Install with pip
 ----------------------
 
-The ``cccgpu`` package is now available for installation via pip from test PyPI.
-
-However, note that cccgpu depends on `libstdc++`. For a smooth installation, we recommend using a wrapper conda environment to install it:
+The ``cccgpu`` package is available on PyPI:
 
 .. code-block:: bash
 
-    conda create -n ccc-gpu-toolchain-env -c conda-forge python=3.10 pip pytest libstdcxx-ng && conda activate ccc-gpu-toolchain-env
+    pip install cccgpu
 
-Support for more Python versions and architectures requires extra effort, and will be added soon.
-
-Then, install the package in the toolchain environment:
+``cccgpu`` depends on ``libstdc++``. If your system copy is too old, install it
+into a conda environment first, for example:
 
 .. code-block:: bash
 
-    pip install --index-url https://test.pypi.org/simple/ \
-                --extra-index-url https://pypi.org/simple/ \
-                --only-binary=cccgpu cccgpu
+    conda create -n ccc-gpu -c conda-forge python=3.12 pip pytest libstdcxx-ng
+    conda activate ccc-gpu
+    pip install cccgpu
 
-Then try running some tests to verify the installation:
+Then verify the installation:
 
 .. code-block:: bash
 
     python -c "from ccc.coef.impl_gpu import ccc as ccc_gpu; import numpy as np; print(ccc_gpu(np.random.rand(100), np.random.rand(100)))"
-
-
-**Command options explained:**
-
-- ``--index-url https://test.pypi.org/simple/``: Specifies test PyPI as the primary package index to search for ``cccgpu``
-- ``--extra-index-url https://pypi.org/simple/``: Adds the main PyPI repository as a fallback to install dependencies (numpy, scipy, numba, etc.) that may not be available on test PyPI
-- ``--only-binary=cccgpu``: Ensures that only binary wheels are installed for ``cccgpu`` package, so you don't need to compile it from source
-- ``cccgpu``: The package name to install
-
-.. note::
-   This installs from test PyPI while the package is in testing phase. Once stable, it will be available from the main PyPI repository with a simple ``pip install cccgpu`` command.
 
 
 Install from Source

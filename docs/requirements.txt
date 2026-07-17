@@ -1,3 +1,12 @@
 # Documentation build dependencies for Read the Docs
 sphinx>=7.1.0
 sphinx-rtd-theme>=2.0.0
+
+# Runtime deps needed for autodoc to import the `ccc` package on Read the Docs
+# (the compiled CUDA extension and CUDA-only libs are mocked in conf.py instead).
+numpy
+scipy
+numba
+pandas
+scikit-learn
+pyyaml
