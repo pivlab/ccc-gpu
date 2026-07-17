@@ -9,7 +9,9 @@
 # To update a single package to the latest version compatible with the version constraints in the source:
 #     conda-lock lock  --lockfile conda-lock.yml --update PACKAGE
 # To re-solve the entire environment, e.g. after changing a version constraint in the source file:
-#     conda-lock -f environment/environment-gpu.yml -f environment/environment-gpu-new.yml --lockfile conda-lock.yml
+#     conda-lock -f environment/environment-gpu.yml --conda mamba --lockfile conda-lock.yml
+# (The `metadata.sources` list below still references a historical second source
+#  file; regenerating with the single-source command above rewrites it.)
 version: 1
 metadata:
   content_hash:
