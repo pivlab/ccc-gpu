@@ -1,11 +1,9 @@
 [build-system]
 requires = [
-    "scikit-build-core",
-    "pybind11>=2.11.0",
-    "cmake>=4.0",
+    "scikit-build-core>=0.10",
+    "pybind11>=2.13,<4",
+    "cmake>=3.26",
     "ninja",
-    "setuptools",
-    "wheel",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -15,18 +13,25 @@ version = "0.2.4"
 description = "The Clustermatch Correlation Coefficient (CCC) with GPU acceleration"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "BSD-2-Clause Plus Patent" }
+# SPDX license expression (PEP 639); matches the LICENSE file (BSD-2-Clause Plus
+# Patent). Per PEP 639 the deprecated `License ::` trove classifier is omitted.
+license = "BSD-2-Clause-Patent"
 authors = [
     { name = "Milton Pividori", email = "milton.pividori@cuanschutz.edu" },
     { name = "Haoyu Zhang", email = "haoyu_z@outlook.com" },
 ]
-dependencies = ["numpy", "scipy", "numba", "pandas", "scikit-learn"]
+dependencies = ["numpy", "scipy", "numba", "pandas", "scikit-learn", "pyyaml"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: BSD License",
-    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: POSIX :: Linux",
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
+    "Environment :: GPU :: NVIDIA CUDA :: 12",
 ]
 
 [project.urls]
@@ -34,24 +39,144 @@ Homepage = "https://github.com/pivlab/ccc-gpu"
 Issues = "https://github.com/pivlab/ccc-gpu/issues"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov"]
+# Test-only dependencies.
+test = ["pytest"]
+# NOTE: the research/plotting modules (ccc.plots/methods/giant/corr) are
+# intentionally NOT part of the published wheel (see wheel.exclude below); they
+# live in the repo for the `analysis/` work. Their dependencies
+# (matplotlib/seaborn/upsetplot/ipython/minepy/requests) are provided by the
+# development environment (`environment/environment-gpu.yml`), not as PyPI
+# extras, since an extra cannot ship the excluded modules.
+
+[project.scripts]
+ccc-gpu-bench = "ccc.bench.cli:main"
 
 [tool.scikit-build]
-# Configure scikit-build-core
-cmake.version = ">=4.0"
+# Configure scikit-build-core.
+# Keep this CMake floor in sync with `cmake_minimum_required` in CMakeLists.txt.
+cmake.version = ">=3.26"
 cmake.args = [
-    "-DCMAKE_CUDA_ARCHITECTURES=75", # Adjust for your target CUDA architecture
+    # Fat wheel: native SASS for Turing (7.5) -> Hopper (9.0); PTX from 9.0
+    # forward-compats newer GPUs. The lowest arch (7.5) is the documented floor.
+    "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90",
 ]
 build.verbose = true
 wheel.packages = ["libs/ccc"] # Directory containing your Python packages
-wheel.exclude = ["*.cpp", "*.h"] # Exclude C++ headers from wheel
-# Note: wheel.py-api removed to support multiple Python versions (3.10-3.15)
+# Exclude C++ headers and the research/analysis-only modules (they import
+# undeclared heavy deps -- IPython/minepy/requests -- and are kept in-repo for
+# `analysis/`, not the published wheel). `log.py`/`log_config.yaml` stay in the
+# wheel because `ccc.utils.curl` and the test suite use them; `pyyaml` is a
+# declared dependency so `ccc.log` imports cleanly.
+wheel.exclude = [
+    "*.cpp",
+    "*.h",
+    "ccc/plots.py",
+    "ccc/methods.py",
+    "ccc/giant.py",
+    "ccc/corr.py",
+]
+# Note: wheel.py-api removed to support multiple Python versions (3.10-3.14)
 wheel.platlib = true # Contains compiled extensions
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q"
+addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
+markers = [
+    "gpu: test requires a CUDA GPU + the ccc_cuda_ext extension (auto-applied to tests/gpu; skipped when cupy/ccc_cuda_ext are unavailable)",
+    "slow: test is slow (e.g. 1M-element inputs); excluded from the default CI subset",
+    "network: test downloads data over the network; excluded from the default CI subset",
+]
+
+# --------------------------------------------------------------------------- #
+# Ruff — single source of truth for Python lint + format.
+#
+# Scope: the installable package (`libs/ccc`) and the test suite (`tests`).
+# `analysis/` and `docs/` are manuscript/notebook/tooling code intentionally
+# left untouched and are excluded below. `force-exclude` makes the excludes
+# apply even when pre-commit passes explicit file paths.
+# --------------------------------------------------------------------------- #
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+force-exclude = true
+extend-exclude = [
+    "analysis",
+    "docs",
+    "build",
+    "_skbuild",
+    "*.ipynb",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "B",   # flake8-bugbear
+    "I",   # isort
+    "ARG", # flake8-unused-arguments
+    "C4",  # flake8-comprehensions
+    "EM",  # flake8-errmsg
+    "PL",  # pylint
+    "PT",  # flake8-pytest-style
+    "PTH", # flake8-use-pathlib
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "UP",  # pyupgrade
+    "NPY", # numpy-specific rules
+    "PD",  # pandas-vet
+]
+# Intentionally NOT enabling isort's `required-imports` (no forced
+# `from __future__ import annotations`) to avoid a semantic-adjacent mass edit.
+ignore = [
+    # --- Owned by the formatter / structural complexity (permanent) ---
+    "E501",    # line length is handled by the formatter
+    "PLR0911", # too many return statements
+    "PLR0912", # too many branches
+    "PLR0913", # too many arguments — numeric kernels legitimately take many
+    "PLR0915", # too many statements
+    "PLR2004", # magic value comparison — pervasive in numeric code
+
+    # --- Deferred to follow-up work (this change lands the tooling +
+    #     mechanical format only; the fixes below are logic/behavior-adjacent
+    #     and need manual review, so they are suppressed for now). ---
+    "NPY002",  # legacy np.random.* — rewriting to Generator changes RNG streams/seeds
+    "PLC0415", # import-outside-top-level — many are intentional lazy imports (cupy/torch/heavy deps)
+    "EM101",   # raw-string-in-exception — mechanical message extraction
+    "EM102",   # f-string-in-exception — mechanical message extraction
+    "PT006",   # pytest parametrize names as tuple vs string
+    "PT018",   # composite assertion in tests
+    "PTH103",  # os.makedirs -> Path.mkdir
+    "PTH118",  # os.path.join -> Path
+    "PTH123",  # open() -> Path.open()
+    "B905",    # zip() without strict= — adding strict= is behavior-changing
+    "PLW1510", # subprocess.run without check= — adding check= is behavior-changing
+    "PLW2901", # redefined loop variable
+    "PLR1704", # redefined argument from local
+    "RET504",  # unnecessary assignment before return
+    "C403",    # unnecessary list comprehension (set)
+    "C404",    # unnecessary list comprehension (dict)
+    "C408",    # unnecessary dict/list/tuple call
+    "C409",    # unnecessary literal within tuple call
+    "C417",    # unnecessary map() usage
+    "SIM105",  # suppressible exception -> contextlib.suppress
+    "SIM113",  # use enumerate()
+    "SIM117",  # combine nested with-statements
+    "ARG002",  # unused method argument
+    "UP028",   # yield-in-for-loop -> yield from
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "PLR2004", # magic values are expected in test assertions
+    "ARG",     # pytest fixtures are passed but not always referenced
+    "B",       # bugbear patterns are acceptable in tests
+    "PT011",   # broad pytest.raises without match is acceptable in tests
+]
+
+[tool.ruff.format]
+docstring-code-format = true
 
 [tool.cibuildwheel]
 build = "cp3{10,11,12,13,14}-manylinux_x86_64"
@@ -68,8 +193,10 @@ before-all = [
     "yum clean all",
     # Install GCC 13 toolset (provides GCC 13.2 under /opt/rh/gcc-toolset-13)
     "yum install -y gcc-toolset-13",
-    # Install CUDA 12.9 toolkit (supports GCC 6.x - 15.x, compatible with GCC 14 in manylinux_2_28)
-    "yum install -y cuda-toolkit-12-5",
+    # Install CUDA 12.8 toolkit (supports the GCC 13 toolset above; stays inside
+    # the 12.x driver-compatibility window). Keep this comment and the package
+    # version in sync.
+    "yum install -y cuda-toolkit-12-8",
     # Print nvcc version with green prefix
     "echo -e '\\033[32m[cccgpu-info]:\\033[0m'",
     "nvcc --version",

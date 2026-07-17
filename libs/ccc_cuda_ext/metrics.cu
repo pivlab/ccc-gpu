@@ -1,18 +1,19 @@
-#include <cuda_runtime.h>
 #include <cub/block/block_load.cuh>
+#include <cuda_runtime.h>
 #include <spdlog/spdlog.h>
 
 #include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
 #include <thrust/extrema.h>
-#include <thrust/reduce.h>
 #include <thrust/functional.h>
+#include <thrust/host_vector.h>
+#include <thrust/reduce.h>
 
-#include <iostream>
-#include <cmath>
-#include <assert.h>
 #include "metrics.cuh"
 #include "utils.cuh"
+#include <assert.h>
+#include <cmath>
+#include <iostream>
+#include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 
@@ -124,7 +125,6 @@ __device__ void get_contingency_matrix_shared(T *part0, T *part1, int n_objs, in
         shared_cont_mat[i] = 0;
     }
     __syncthreads();
-    
 
 #pragma unroll
     for (int i = tid; i < n_objs; i += n_block_threads)
@@ -135,10 +135,11 @@ __device__ void get_contingency_matrix_shared(T *part0, T *part1, int n_objs, in
         const T col = part1[i];
 
         // Bounds checking to ensure valid array access
-        if (row < 0 || row >= k || col < 0 || col >= k) {
+        if (row < 0 || row >= k || col < 0 || col >= k)
+        {
             continue; // Skip invalid indices
         }
-        
+
         atomicAdd(&shared_cont_mat[row * k + col], 1);
     }
     __syncthreads();
@@ -174,17 +175,16 @@ __device__ void get_contingency_matrix_global(T *part0, T *part1, int n_objs, in
         const T col = part1[i];
 
         // Add bounds checking
-        if (row < 0 || row >= k || col < 0 || col >= k) {
+        if (row < 0 || row >= k || col < 0 || col >= k)
+        {
             continue; // Skip invalid values
         }
-        
+
         // Use atomic operations since we're writing to global memory
         atomicAdd(&global_cont_mat[row * k + col], 1);
     }
     __syncthreads();
-    
 }
-
 
 /**
  * @brief CUDA device function to compute the pair confusion matrix
@@ -195,13 +195,8 @@ __device__ void get_contingency_matrix_global(T *part0, T *part1, int n_objs, in
  * @param[in] k Number of clusters (assuming k is the max of clusters in part0 and part1)
  * @param[out] C Pointer to the output pair confusion matrix (2x2)
  */
-__device__ void get_pair_confusion_matrix(
-    const int *__restrict__ contingency,
-    int *sum_rows,
-    int *sum_cols,
-    const int n_objs,
-    const int k,
-    long long *C)
+__device__ void get_pair_confusion_matrix(const int *__restrict__ contingency, int *sum_rows, int *sum_cols,
+                                          const int n_objs, const int k, long long *C)
 {
     // TODO: use block-level reduction
 
@@ -266,7 +261,6 @@ __device__ void get_pair_confusion_matrix(
         C[2] = temp - sum_squares; // C[1,0]
 
         C[0] = (long long)n_objs * (long long)n_objs - C[1] - C[2] - sum_squares; // C[0,0]
-        
     }
 }
 
@@ -284,17 +278,10 @@ __device__ void get_pair_confusion_matrix(
  * @param out Output array of ARIs
  */
 template <typename T>
-__global__ void ari_kernel_global(T *parts,
-                                  const uint64_t n_aris,
-                                  const uint64_t n_features,
-                                  const uint64_t n_parts,
-                                  const uint64_t n_objs,
-                                  const uint64_t n_elems_per_feat,
-                                  const uint64_t n_part_mat_elems,
-                                  const uint32_t k,
-                                  const uint64_t batch_start,
-                                  int *global_cont_matrices,
-                                  float *out)
+__global__ void ari_kernel_global(T *parts, const uint64_t n_aris, const uint64_t n_features, const uint64_t n_parts,
+                                  const uint64_t n_objs, const uint64_t n_elems_per_feat,
+                                  const uint64_t n_part_mat_elems, const uint32_t k, const uint64_t batch_start,
+                                  int *global_cont_matrices, float *out)
 {
     /*
      * Step 0: Compute global memory addresses for this block
@@ -303,21 +290,21 @@ __global__ void ari_kernel_global(T *parts,
     const uint64_t cont_mat_size = k * k;
     const uint64_t sum_arrays_size = 2 * k;
     const uint64_t pair_confusion_size = 4;
-    
+
     // Each block gets its own section of global memory
     // Calculate offsets to ensure proper alignment for long long
     const uint64_t ints_per_block = cont_mat_size + sum_arrays_size;
-    const uint64_t aligned_ints_per_block = ((ints_per_block + 1) / 2) * 2;  // Align to 8-byte boundary
-    const uint64_t offset_per_block_bytes = aligned_ints_per_block * sizeof(int) + pair_confusion_size * sizeof(long long);
+    const uint64_t aligned_ints_per_block = ((ints_per_block + 1) / 2) * 2; // Align to 8-byte boundary
+    const uint64_t offset_per_block_bytes =
+        aligned_ints_per_block * sizeof(int) + pair_confusion_size * sizeof(long long);
     const uint64_t offset_per_block_ints = offset_per_block_bytes / sizeof(int);
-    
+
     int *g_contingency = global_cont_matrices + block_id * offset_per_block_ints;
     int *g_sum_rows = g_contingency + cont_mat_size;
     int *g_sum_cols = g_sum_rows + k;
     // Ensure 8-byte alignment for long long
     int *aligned_start = g_contingency + aligned_ints_per_block;
-    long long *g_pair_confusion_matrix = (long long*)aligned_start;
-    
+    long long *g_pair_confusion_matrix = (long long *)aligned_start;
 
     /*
      * Step 1: Each thread unravels flat indices and loads the corresponding data
@@ -328,15 +315,17 @@ __global__ void ari_kernel_global(T *parts,
     uint64_t i, j;
 
     get_coords_from_index(n_features, feature_comp_flat_idx, &i, &j);
-    
+
     uint64_t m, n;
     unravel_index(part_pair_flat_idx, n_parts, &m, &n);
-    
+
     T *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
     T *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
 
-    // Check for invalid partitions
-    if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
+    // Apply the shared invalid-partition semantics: categorical (-1) -> 0.0,
+    // singleton (-2) -> leave NaN so the max reduction poisons the comparison.
+    const PartPairValidity validity = classify_partition_pair(t_data_part0[0], t_data_part1[0]);
+    if (validity == PartPairValidity::CATEGORICAL)
     {
         if (threadIdx.x == 0)
         {
@@ -344,9 +333,7 @@ __global__ void ari_kernel_global(T *parts,
         }
         return;
     }
-    
-    // Check for singletons - these should remain as NaN
-    if (t_data_part0[0] == -2 || t_data_part1[0] == -2)
+    if (validity == PartPairValidity::SINGLETON)
     {
         return;
     }
@@ -371,8 +358,7 @@ __global__ void ari_kernel_global(T *parts,
         long long fn = g_pair_confusion_matrix[2];
         long long tp = g_pair_confusion_matrix[3];
         float ari = 0.0f;
-        
-        
+
         if (fn == 0 && fp == 0)
         {
             ari = 1.0f;
@@ -380,9 +366,9 @@ __global__ void ari_kernel_global(T *parts,
         else
         {
             double numerator = 2.0 * ((double)tp * (double)tn - (double)fn * (double)fp);
-            double denominator = ((double)tp + (double)fn) * ((double)fn + (double)tn) + ((double)tp + (double)fp) * ((double)fp + (double)tn);
+            double denominator = ((double)tp + (double)fn) * ((double)fn + (double)tn) +
+                                 ((double)tp + (double)fp) * ((double)fp + (double)tn);
             ari = (float)(numerator / denominator);
-            
         }
         out[blockIdx.x] = ari;
     }
@@ -403,29 +389,22 @@ __global__ void ari_kernel_global(T *parts,
  */
 // TODO: Parameterize the int type to allow using narrower int types for memory efficiency
 template <typename T>
-__global__ void ari_kernel(T *parts,
-                           const uint64_t n_aris,
-                           const uint64_t n_features,
-                           const uint64_t n_parts,
-                           const uint64_t n_objs,
-                           const uint64_t n_elems_per_feat,
-                           const uint64_t n_part_mat_elems,
-                           const uint32_t k,
-                           const uint64_t batch_start,
-                           float *out)
+__global__ void ari_kernel(T *parts, const uint64_t n_aris, const uint64_t n_features, const uint64_t n_parts,
+                           const uint64_t n_objs, const uint64_t n_elems_per_feat, const uint64_t n_part_mat_elems,
+                           const uint32_t k, const uint64_t batch_start, float *out)
 {
     /*
      * Step 0: Compute shared memory addresses
      */
     extern __shared__ int shared_mem[];
-    int *s_contingency = shared_mem;               // k * k elements
-    int *s_sum_rows = s_contingency + (k * k);     // k elements
-    int *s_sum_cols = s_sum_rows + k;              // k elements
+    int *s_contingency = shared_mem;           // k * k elements
+    int *s_sum_rows = s_contingency + (k * k); // k elements
+    int *s_sum_cols = s_sum_rows + k;          // k elements
     // Align to 8-byte boundary for long long
     // Calculate offset in int units, then align to 8-byte boundary
     int offset_ints = k * k + 2 * k;
-    int aligned_offset_ints = ((offset_ints + 1) / 2) * 2;  // Align to 8-byte (2 int) boundary
-    long long *s_pair_confusion_matrix = (long long*)(shared_mem + aligned_offset_ints); // 4 elements
+    int aligned_offset_ints = ((offset_ints + 1) / 2) * 2; // Align to 8-byte (2 int) boundary
+    long long *s_pair_confusion_matrix = (long long *)(shared_mem + aligned_offset_ints); // 4 elements
 
     /*
      * Step 1: Each thead, unravel flat indices and load the corresponding data into shared memory
@@ -434,7 +413,8 @@ __global__ void ari_kernel(T *parts,
     const uint64_t ari_block_idx = blockIdx.x + batch_start;
     // obtain the corresponding parts and unique counts
     uint64_t feature_comp_flat_idx = ari_block_idx / n_part_mat_elems; // flat comparison pair index for two features
-    uint64_t part_pair_flat_idx = ari_block_idx % n_part_mat_elems;    // flat comparison pair index for two partitions of one feature pair
+    uint64_t part_pair_flat_idx =
+        ari_block_idx % n_part_mat_elems; // flat comparison pair index for two partitions of one feature pair
     uint64_t i, j;
 
     // Unravel the feature indices
@@ -449,9 +429,9 @@ __global__ void ari_kernel(T *parts,
 
     // Unravel the partition indices within the feature pair
     // For example, if n_parts = 3, n_part_mat_elems = n_parts * n_parts = 9
-    // The partition indices of the pair being compared are (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)
-    // i.e., the pairs being compared are part0-part1, part0-part2, part1-part0, part1-part1, part1-part2, part2-part0, part2-part1, part2-part2
-    // The range of the flattened index is [0, n_part_mat_elems - 1] = [0, 8]
+    // The partition indices of the pair being compared are (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2,
+    // 2) i.e., the pairs being compared are part0-part1, part0-part2, part1-part0, part1-part1, part1-part2,
+    // part2-part0, part2-part1, part2-part2 The range of the flattened index is [0, n_part_mat_elems - 1] = [0, 8]
     // Given the flat index, we compute the corresponding partition indices
     uint64_t m, n;
     unravel_index(part_pair_flat_idx, n_parts, &m, &n);
@@ -461,9 +441,14 @@ __global__ void ari_kernel(T *parts,
     T *t_data_part0 = parts + i * n_elems_per_feat + m * n_objs;
     T *t_data_part1 = parts + j * n_elems_per_feat + n * n_objs;
 
-    // Check on categorical partition marker, if the first object of either partition is -1 (actually all the objects are -1),
-    // then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of 0.0.
-    if (t_data_part0[0] == -1 || t_data_part1[0] == -1)
+    // Apply the shared invalid-partition semantics (see classify_partition_pair):
+    //  - categorical marker (-1): the first object of either partition is -1 (in
+    //    fact the whole partition is -1); this pair contributes an ARI of 0.0.
+    //  - singleton marker (-2): a partition collapsed to a single cluster
+    //    (usually constant input); leave the slot as NaN so the max reduction
+    //    marks the whole comparison NaN.
+    const PartPairValidity validity = classify_partition_pair(t_data_part0[0], t_data_part1[0]);
+    if (validity == PartPairValidity::CATEGORICAL)
     {
         if (threadIdx.x == 0)
         {
@@ -471,11 +456,7 @@ __global__ void ari_kernel(T *parts,
         }
         return;
     }
-
-    // Check on singletons.  -2 is used when singletons have been detected (partitions with one cluster), usually because of problems with the
-    // input data (it has all the same values, for example).
-    // Then skip the computation for this feature pair. The final coef output will still have a slot for this pair, with a default value of NaN.
-    if (t_data_part0[0] == -2 || t_data_part1[0] == -2)
+    if (validity == PartPairValidity::SINGLETON)
     {
         return;
     }
@@ -486,7 +467,6 @@ __global__ void ari_kernel(T *parts,
     // shared mem address for the contingency matrix
     // int *s_contingency = shared_mem + 2 * n_objs;
     get_contingency_matrix_shared(t_data_part0, t_data_part1, n_objs, s_contingency, k);
-
 
     /*
      * Step 3: Construct pair confusion matrix
@@ -503,8 +483,7 @@ __global__ void ari_kernel(T *parts,
         long long fn = s_pair_confusion_matrix[2];
         long long tp = s_pair_confusion_matrix[3];
         float ari = 0.0f;
-        
-        
+
         if (fn == 0 && fp == 0)
         {
             ari = 1.0f;
@@ -512,9 +491,9 @@ __global__ void ari_kernel(T *parts,
         else
         {
             double numerator = 2.0 * ((double)tp * (double)tn - (double)fn * (double)fp);
-            double denominator = ((double)tp + (double)fn) * ((double)fn + (double)tn) + ((double)tp + (double)fp) * ((double)fp + (double)tn);
+            double denominator = ((double)tp + (double)fn) * ((double)fn + (double)tn) +
+                                 ((double)tp + (double)fp) * ((double)fp + (double)tn);
             ari = (float)(numerator / denominator);
-            
         }
         out[blockIdx.x] = ari;
     }
@@ -522,21 +501,44 @@ __global__ void ari_kernel(T *parts,
 }
 
 /**
- * @brief Helper function to process and validate input numpy array
+ * @brief Helper function to process and validate an input numpy array
+ *
+ * Validates the dtype and dimensionality of the partitions array and, when the
+ * expected dimensions are supplied (>= 0), that its shape matches
+ * (n_features, n_parts, n_objs). Shape/dtype problems raise a Python ValueError
+ * (via py::value_error) before any device work is done.
+ *
  * @param parts Input numpy array to process
+ * @param n_features Expected number of features (-1 to skip the shape check)
+ * @param n_parts Expected number of partitions per feature (-1 to skip)
+ * @param n_objs Expected number of objects per partition (-1 to skip)
  * @return Pointer to the underlying data
+ * @throws py::value_error on dtype, dimensionality, or shape mismatch
  */
 template <typename T>
-T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
+T *process_input_array(const py::array_t<T, py::array::c_style> &parts, int64_t n_features = -1, int64_t n_parts = -1,
+                       int64_t n_objs = -1)
 {
     py::buffer_info buffer = parts.request();
     if (buffer.format != py::format_descriptor<T>::format())
     {
-        throw std::runtime_error("Incompatible format: expected an int array!");
+        throw py::value_error(std::string("Partitions array has an incompatible dtype: expected numpy format '") +
+                              py::format_descriptor<T>::format() + "' (e.g. int16), got '" + buffer.format + "'");
     }
     if (buffer.ndim != 3)
     {
-        throw std::runtime_error("Incompatible buffer dimension!");
+        throw py::value_error("Partitions array must be 3-dimensional (n_features, n_parts, n_objs); got ndim=" +
+                              std::to_string(buffer.ndim));
+    }
+    if (n_features >= 0 && n_parts >= 0 && n_objs >= 0)
+    {
+        if (buffer.shape[0] != n_features || buffer.shape[1] != n_parts || buffer.shape[2] != n_objs)
+        {
+            throw py::value_error("Partitions array shape mismatch: expected (" + std::to_string(n_features) + ", " +
+                                  std::to_string(n_parts) + ", " + std::to_string(n_objs) + ") but got (" +
+                                  std::to_string(buffer.shape[0]) + ", " + std::to_string(buffer.shape[1]) + ", " +
+                                  std::to_string(buffer.shape[2]) + ")");
+        }
     }
     return static_cast<T *>(buffer.ptr);
 }
@@ -548,12 +550,8 @@ T *process_input_array(const py::array_t<T, py::array::c_style> &parts)
  * @return std::unique_ptr to thrust device vector containing ARI values with type R
  */
 template <typename T, typename R>
-auto ari_core_device(const T *parts,
-                     const uint64_t n_features,
-                     const uint64_t n_parts,
-                     const uint64_t n_objs,
-                     const uint64_t batch_start,
-                     const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<R>>
+auto ari_core_device(const T *parts, const uint64_t n_features, const uint64_t n_parts, const uint64_t n_objs,
+                     const uint64_t batch_start, const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<R>>
 {
     /*
      * Show debugging and device information
@@ -561,7 +559,10 @@ auto ari_core_device(const T *parts,
     // spdlog::debug("Max shared memory per block: {} bytes", get_max_shared_memory_per_block());
 
     // Input validation
-    if (!parts || n_features == 0 || n_parts == 0 || n_objs == 0) { throw std::invalid_argument("Invalid input parameters"); }
+    if (!parts || n_features == 0 || n_parts == 0 || n_objs == 0)
+    {
+        throw std::invalid_argument("Invalid input parameters");
+    }
 
     /*
      * Pre-computation
@@ -569,9 +570,15 @@ auto ari_core_device(const T *parts,
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
+    // Guard the unsigned subtraction below: check the bound BEFORE computing
+    // (n_aris - batch_start), which would underflow to a huge value otherwise.
+    if (batch_start >= n_aris)
+    {
+        throw std::invalid_argument("Batch start index exceeds total number of ARIs");
+    }
+
     // Determine the actual batch size
     const auto actual_batch_size = batch_size == 0 ? n_aris : std::min(batch_size, n_aris - batch_start);
-    if (batch_start >= n_aris) { throw std::invalid_argument("Batch start index exceeds total number of ARIs"); }
 
     /*
      * Memory Allocation
@@ -596,13 +603,10 @@ auto ari_core_device(const T *parts,
     const auto k = thrust::reduce(d_parts->begin(), d_parts->end(), -1, thrust::maximum<T>()) + 1;
     const auto sz_int = sizeof(int);
     // Compute shared memory size
-    auto s_mem_size = 0;
-    s_mem_size += k * k * sz_int; // For contingency matrix (always int)
-    s_mem_size += 2 * k * sz_int; // For the internal sum arrays (always int)
     // Align to 8-byte boundary for long long and add space for pair confusion matrix
     int offset_ints = k * k + 2 * k;
-    int aligned_offset_ints = ((offset_ints + 1) / 2) * 2;  // Align to 8-byte (2 int) boundary
-    s_mem_size = aligned_offset_ints * sz_int + 4 * sizeof(long long);  // Total size
+    int aligned_offset_ints = ((offset_ints + 1) / 2) * 2;                 // Align to 8-byte (2 int) boundary
+    int s_mem_size = aligned_offset_ints * sz_int + 4 * sizeof(long long); // Total size
 
     // Check if shared memory size exceeds device limits
     auto [is_valid, message] = check_shared_memory_size(s_mem_size);
@@ -619,46 +623,36 @@ auto ari_core_device(const T *parts,
     spdlog::debug("Memory before kernel launch: ");
     before_device_mem = print_cuda_memory_info();
 
-    if (is_valid) {
+    if (is_valid)
+    {
         // Use shared memory kernel for smaller contingency matrices
         spdlog::debug("Using shared memory kernel for k={}", k);
         ari_kernel<<<grid_size, block_size, s_mem_size>>>(
-            thrust::raw_pointer_cast(d_parts->data()),
-            actual_batch_size,
-            n_features,
-            n_parts,
-            n_objs,
-            n_parts * n_objs,
-            n_parts * n_parts,
-            k,
-            batch_start,
-            thrust::raw_pointer_cast(d_out->data()));
-    } else {
+            thrust::raw_pointer_cast(d_parts->data()), actual_batch_size, n_features, n_parts, n_objs, n_parts * n_objs,
+            n_parts * n_parts, k, batch_start, thrust::raw_pointer_cast(d_out->data()));
+        CUDA_CHECK_KERNEL("ari_kernel");
+    }
+    else
+    {
         // Use global memory kernel for larger contingency matrices
         spdlog::debug("Using global memory kernel for k={}", k);
-        
+
         // Allocate global memory for contingency matrices
         // Each block needs: k*k (contingency) + 2*k (sum arrays) + 4 (pair confusion as long long)
         // Ensure 8-byte alignment for long long by using char vector
-        const size_t ints_per_block = k * k + 2 * k;  // contingency + sum arrays
-        const size_t aligned_ints_per_block = ((ints_per_block + 1) / 2) * 2;  // Align to 8-byte boundary
+        const size_t ints_per_block = k * k + 2 * k;                          // contingency + sum arrays
+        const size_t aligned_ints_per_block = ((ints_per_block + 1) / 2) * 2; // Align to 8-byte boundary
         const size_t mem_per_block = aligned_ints_per_block * sizeof(int) + 4 * sizeof(long long);
         const size_t total_global_mem = actual_batch_size * mem_per_block;
-        
+
         auto d_global_cont_matrices = std::make_unique<thrust::device_vector<char>>(total_global_mem);
-        
+
         ari_kernel_global<<<grid_size, block_size>>>(
-            thrust::raw_pointer_cast(d_parts->data()),
-            actual_batch_size,
-            n_features,
-            n_parts,
-            n_objs,
-            n_parts * n_objs,
-            n_parts * n_parts,
-            k,
-            batch_start,
-            reinterpret_cast<int*>(thrust::raw_pointer_cast(d_global_cont_matrices->data())),
+            thrust::raw_pointer_cast(d_parts->data()), actual_batch_size, n_features, n_parts, n_objs, n_parts * n_objs,
+            n_parts * n_parts, k, batch_start,
+            reinterpret_cast<int *>(thrust::raw_pointer_cast(d_global_cont_matrices->data())),
             thrust::raw_pointer_cast(d_out->data()));
+        CUDA_CHECK_KERNEL("ari_kernel_global");
     }
 
     // Track memory after kernel launch
@@ -680,14 +674,12 @@ auto ari_core_device(const T *parts,
  * @return std::unique_ptr to thrust device vector containing ARI values
  */
 template <typename T, typename R>
-auto ari_core_device(const py::array_t<T, py::array::c_style> &parts,
-                     const size_t n_features,
-                     const size_t n_parts,
-                     const size_t n_objs,
-                     const uint64_t batch_start,
-                     const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<R>>
+auto ari_core_device(const py::array_t<T, py::array::c_style> &parts, const size_t n_features, const size_t n_parts,
+                     const size_t n_objs, const uint64_t batch_start, const uint64_t batch_size)
+    -> std::unique_ptr<thrust::device_vector<R>>
 {
-    const auto parts_ptr = process_input_array(parts);
+    const auto parts_ptr = process_input_array(parts, static_cast<int64_t>(n_features), static_cast<int64_t>(n_parts),
+                                               static_cast<int64_t>(n_objs));
     return ari_core_device<T, R>(parts_ptr, n_features, n_parts, n_objs, batch_start, batch_size);
 }
 
@@ -698,12 +690,8 @@ auto ari_core_device(const py::array_t<T, py::array::c_style> &parts,
  * @return std::vector<float> ARI values for each pair of partitions stored in host memory
  */
 template <typename T>
-auto ari_core_host(const T *parts,
-                   const size_t n_features,
-                   const size_t n_parts,
-                   const size_t n_objs,
-                   const uint64_t batch_start,
-                   const uint64_t batch_size) -> std::vector<float>
+auto ari_core_host(const T *parts, const size_t n_features, const size_t n_parts, const size_t n_objs,
+                   const uint64_t batch_start, const uint64_t batch_size) -> std::vector<float>
 {
     /*
      * Pre-computation
@@ -712,9 +700,15 @@ auto ari_core_host(const T *parts,
     const auto n_feature_comp = n_features * (n_features - 1) / 2;
     const auto n_aris = n_feature_comp * n_parts * n_parts;
 
+    // Guard the unsigned subtraction below (see ari_core_device): validate the
+    // bound before computing (n_aris - batch_start).
+    if (batch_start >= n_aris)
+    {
+        throw std::invalid_argument("Batch start index exceeds total number of ARIs");
+    }
+
     // Determine the actual batch size
     const auto actual_batch_size = batch_size == 0 ? n_aris : std::min(batch_size, n_aris - batch_start);
-    if (batch_start >= n_aris) { throw std::invalid_argument("Batch start index exceeds total number of ARIs"); }
 
     /*
      * Memory Allocation
@@ -748,31 +742,12 @@ auto ari_core_host(const T *parts,
  * @return std::vector<float> All ARI values for each pair of partitions
  */
 template <typename T>
-auto ari(const py::array_t<T, py::array::c_style> &parts,
-         const size_t n_features,
-         const size_t n_parts,
-         const size_t n_objs,
-         const uint64_t batch_start,
-         const uint64_t batch_size) -> std::vector<float>
+auto ari(const py::array_t<T, py::array::c_style> &parts, const size_t n_features, const size_t n_parts,
+         const size_t n_objs, const uint64_t batch_start, const uint64_t batch_size) -> std::vector<float>
 {
-    const auto parts_ptr = process_input_array(parts);
+    const auto parts_ptr = process_input_array(parts, static_cast<int64_t>(n_features), static_cast<int64_t>(n_parts),
+                                               static_cast<int64_t>(n_objs));
     return ari_core_host(parts_ptr, n_features, n_parts, n_objs, batch_start, batch_size);
-}
-
-/**
- * @brief API exposed to Python for computing ARI using CUDA upon a 3D Numpy NDArray of partitions
- * @param parts 3D Numpy.NDArray of partitions with shape of (n_features, n_parts, n_objs)
- * @throws std::invalid_argument if "parts" is invalid
- * @return std::vector<float> Reduced(max) ARI value for each pair of partitions
- */
-template <typename T>
-auto ari_reduced(const py::array_t<T, py::array::c_style> &parts,
-                 const size_t n_features,
-                 const size_t n_parts,
-                 const size_t n_objs) -> std::vector<float>
-{
-    const auto parts_ptr = process_input_array(parts);
-    throw std::logic_error("Function not yet implemented");
 }
 
 // Below is the explicit instantiation of the ari template function.
@@ -783,28 +758,16 @@ auto ari_reduced(const py::array_t<T, py::array::c_style> &parts,
 // by the linker.
 
 // Used for external python testing
-template auto ari<int>(
-    const py::array_t<int, py::array::c_style> &parts,
-    const size_t n_features,
-    const size_t n_parts,
-    const size_t n_objs,
-    const uint64_t batch_start,
-    const uint64_t batch_size) -> std::vector<float>;
+template auto ari<int>(const py::array_t<int, py::array::c_style> &parts, const size_t n_features, const size_t n_parts,
+                       const size_t n_objs, const uint64_t batch_start, const uint64_t batch_size)
+    -> std::vector<float>;
 
 // Used for internal c++ testing
-template auto ari_core_host<int>(
-    const int *parts,
-    const size_t n_features,
-    const size_t n_parts,
-    const size_t n_objs,
-    const uint64_t batch_start,
-    const uint64_t batch_size) -> std::vector<float>;
+template auto ari_core_host<int>(const int *parts, const size_t n_features, const size_t n_parts, const size_t n_objs,
+                                 const uint64_t batch_start, const uint64_t batch_size) -> std::vector<float>;
 
 // Used in the coef API
-template auto ari_core_device<int16_t, float>(
-    const py::array_t<int16_t, py::array::c_style> &parts,
-    const uint64_t n_features,
-    const uint64_t n_parts,
-    const uint64_t n_objs,
-    const uint64_t batch_start,
-    const uint64_t batch_size) -> std::unique_ptr<thrust::device_vector<float>>;
+template auto ari_core_device<int16_t, float>(const py::array_t<int16_t, py::array::c_style> &parts,
+                                              const uint64_t n_features, const uint64_t n_parts, const uint64_t n_objs,
+                                              const uint64_t batch_start, const uint64_t batch_size)
+    -> std::unique_ptr<thrust::device_vector<float>>;

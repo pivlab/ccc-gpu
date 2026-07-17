@@ -6,19 +6,16 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterable
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from typing import Union
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 import ccc_cuda_ext
+import numpy as np
 from numba import njit
 from numba.typed import List
-
-import numpy as np
-from ccc.pytorch.core import unravel_index_2d
-from ccc.scipy.stats import rank
-from ccc.sklearn.metrics import adjusted_rand_index as ari
-from ccc.utils import DummyExecutor, chunker
 from numpy.typing import NDArray
+
+from ccc.scipy.stats import rank
+from ccc.utils import chunker
 
 
 @njit(cache=True, nogil=True)
@@ -245,96 +242,8 @@ def get_feature_parts(params):
     return parts
 
 
-def cdist_parts_basic(x: NDArray, y: NDArray) -> NDArray[float]:
-    """
-    It implements the same functionality in scipy.spatial.distance.cdist but
-    for clustering partitions, and instead of a distance it returns the adjusted
-    Rand index (ARI). In other words, it mimics this function call:
-
-        cdist(x, y, metric=ari)
-
-    Only partitions with positive labels (> 0) are compared. This means that
-    partitions marked as "singleton" or "empty" (categorical data) are not
-    compared. This has the effect of leaving an ARI of 0.0 (zero).
-
-    Args:
-        x: a 2d array with m_x clustering partitions in rows and n objects in
-          columns.
-        y: a 2d array with m_y clustering partitions in rows and n objects in
-          columns.
-
-    Returns:
-        A 2d array with m_x rows and m_y columns and the ARI between each
-        partition pair. Each ij entry is equal to ari(x[i], y[j]) for each i
-        and j.
-    """
-    res = np.zeros((x.shape[0], y.shape[0]))
-
-    for i in range(res.shape[0]):
-        if x[i, 0] < 0:
-            continue
-
-        for j in range(res.shape[1]):
-            if y[j, 0] < 0:
-                continue
-            res[i, j] = ari(x[i], y[j])
-            # res[i, j] = adjusted_rand_score(x[i], y[j])
-
-    return res
-
-
-def cdist_parts_parallel(
-    x: NDArray, y: NDArray, executor: ThreadPoolExecutor
-) -> NDArray[float]:
-    """
-    It parallelizes cdist_parts_basic function.
-
-    Args:
-        x: same as in cdist_parts_basic
-        y: same as in cdist_parts_basic
-        executor: a pool executor where jobs will be submitted.
-
-    Results:
-        Same as in cdist_parts_basic.
-    """
-    res = np.zeros((x.shape[0], y.shape[0]))
-
-    inputs = get_chunks(res.shape[0], executor._max_workers, 1)
-
-    tasks = {executor.submit(cdist_parts_basic, x[idxs], y): idxs for idxs in inputs}
-    for t in as_completed(tasks):
-        idx = tasks[t]
-        res[idx, :] = t.result()
-
-    return res
-
-
-@njit(cache=True, nogil=True)
-def get_coords_from_index(n_obj: int, idx: int) -> tuple[int]:
-    """
-    Given the number of objects and an index, it returns the row/column
-    position of the pairwise matrix. For example, if there are n_obj objects
-    (such as genes), a condensed 1d array can be created with pairwise
-    comparisons between genes, as well as a squared symmetric matrix. This
-    function receives the number of objects and the index of the condensed
-    array, and returns the coordiates of the squared symmetric matrix.
-
-    Args:
-        n_obj: the number of objects.
-        idx: the index of the condensed pairwise array across all n_obj objects.
-
-    Returns
-        A tuple (i, j) with the coordinates of the squared symmetric matrix
-        equivalent to the condensed array.
-    """
-    b = 1 - 2 * n_obj
-    x = np.floor((-b - np.sqrt(b**2 - 8 * idx)) / 2)
-    y = idx + x * (b + x + 2) / 2 + 1
-    return int(x), int(y)
-
-
 def get_chunks(
-    iterable: Union[int, Iterable], n_threads: int, ratio: float = 1
+    iterable: int | Iterable, n_threads: int, ratio: float = 1
 ) -> Iterable[Iterable[int]]:
     """
     It splits elements in an iterable in chunks according to the number of
@@ -398,176 +307,6 @@ def get_feature_type_and_encode(feature_data: NDArray) -> tuple[NDArray, bool]:
     return np.unique(feature_data, return_inverse=True)[1], data_type_is_numerical
 
 
-def compute_ccc(obj_parts_i: NDArray, obj_parts_j: NDArray, cdist_func):
-    """
-    Given a set of partitions for two features, it computes the CCC coefficient.
-
-    Args:
-        obj_parts_i: a 2d array with partitions for one feature. Each row is a
-            partition, and each column is an object.
-        obj_parts_j: a 2d array with partitions for another feature. Each row is
-            a partition, and each column is an object.
-        cdist_func: a function that computes the distance between partitions. It
-            can be either cdist_parts_basic or cdist_parts_parallel.
-
-    Returns:
-        A tuple with two elements: 1) the CCC coefficient, and 2) the indexes
-        of the partitions that maximized the coefficient.
-    """
-    comp_values = cdist_func(
-        obj_parts_i,
-        obj_parts_j,
-    )
-    max_flat_idx = comp_values.argmax()
-    max_idx = unravel_index_2d(max_flat_idx, comp_values.shape)
-
-    return max(comp_values[max_idx], 0.0), max_idx
-
-
-def compute_ccc_perms(params) -> NDArray[float]:
-    """
-    Similar to compute_ccc (with same parameters), but it computes the CCC coefficient
-    by permuting the partitions of one of the features n_perms times.
-
-    Args:
-        params: a tuple with four elements: 1) the index of the permutations, 2) the
-            partitions of one of the features, 3) the partitions of the other feature,
-            and 4) the number of permutations to perform.
-
-    Returns:
-        The CCC coefficient values using the permuted partitions of one of the features.
-    """
-    # since this function can be parallelized across different processes, make sure
-    # the random number generator is initialized with a different seed for each process
-    rng = np.random.default_rng()
-
-    _, obj_parts_i, obj_parts_j, n_perms = params
-
-    n_objects = obj_parts_i.shape[1]
-    ccc_perm_values = np.full(n_perms, np.nan, dtype=float)
-
-    for idx in range(n_perms):
-        perm_idx = rng.permutation(n_objects)
-
-        # generate a random permutation of the partitions of one
-        # variable/feature
-        obj_parts_j_permuted = np.full_like(obj_parts_j, np.nan)
-        for it in range(obj_parts_j.shape[0]):
-            obj_parts_j_permuted[it] = obj_parts_j[it][perm_idx]
-
-        # compute the CCC using the permuted partitions
-        ccc_perm_values[idx] = compute_ccc(
-            obj_parts_i, obj_parts_j_permuted, cdist_parts_basic
-        )[0]
-
-    return ccc_perm_values
-
-
-def compute_coef(params):
-    """
-    Given a list of indexes representing each a pair of
-    objects/rows/genes, it computes the CCC coefficient for
-    each of them. This function is supposed to be used to parallelize
-    processing.
-
-    Args:
-        params: a tuple with seven elements: 1) the indexes of the features
-            to compare, 2) the number of features, 3) the partitions for each
-            feature, 4) the number of permutations to compute the p-value, 5)
-            the number of threads to use for parallelization, 6) the ratio
-            between the number of chunks and the number of threads, 7) the
-            executor to use for cdist parallelization, and 8) the executor to use
-            for parallelization of permutations.
-    Returns:
-        Returns a tuple with three arrays. The first array has the CCC
-        coefficients, the second array has the indexes of the partitions that
-        maximized the coefficient, and the third array has the p-values.
-    """
-    (
-        idx_list,
-        n_features,
-        parts,
-        pvalue_n_perms,
-        default_n_threads,
-        n_chunks_threads_ratio,
-        cdist_executor,
-        executor,
-    ) = params
-
-    cdist_func = cdist_parts_basic
-    if cdist_executor is not False:
-
-        def cdist_func(x, y):
-            return cdist_parts_parallel(x, y, cdist_executor)
-
-    n_idxs = len(idx_list)
-    max_ari_list = np.full(n_idxs, np.nan, dtype=float)
-    max_part_idx_list = np.zeros((n_idxs, 2), dtype=np.uint64)
-    pvalues = np.full(n_idxs, np.nan, dtype=float)
-
-    for idx, data_idx in enumerate(idx_list):
-        i, j = get_coords_from_index(n_features, data_idx)
-        
-        # get partitions for the pair of objects
-        obji_parts, objj_parts = parts[i], parts[j]
-
-        # compute ari only if partitions are not marked as "missing"
-        # (negative values), which is assigned when partitions have
-        # one cluster (usually when all data in the feature has the same
-        # value).
-        if obji_parts[0, 0] == -2 or objj_parts[0, 0] == -2:
-            continue
-
-        # compare all partitions of one object to the all the partitions
-        # of the other object, and get the maximium ARI
-        max_ari_list[idx], max_part_idx_list[idx] = compute_ccc(
-            obji_parts, objj_parts, cdist_func
-        )
-
-        # compute p-value if requested
-        if pvalue_n_perms is not None and pvalue_n_perms > 0:
-            # with ThreadPoolExecutor(max_workers=pvalue_n_jobs) as executor_perms:
-            # select the variable that generated more partitions as the one
-            # to permute
-            obj_parts_sel_i = obji_parts
-            obj_parts_sel_j = objj_parts
-            if (obji_parts[:, 0] >= 0).sum() > (objj_parts[:, 0] >= 0).sum():
-                obj_parts_sel_i = objj_parts
-                obj_parts_sel_j = obji_parts
-
-            p_ccc_values = np.full(pvalue_n_perms, np.nan, dtype=float)
-            p_inputs = get_chunks(
-                pvalue_n_perms, default_n_threads, n_chunks_threads_ratio
-            )
-            p_inputs = [
-                (
-                    i,
-                    obj_parts_sel_i,
-                    obj_parts_sel_j,
-                    len(i),
-                )
-                for i in p_inputs
-            ]
-
-            for params, p_ccc_val in zip(
-                p_inputs,
-                executor.map(
-                    compute_ccc_perms,
-                    p_inputs,
-                ),
-            ):
-                p_idx = params[0]
-
-                p_ccc_values[p_idx] = p_ccc_val
-
-            # compute p-value
-            pvalues[idx] = (np.sum(p_ccc_values >= max_ari_list[idx]) + 1) / (
-                pvalue_n_perms + 1
-            )
-
-    return max_ari_list, max_part_idx_list, pvalues
-
-
 def get_n_workers(n_jobs: int | None) -> int:
     """
     Helper function to get the number of workers for parallel processing.
@@ -601,17 +340,21 @@ def get_n_workers(n_jobs: int | None) -> int:
 def ccc(
     x: NDArray,
     y: NDArray = None,
-    internal_n_clusters: Union[int, Iterable[int]] = None,
+    internal_n_clusters: int | Iterable[int] = None,
     return_parts: bool = False,
     n_chunks_threads_ratio: int = 1,
     n_jobs: int = 1,
     pvalue_n_perms: int = None,
     partitioning_executor: str = "thread",
-) -> tuple[NDArray[float], NDArray[float], NDArray[np.uint64], NDArray[np.int16]]:
+) -> float | NDArray[np.float64] | tuple:
     """
     This is the main function that computes the Clustermatch Correlation
     Coefficient (CCC) between two arrays. The implementation supports numerical
     and categorical data.
+
+    This is the GPU-accelerated implementation; the coefficient computation runs
+    on the GPU (values are computed in float32, so they may differ from the CPU
+    implementation in ``ccc.coef.impl`` by a small tolerance).
 
     Args:
         x: 1d or 2d numerical array with the data. NaN are not supported.
@@ -631,8 +374,30 @@ def ccc(
           None will use all available cores (`os.cpu_count()`), and negative
           values will use `os.cpu_count() + n_jobs` (exception will be raised
           if this expression yields a result less than 1). Default is 1.
-        pvalue_n_perms: if given, it computes the p-value of the
-            coefficient using the given number of permutations.
+        pvalue_n_perms: if given (an integer > 0), also estimate a p-value for
+            each coefficient with a one-sided permutation test (computed on the
+            GPU). One of the two features' partitions is randomly shuffled
+            ``pvalue_n_perms`` times and the CCC is recomputed each time; the
+            p-value is the fraction of permuted coefficients greater than or equal
+            to the observed one, with add-one (Laplace) smoothing::
+
+                p = (#{permuted CCC >= observed CCC} + 1) / (pvalue_n_perms + 1)
+
+            The test is one-sided: a *smaller* p-value is stronger evidence that
+            the association is not due to chance. Because of the ``+1`` in the
+            numerator and denominator, the smallest resolvable p-value is
+            ``1 / (pvalue_n_perms + 1)`` (e.g. ~1e-3 for 999 permutations), so
+            pick ``pvalue_n_perms`` for the resolution you need. If ``None`` or
+            ``0`` (the default), no p-value is computed. (The GPU permutation
+            p-values were corrected in the ``fix-cuda-correctness`` change, so
+            values may differ from pre-fix releases.)
+
+            Cost warning: for a 2d input the p-value is computed independently
+            for every one of the ``n * (n - 1) / 2`` feature pairs, each costing
+            ``pvalue_n_perms`` extra CCC evaluations -- a total of about
+            ``n * (n - 1) / 2 * pvalue_n_perms`` additional coefficient
+            computations, which can be orders of magnitude more expensive than
+            the point estimate alone.
         partitioning_executor: Executor type used for partitioning the data. It
             can be either "thread" (default) or "process". If "thread", it will use
             ThreadPoolExecutor for parallelization, which uses less memory. If
@@ -641,22 +406,34 @@ def ccc(
 
 
     Returns:
-        If returns_parts is True, then it returns a tuple with three values:
-        1) the coefficients, 2) the partitions indexes that maximized the coefficient
-        for each object pair, and 3) the partitions for all objects.
-        If return_parts is False, only CCC values are returned.
+        The return type is polymorphic; it depends on the input shape and on the
+        ``pvalue_n_perms`` / ``return_parts`` flags:
 
-        cm_values: if x is 2d np.array with x.shape[0] > 2, then cm_values is a 1d
-            condensed array of pairwise coefficients. It has size (n * (n - 1)) / 2,
-            where n is the number of rows in x. If x and y are given, and they are 1d,
-            then cm_values is a scalar. The CCC is always between 0 and 1 (inclusive). If
-            any of the two variables being compared has no variation (all values are the
-            same), the coefficient is not defined (np.nan). If pvalue_n_permutations is
-            an integer greater than 0, then cm_vlaues is a tuple with two elements:
-            the first element are the CCC values, and the second element are the p-values
-            using pvalue_n_permutations permutations.
+        - 1d ``x`` and ``y`` (a single feature pair): the coefficient is a scalar
+          ``float``.
+        - 2d ``x`` (``n`` features/rows): the coefficients are a 1d condensed
+          array ``cm_values`` of length ``n * (n - 1) / 2`` (the upper triangle of
+          the pairwise matrix, compatible with
+          ``scipy.spatial.distance.squareform``).
 
-        max_parts: an array with n * (n - 1)) / 2 rows (one for each object
+        When ``pvalue_n_perms`` is an integer greater than 0, the coefficient
+        result is replaced by a 2-tuple ``(cm_values, cm_pvalues)`` whose elements
+        have matching shapes (two scalars for a single pair; two 1d arrays for a
+        2d input).
+
+        When ``return_parts`` is True, a 3-tuple ``(coefficients, max_parts,
+        parts)`` is returned instead of the coefficients alone -- and
+        ``coefficients`` is itself the ``(cm_values, cm_pvalues)`` tuple described
+        above when ``pvalue_n_perms`` was given.
+
+        cm_values: the CCC coefficient(s). Each value is between 0 and 1
+            (inclusive), or ``np.nan`` when one of the two variables has no
+            variation (all values are the same) so the coefficient is undefined.
+
+        cm_pvalues: present only when ``pvalue_n_perms`` > 0. The one-sided
+            permutation p-value(s), aligned with ``cm_values`` (same shape).
+
+        max_parts: an array with ``n * (n - 1) / 2`` rows (one for each object
             pair) and two columns. It has the indexes pointing to each object's
             partition (parts, see below) that maximized the ARI. If
             cm_values[idx] is nan, then max_parts[idx] will be meaningless.
@@ -671,15 +448,13 @@ def ccc(
             partition indexes in parts, respectively: parts[0][max_parts[0]]
             points to the partition for x, and parts[1][max_parts[1]] points to
             the partition for y. Values could be negative in case
-            singleton cases were found (-1; usually because input data has all the same
-            value) or for categorical features (-2).
+            singleton cases were found (-2; usually because input data has all the same
+            value) or for categorical features (-1).
     """
     n_objects = None
     n_features = None
     # this is a boolean array of size n_features with True if the feature is numerical and False otherwise
     X_numerical_type = None
-    # Flag indicating if the data has categorical features
-    X_has_cat_features = False
     if x.ndim == 1 and (y is not None and y.ndim == 1):
         # both x and y are 1d arrays
         if not x.shape == y.shape:
@@ -759,7 +534,7 @@ def ccc(
     cm_pvalues = np.full(n_features_comp, np.nan)
 
     # for each object pair being compared, max_parts has the indexes of the
-    # partitions that maximimized the ARI
+    # partitions that maximized the ARI
     max_parts = np.zeros((n_features_comp, 2), dtype=np.uint64)
 
     with (
@@ -855,25 +630,6 @@ def ccc(
 
             # update the partitions for each feature-k pair
             parts[f_idxs, c_idxs] = ps
-
-    # Debug export parts
-    # print("Exporting parts for debugging")
-    # # Write the array to disk
-    # with open('parts.txt', 'w') as outfile:
-    #     # I'm writing a header here just for the sake of readability
-    #     # Any line starting with "#" will be ignored by numpy.loadtxt
-    #     outfile.write('# Array shape: {0}\n'.format(parts.shape))
-
-    #     # Iterating through a ndimensional array produces slices along
-    #     # the last axis. This is equivalent to data[i,:,:] in this case
-    #     for data_slice in parts:
-    #         # The formatting string indicates that I'm writing out
-    #         # the values in left-justified columns 7 characters in width
-    #         # with 2 decimal places.
-    #         np.savetxt(outfile, data_slice, fmt='%-2.0f')
-
-    #         # Writing out a break to indicate different slices...
-    #         outfile.write('# New slice\n')
 
     # Compute the CCC coefficient for all feature pairs
     # Use the GPU implementation for all data types (numerical and categorical)

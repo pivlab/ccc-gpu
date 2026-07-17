@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <cuda_runtime.h>
 
 /**
@@ -32,8 +33,8 @@
  *     int row, col;
  *     unravel_index(5, 3, &row, &col);  // For a 3-column array, index 5 -> row=1, col=2
  */
-__device__ __host__ inline void unravel_index(unsigned int flat_idx, unsigned int num_cols,
-                                              unsigned int &row, unsigned int &col)
+__device__ __host__ inline void unravel_index(unsigned int flat_idx, unsigned int num_cols, unsigned int &row,
+                                              unsigned int &col)
 {
     // change int to uint32_t
     row = flat_idx / num_cols; // Compute row index
@@ -64,48 +65,103 @@ __device__ __host__ inline void unravel_index(unsigned int flat_idx, unsigned in
  *     [ 1 3 - 5 ]    For idx=3, the function returns x=1, y=2
  *     [ 2 4 5 - ]    representing the position in the original matrix
  */
-__device__ __host__ inline void get_coords_from_index(unsigned int n_obj, unsigned int idx,
-                                                      unsigned int &x, unsigned int &y)
+__device__ __host__ inline void get_coords_from_index(unsigned int n_obj, unsigned int idx, unsigned int &x,
+                                                      unsigned int &y)
 {
     // Prevent overflow by using int64_t for intermediate calculations
     int64_t n_obj_64 = static_cast<int64_t>(n_obj);
     int64_t idx_64 = static_cast<int64_t>(idx);
-    
+
     // Calculate 'b' based on the input n_obj
     int64_t b = 1 - 2 * n_obj_64;
-    
+
     // Calculate discriminant using double precision to avoid overflow
     double discriminant = static_cast<double>(b * b) - 8.0 * static_cast<double>(idx_64);
-    
+
     // Check for negative discriminant (invalid input)
-    if (discriminant < 0) {
+    if (discriminant < 0)
+    {
         x = 0;
         y = 0;
         return;
     }
-    
+
     // Calculate 'x' using the quadratic formula part
     double x_float = (-static_cast<double>(b) - sqrt(discriminant)) / 2.0;
     int64_t x_64 = static_cast<int64_t>(floor(x_float));
-    
+
     // Bounds checking for x
-    if (x_64 < 0 || x_64 > UINT32_MAX) {
+    if (x_64 < 0 || x_64 > UINT32_MAX)
+    {
         x = 0;
         y = 0;
         return;
     }
-    
+
     x = static_cast<unsigned int>(x_64);
-    
+
     // Calculate 'y' based on 'x' and the index
     int64_t y_64 = idx_64 + x_64 * (b + x_64 + 2) / 2 + 1;
-    
+
     // Bounds checking for y
-    if (y_64 < 0 || y_64 > UINT32_MAX) {
+    if (y_64 < 0 || y_64 > UINT32_MAX)
+    {
         x = 0;
         y = 0;
         return;
     }
-    
+
     y = static_cast<unsigned int>(y_64);
+}
+
+/**
+ * @brief 64-bit overload of get_coords_from_index for the condensed index.
+ *
+ * Identical math to the 32-bit overload but accepts and returns 64-bit values so
+ * that a condensed flat index exceeding 2^32 (which happens once
+ * n_feature_comp = n_obj*(n_obj-1)/2 grows large) is not truncated. The object
+ * count n_obj remains well within 32 bits for any realistic feature count; only
+ * the flat index and the resulting coordinates are widened.
+ *
+ * @param[in] n_obj The size of one dimension of the square symmetric matrix.
+ * @param[in] idx The 64-bit flat index from the condensed array.
+ * @param[out] x Reference to store the calculated row coordinate.
+ * @param[out] y Reference to store the calculated column coordinate.
+ */
+__device__ __host__ inline void get_coords_from_index(uint64_t n_obj, uint64_t idx, uint64_t &x, uint64_t &y)
+{
+    const int64_t n_obj_64 = static_cast<int64_t>(n_obj);
+    const int64_t idx_64 = static_cast<int64_t>(idx);
+
+    const int64_t b = 1 - 2 * n_obj_64;
+
+    // Use double precision for the discriminant to avoid intermediate overflow.
+    const double discriminant = static_cast<double>(b) * static_cast<double>(b) - 8.0 * static_cast<double>(idx_64);
+
+    if (discriminant < 0)
+    {
+        x = 0;
+        y = 0;
+        return;
+    }
+
+    const double x_float = (-static_cast<double>(b) - sqrt(discriminant)) / 2.0;
+    const int64_t x_64 = static_cast<int64_t>(floor(x_float));
+
+    if (x_64 < 0)
+    {
+        x = 0;
+        y = 0;
+        return;
+    }
+    x = static_cast<uint64_t>(x_64);
+
+    const int64_t y_64 = idx_64 + x_64 * (b + x_64 + 2) / 2 + 1;
+    if (y_64 < 0)
+    {
+        x = 0;
+        y = 0;
+        return;
+    }
+    y = static_cast<uint64_t>(y_64);
 }

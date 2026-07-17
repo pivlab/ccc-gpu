@@ -17,5 +17,7 @@ CCC is based on clustering data points using individual features, and then compu
    installation
    introduction
    usage
+   api
+   benchmarking
    algorithms
    development/index

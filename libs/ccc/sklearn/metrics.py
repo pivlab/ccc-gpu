@@ -38,9 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import annotations
 
-from numba import njit
-
 import numpy as np
+from numba import njit
 
 
 @njit(cache=True, nogil=True)

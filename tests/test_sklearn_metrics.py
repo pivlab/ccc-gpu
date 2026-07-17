@@ -1,11 +1,10 @@
 import numpy as np
-from sklearn.metrics import adjusted_rand_score as sklearn_ari
-
 from ccc.sklearn.metrics import (
     adjusted_rand_index,
     get_contingency_matrix,
     get_pair_confusion_matrix,
 )
+from sklearn.metrics import adjusted_rand_score as sklearn_ari
 
 
 def test_get_contingency_matrix_k0_equal_k1():

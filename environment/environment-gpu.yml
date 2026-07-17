@@ -1,29 +1,46 @@
-# Environment for publish ccc-gpu via conda, bundled with CUDA
+# Source environment for the ccc-gpu development / build / test / docs stack,
+# bundled with CUDA. This file is the single source of truth for `conda-lock.yml`
+# (regenerate with the command in environment/README.md). Pins reflect the tested
+# modern stack: Python 3.12, NumPy 2.x, numba >=0.61, CUDA 12.x, pybind11 3.x.
+#
+# Scope: this is the reproducible environment for building the extension and
+# running the tests + docs. The research/analysis modules (ccc.plots/methods/
+# giant/corr) are NOT part of this env or the published wheel; install their
+# dependencies (matplotlib/seaborn/upsetplot/ipython/minepy/requests) separately
+# in a source checkout when running the `analysis/` notebooks.
 name: ccc-gpu
 channels:
   - conda-forge
   - nvidia
 dependencies:
-  - mamba
-  - conda-lock
-  - sphinx
-  - pip
-  - minepy
-  - cmake>=3.15
-  - cuda=12.5 # We can refer to Cupy to see how they handle this CUDA dependency, that way we can make ccc-gpu also a pip package
-  - cupy=13.*
-  - python=3.10
-  - ipython=8.*
-  - numba=0.60.*
-  - numpy=1.26.*
-  - pandas=2.2.*
+  - python=3.12.*
+  # --- build toolchain ---
+  - cmake>=3.26
+  - ninja
+  - pybind11=3.*
+  - scikit-build-core>=0.10
+  - gcc_linux-64=12.*
+  - gxx_linux-64=12.*
+  - spdlog
   - pre-commit=4.*
-  - pybind11=2.*
+  # --- CUDA toolkit (nvcc for building) + GPU runtime ---
+  - cuda-toolkit=12.5.*
+  - cuda-version=12.5
+  - cupy
+  # --- core runtime deps ---
+  - numpy=2.*
+  - numba>=0.61
+  - pandas>=2.2
+  - scipy>=1.13
+  - scikit-learn>=1.5
+  - pyyaml
+  # --- test + docs ---
   - pytest=8.*
-  - scipy=1.15.*
-  - scikit-learn=1.6.*
-  - seaborn=0.13.*
-  - upsetplot=0.9.*
+  - sphinx>=7.1
+  - sphinx-rtd-theme>=2.0
+  # --- lock tooling ---
+  - conda-lock
+  - mamba
+  - pip
 platforms:
   - linux-64
-    # - win-64

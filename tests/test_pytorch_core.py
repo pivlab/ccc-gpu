@@ -1,6 +1,5 @@
-import pytest
 import numpy as np
-
+import pytest
 from ccc.pytorch.core import unravel_index_2d
 
 

@@ -1,0 +1,149 @@
+name: CI
+
+# Runs on every push to the default branch and on every pull request.
+#
+# NOTE: GPU tests (tests/gpu/**) are intentionally NOT run here — hosted GitHub
+# runners have no CUDA device. They are a documented LOCAL command:
+#   mamba run -n ccc-gpu-dev python -m pytest tests/gpu -q -o addopts=""
+# CI covers: (a) lint, (b) a no-device wheel/extension build smoke, and
+# (c) the CPU-only test subset.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# Keep tool versions in sync with .pre-commit-config.yaml and the dev env.
+env:
+  RUFF_VERSION: "0.15.1"
+  CLANG_FORMAT_VERSION: "22.1.8"
+  CUDA_IMAGE: "nvidia/cuda:12.5.1-devel-ubuntu22.04"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------- #
+  # (a) Lint: Python (ruff) + CUDA/C++ (clang-format). Pure CPU, no CUDA.
+  # ---------------------------------------------------------------------- #
+  lint:
+    name: Lint (ruff + clang-format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install linters
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "ruff==${RUFF_VERSION}" "clang-format==${CLANG_FORMAT_VERSION}"
+
+      - name: ruff check
+        run: ruff check libs/ccc tests
+
+      - name: ruff format --check
+        run: ruff format --check libs/ccc tests
+
+      - name: clang-format --dry-run --Werror (CUDA/C++ extension)
+        run: |
+          clang-format --dry-run --Werror \
+            libs/ccc_cuda_ext/*.cu libs/ccc_cuda_ext/*.cuh
+
+  # ---------------------------------------------------------------------- #
+  # (b) Build smoke: compile the CUDA extension in a CUDA devel container.
+  #     nvcc compiles for CMAKE_CUDA_ARCHITECTURES=75 without any GPU device
+  #     present, so this catches compilation breakage on hosted runners.
+  # ---------------------------------------------------------------------- #
+  build:
+    name: Build smoke (no GPU device)
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.5.1-devel-ubuntu22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install base tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git curl ca-certificates build-essential
+
+      - name: Install Miniforge
+        run: |
+          curl -fsSL -o /tmp/miniforge.sh \
+            https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+          bash /tmp/miniforge.sh -b -p /opt/conda
+          echo "/opt/conda/bin" >> "$GITHUB_PATH"
+
+      - name: Build & install the package
+        env:
+          CUDACXX: /usr/local/cuda/bin/nvcc
+          CUDA_HOME: /usr/local/cuda
+          PATH: /opt/conda/bin:/usr/local/cuda/bin:/usr/bin:/bin
+        run: |
+          python -m pip install --upgrade pip
+          # Build isolation pulls the build backend (scikit-build-core, pybind11,
+          # cmake>=4, ninja) declared in pyproject [build-system].
+          python -m pip install . -v
+
+      - name: Import CPU path (smoke)
+        run: |
+          python - <<'PY'
+          import ccc
+          from ccc.coef import ccc as ccc_fn  # triggers numba CPU compile at import
+          import numpy as np
+          print("CPU coefficient:", ccc_fn(np.random.rand(20), np.random.rand(20)))
+          print("import OK:", ccc.__name__)
+          PY
+
+  # ---------------------------------------------------------------------- #
+  # (c) CPU-only tests: the CPU subset of the suite, selected by pytest
+  #     markers (`-m "not gpu and not slow and not network"`). GPU tests are
+  #     additionally skipped at collection when cupy/ccc_cuda_ext are absent
+  #     (tests/gpu/conftest.py). The research-only modules import undeclared
+  #     heavy deps (requests/minepy/IPython) and are excluded from the wheel,
+  #     so they are still `--ignore`d here (owned by improve-docs / PR E).
+  # ---------------------------------------------------------------------- #
+  test-cpu:
+    name: CPU tests
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.5.1-devel-ubuntu22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install base tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git curl ca-certificates build-essential
+
+      - name: Install Miniforge
+        run: |
+          curl -fsSL -o /tmp/miniforge.sh \
+            https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+          bash /tmp/miniforge.sh -b -p /opt/conda
+          echo "/opt/conda/bin" >> "$GITHUB_PATH"
+
+      - name: Build & install the package (+ test deps)
+        env:
+          CUDACXX: /usr/local/cuda/bin/nvcc
+          CUDA_HOME: /usr/local/cuda
+          PATH: /opt/conda/bin:/usr/local/cuda/bin:/usr/bin:/bin
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[test]" -v
+
+      - name: Run CPU test subset
+        env:
+          PATH: /opt/conda/bin:/usr/local/cuda/bin:/usr/bin:/bin
+        run: |
+          python -m pytest tests/ \
+            --ignore=tests/test_giant.py \
+            --ignore=tests/test_methods.py \
+            --ignore=tests/test_plots.py \
+            --ignore=tests/test_corr.py \
+            -m "not gpu and not slow and not network" \
+            -q -ra -p no:cacheprovider -o addopts=""

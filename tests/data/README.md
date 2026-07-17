@@ -2,7 +2,7 @@
 
 ## Clustermatch data
 
-The `clustermatch-example-*.pkl` files were generated using the original clustermatch
+The `ccc-random_data-*.pkl` files were generated using the original clustermatch
 code (https://github.com/sinc-lab/clustermatch - Commit 8b66b3d7) plus the patch below:
 
 ```patch
@@ -52,29 +52,4 @@ random_data.to_pickle(OUTPUT_DIR / "ccc-random_data-data.pkl")
 int_n_clusters = range(2, 10+1)
 cm_sim_matrix = calculate_simmatrix(random_data, internal_n_clusters=int_n_clusters, n_jobs=3)
 cm_sim_matrix.to_pickle(OUTPUT_DIR / "ccc-random_data-coef.pkl")
-```
-
-
-THIS IS WITH THE ORIGINAL DATA WITH NANS
-### Tomato dataset used in the original clustermatch implementation (contains NaN)
-```python
-from pathlib import Path
-
-import pandas as pd
-
-from clustermatch.cluster import calculate_simmatrix
-from clustermatch.utils.data import merge_sources
-
-data_files = ['experiments/tomato/data/real_sample.xlsx']
-merged_sources, feature_names, sources_names = merge_sources(data_files)
-
-OUTPUT_DIR = Path("/home/miltondp/projects/ccc/ccc/tests/data/")
-
-merged_sources_final = merged_sources.apply(lambda x: pd.to_numeric(x, errors="coerce"), axis=1)
-merged_sources_final = merged_sources_final.dropna(how="all")
-merged_sources_final.to_pickle(OUTPUT_DIR / "ccc-example-data.pkl")
-
-int_n_clusters = range(2, 5)
-cm_sim_matrix = calculate_simmatrix(merged_sources_final, internal_n_clusters=int_n_clusters, n_jobs=3)
-cm_sim_matrix.to_pickle(OUTPUT_DIR / "ccc-example-coef.pkl")
 ```

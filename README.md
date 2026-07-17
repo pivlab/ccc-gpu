@@ -1,7 +1,7 @@
 # Clustermatch Correlation Coefficient GPU (CCC-GPU)
 
-[![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-BSD--2--Clause--Patent-orange.svg)](https://opensource.org/license/bsdpluspatent)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10--3.14-blue.svg)](https://www.python.org/downloads/)
 [![CUDA](https://img.shields.io/badge/CUDA-12.0+-green.svg)](https://developer.nvidia.com/cuda-downloads)
 [![Documentation](https://img.shields.io/badge/docs-readthedocs-blue.svg)](https://ccc-gpu.readthedocs.io/en/latest/)
 
@@ -25,7 +25,7 @@ Original notebooks and scripts used for the manuscript, as well as other analyse
 ### Requirements
 
 **Hardware:**
-- Nvidia GPU with CUDA Compute Capability 8.6 or higher
+- Nvidia GPU with CUDA Compute Capability 7.5 or higher (wheels ship native code for 7.5, 8.0, 8.6, 8.9, and 9.0)
 
 **Software:**
 - OS: Linux x86_64 distributions using glibc 2.28 or later, including:
@@ -33,8 +33,8 @@ Original notebooks and scripts used for the manuscript, as well as other analyse
   - Ubuntu 18.10+
   - Fedora 29+
   - CentOS/RHEL 8+
-- Python 3.10 to 3.13 (3.14 will be supported soon)
-- Nvidia driver with CUDA 12.5 or higher (for GPU acceleration)
+- Python 3.10 to 3.14
+- Nvidia driver with CUDA 12.0 or higher (for GPU acceleration)
 
 > **Note**: You can use command `nvidia-smi` to check your Nvidia driver and CUDA version.
 
@@ -45,7 +45,7 @@ Original notebooks and scripts used for the manuscript, as well as other analyse
 
 ```bash
 # Create conda environment if you want to test it out in a separate environment
-# conda create -n ccc-gpu -c conda-forge python=3.10 (or 3.11, 3.12, 3.13)
+# conda create -n ccc-gpu -c conda-forge python=3.12  # any of 3.10-3.14
 # conda activate ccc-gpu
 
 # Install cccgpu from PyPI
@@ -168,7 +168,7 @@ ccc(
 
 - **`n_jobs`** *(int, default=1)*: Number of CPU cores/threads for internal parallelization. `None` uses all available cores. Negative values use `os.cpu_count() + n_jobs`. Must yield a value >= 1.
 
-- **`pvalue_n_perms`** *(int, optional)*: If provided and > 0, computes p-value using the specified number of permutations. If None or 0, p-values are not computed.
+- **`pvalue_n_perms`** *(int, optional)*: If provided and > 0, also estimates a one-sided permutation p-value for each coefficient using the specified number of permutations. If None or 0, p-values are not computed. See [Computing p-values](#computing-p-values) below.
 
 - **`partitioning_executor`** *(str, default="thread")*: Executor type for data partitioning. `"thread"` uses ThreadPoolExecutor (less memory), `"process"` uses ProcessPoolExecutor (potentially faster), any other value disables parallelization for partitioning.
 
@@ -192,6 +192,42 @@ Return type varies based on input dimensionality and parameters:
 - Returns `np.nan` if a variable has no variation
 - Uses GPU acceleration (CUDA) for coefficient computation
 - NaN values in input data are not supported
+
+### Computing p-values
+
+Passing `pvalue_n_perms` estimates a **one-sided permutation p-value** for each
+coefficient. One feature's partitions are shuffled `pvalue_n_perms` times and the
+CCC is recomputed to build an empirical null distribution; the p-value is
+
+```
+p = (#{permuted CCC >= observed CCC} + 1) / (pvalue_n_perms + 1)
+```
+
+```python
+import numpy as np
+from ccc.coef.impl_gpu import ccc
+
+np.random.seed(123)
+x = np.random.randn(300)
+y = x + np.random.randn(300) * 0.5
+
+coef, pvalue = ccc(x, y, pvalue_n_perms=1000)
+print(f"CCC: {coef:.3f}, p-value: {pvalue:.3f}")
+```
+
+- **Interpretation:** the test is one-sided — a *smaller* p-value is stronger
+  evidence of a non-chance association. The smallest resolvable p-value is
+  `1 / (pvalue_n_perms + 1)` (≈ `1e-3` for 999 permutations), so pick
+  `pvalue_n_perms` for the resolution you need.
+- **Shapes:** a 1d pair returns `(coef, pvalue)`; a 2d input returns a
+  `(coefficients, p-values)` tuple of aligned arrays.
+- **Cost:** for a 2d input a p-value is computed for each of the `n*(n-1)/2`
+  pairs, each costing `pvalue_n_perms` extra CCC evaluations — this can be far
+  more expensive than the point estimate, so prefer small inputs or a modest
+  permutation count and parallelize with `n_jobs`.
+
+See the [Computing p-values](https://ccc-gpu.readthedocs.io/en/latest/usage.html#computing-p-values)
+docs section for the full method and interpretation.
 
 ### Working with Gene Expression Data
 
@@ -270,6 +306,17 @@ CCC-GPU provides significant performance improvements over CPU-only implementati
 
 *Benchmarks performed on synthetic gene expression data with 1000 fixed samples. Hardware: AMD Ryzen Threadripper 7960X CPU and an NVIDIA RTX 4090 GPU. Git commit on which the benchmark results were collected: 05f129dfa47ad801eff963b4189484c7c64bd28e*
 
+The table above was produced with the bundled `ccc-gpu-bench` CLI (installed with the package):
+
+```bash
+# Fast sanity sweep
+ccc-gpu-bench coef --preset smoke
+# Reproduce the sweep behind the table (long-running; run on the reference GPU box)
+ccc-gpu-bench coef --preset paper --format csv -o coef_paper.csv
+```
+
+See the [Benchmarking](https://ccc-gpu.readthedocs.io/en/latest/benchmarking.html) docs for all modes and the output schema.
+
 ## Documentation
 
 Build and view the full documentation locally:
@@ -304,7 +351,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ## License
 
-This project is licensed under the BSD 2-Clause License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the BSD-2-Clause Plus Patent License (SPDX: `BSD-2-Clause-Patent`) - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 

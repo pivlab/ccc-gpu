@@ -1,7 +1,6 @@
 import numpy as np
-from scipy import stats
-
 from ccc.scipy.stats import rank
+from scipy import stats
 
 
 def test_rank_no_duplicates():

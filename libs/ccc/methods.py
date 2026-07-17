@@ -1,6 +1,7 @@
 """
 Contains other correlation methods.
 """
+
 import warnings
 
 from minepy.mine import MINE
