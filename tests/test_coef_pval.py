@@ -1,13 +1,8 @@
-import os
-import time
-
 import numpy as np
 import pandas as pd
 import pytest
 from ccc.coef import ccc
 from sklearn.preprocessing import minmax_scale
-
-IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
 
 def test_cm_basic_pvalue_n_permutations_not_given():
@@ -241,43 +236,10 @@ def test_cm_single_argument_is_matrix():
     assert pvalue[2] > 0.10
 
 
-@pytest.mark.skipif(os.cpu_count() < 2, reason="requires at least 2 cores")
-@pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test doesn't work in Github Actions.")
-def test_cm_large_n_objects_pvalue_permutations_is_parallelized():
-    # Prepare
-    rs = np.random.RandomState(0)
-    n_runs = 5
-    single_thread_times = []
-    multi_thread_times = []
-
-    # two features on 100 objects with a linear relationship
-    feature0 = rs.rand(100000)
-    feature1 = rs.rand(100000)
-
-    # Run multiple times to ensure consistency
-    for _ in range(n_runs):
-        # Single thread run
-        start_time = time.time()
-        _ = ccc(feature0, feature1, pvalue_n_perms=500, n_jobs=1)
-        single_thread_times.append(time.time() - start_time)
-
-        # Multi thread run
-        start_time = time.time()
-        _ = ccc(feature0, feature1, pvalue_n_perms=500, n_jobs=2)
-        multi_thread_times.append(time.time() - start_time)
-
-    # Print timing information for debugging
-    print(f"\nSingle thread times: {single_thread_times}")
-    print(f"Multi thread times: {multi_thread_times}")
-    print(
-        f"Average speedup: {np.mean(single_thread_times) / np.mean(multi_thread_times):.2f}x"
-    )
-
-    # Validate that parallel execution is consistently faster
-    for i in range(n_runs):
-        assert multi_thread_times[i] < single_thread_times[i], (
-            f"Run {i + 1}: Multi-thread ({multi_thread_times[i]:.2f}s) not faster than single-thread ({single_thread_times[i]:.2f}s)"
-        )
+# NOTE: test_cm_large_n_objects_pvalue_permutations_is_parallelized was removed.
+# It was a pure wall-clock benchmark (single- vs multi-thread p-value permutation
+# timing on 100,000 objects) with no correctness assertion; its measurement intent
+# now lives in the `ccc-gpu-bench scaling --pvalue-n-perms ...` CLI mode.
 
 
 def test_cm_return_parts_quadratic_pvalue():

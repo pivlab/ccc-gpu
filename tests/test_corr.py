@@ -4,6 +4,12 @@ Tests the corr.py module.
 
 import numpy as np
 import pandas as pd
+import pytest
+
+# ccc.corr is an analysis-only module (excluded from the published wheel and
+# depends on `minepy`); skip cleanly when it or its deps are unavailable.
+pytest.importorskip("ccc.corr")
+
 from ccc import corr
 
 

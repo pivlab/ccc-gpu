@@ -1,4 +1,10 @@
 import numpy as np
+import pytest
+
+# ccc.methods is an analysis-only module (excluded from the published wheel and
+# depends on `minepy`); skip cleanly when it or its deps are unavailable.
+pytest.importorskip("ccc.methods")
+
 from ccc.methods import mic
 
 

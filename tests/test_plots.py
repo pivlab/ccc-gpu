@@ -10,6 +10,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+# ccc.plots is an analysis-only module (excluded from the published wheel and
+# depends on matplotlib/seaborn/IPython); skip cleanly when unavailable.
+pytest.importorskip("ccc.plots")
+
 from ccc.plots import (
     MyUpSet,
     jointplot,

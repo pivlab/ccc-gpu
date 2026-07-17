@@ -36,6 +36,9 @@ Issues = "https://github.com/pivlab/ccc-gpu/issues"
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov"]
 
+[project.scripts]
+ccc-gpu-bench = "ccc.bench.cli:main"
+
 [tool.scikit-build]
 # Configure scikit-build-core
 cmake.version = ">=4.0"
@@ -62,8 +65,13 @@ wheel.platlib = true # Contains compiled extensions
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q"
+addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
+markers = [
+    "gpu: test requires a CUDA GPU + the ccc_cuda_ext extension (auto-applied to tests/gpu; skipped when cupy/ccc_cuda_ext are unavailable)",
+    "slow: test is slow (e.g. 1M-element inputs); excluded from the default CI subset",
+    "network: test downloads data over the network; excluded from the default CI subset",
+]
 
 # --------------------------------------------------------------------------- #
 # Ruff — single source of truth for Python lint + format.
