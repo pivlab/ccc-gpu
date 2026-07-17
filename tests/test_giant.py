@@ -9,7 +9,14 @@ if not sys.platform.startswith("linux"):
         "Skipping REST test on GIANT in non-Linux systems", allow_module_level=True
     )
 
+# ccc.giant is an analysis-only module (excluded from the published wheel and
+# depends on `requests`); skip cleanly when it or its deps are unavailable.
+pytest.importorskip("ccc.giant")
+
 from ccc.giant import gene_exists, get_network, predict_tissue
+
+# These tests hit the GIANT REST API over the network.
+pytestmark = pytest.mark.network
 
 # Gene mappings used in unit tests
 gene_mappings = pd.DataFrame(

@@ -26,14 +26,12 @@ import pandas as pd
 import pytest
 from ccc.coef.impl import ccc as ccc_cpu
 from ccc.coef.impl_gpu import ccc as ccc_gpu
-from utils import clean_gpu_memory
 
 # ---------------------------------------------------------------------------
 # 1. Input validation -> Python exception, no interpreter crash
 # ---------------------------------------------------------------------------
 
 
-@clean_gpu_memory
 def test_compute_coef_shape_mismatch_raises_value_error():
     # A valid int16 partitions array of shape (2, 1, 4)...
     parts = np.array([[[0, 0, 1, 1]], [[0, 0, 1, 2]]], dtype=np.int16)
@@ -47,14 +45,12 @@ def test_compute_coef_shape_mismatch_raises_value_error():
         ccc_cuda_ext.compute_coef(parts, 2, 1, 8)  # n_objs=8 != shape[2]=4
 
 
-@clean_gpu_memory
 def test_compute_coef_zero_partitions_raises_value_error():
     parts = np.zeros((2, 0, 4), dtype=np.int16)
     with pytest.raises(ValueError):
         ccc_cuda_ext.compute_coef(parts, 2, 0, 4)
 
 
-@clean_gpu_memory
 def test_compute_coef_too_many_partitions_raises_value_error():
     # max_parts stores partition indices as uint8, so n_partitions must be <= 255.
     parts = np.zeros((2, 256, 4), dtype=np.int16)
@@ -62,7 +58,6 @@ def test_compute_coef_too_many_partitions_raises_value_error():
         ccc_cuda_ext.compute_coef(parts, 2, 256, 4)
 
 
-@clean_gpu_memory
 def test_invalid_input_does_not_crash_interpreter():
     """A rejected call raises a Python exception and the process keeps working:
     a subsequent valid computation still succeeds."""
@@ -81,7 +76,6 @@ def test_invalid_input_does_not_crash_interpreter():
 
 
 @pytest.mark.parametrize("k_list", [[20], [10, 20], [17, 24]])
-@clean_gpu_memory
 def test_pvalue_more_than_16_clusters_matches_cpu(k_list):
     """With > 16 clusters the GPU permutation path used to silently return
     ARI 0.0 for every permutation (MAX_CLUSTERS = 16), producing biased
@@ -120,7 +114,6 @@ def test_pvalue_more_than_16_clusters_matches_cpu(k_list):
 # ---------------------------------------------------------------------------
 
 
-@clean_gpu_memory
 def test_pvalue_categorical_feature_consistency_vs_cpu():
     """A DataFrame mixing a numerical and categorical features exercises the
     categorical-marker (-1 -> ARI 0.0) semantics in the permutation null."""
@@ -161,7 +154,6 @@ def test_pvalue_categorical_feature_consistency_vs_cpu():
 # ---------------------------------------------------------------------------
 
 
-@clean_gpu_memory
 def test_pvalue_singleton_feature_nan_consistency_vs_cpu():
     rs = np.random.RandomState(11)
     n = 100

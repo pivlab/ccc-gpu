@@ -1,5 +1,4 @@
 import os
-import time
 from concurrent.futures import ThreadPoolExecutor
 from random import shuffle
 from unittest.mock import patch
@@ -21,8 +20,6 @@ from ccc.coef import (
 )
 from sklearn.metrics import adjusted_rand_score as ari
 from sklearn.preprocessing import minmax_scale
-
-IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
 
 def test_get_perc_from_k_with_k_less_than_two():
@@ -497,11 +494,12 @@ def test_cm_x_and_y_are_pandas_dataframe():
     assert "wrong combination" in str(e).lower()
 
 
+@pytest.mark.slow
 def test_cm_integer_overflow_random():
     # Prepare
     np.random.seed(0)
 
-    # two features on 100 objects with a linear relationship
+    # two features on 1,000,000 objects (large input exercises the 64-bit path)
     feature0 = np.random.rand(1000000)
     feature1 = np.random.rand(1000000)
 
@@ -510,11 +508,12 @@ def test_cm_integer_overflow_random():
     assert 0.0 <= cm_value <= 0.01
 
 
+@pytest.mark.slow
 def test_cm_integer_overflow_perfect_match():
     # Prepare
     np.random.seed(0)
 
-    # two features on 100 objects with a linear relationship
+    # two features on 1,000,000 objects (large input exercises the 64-bit path)
     feature0 = np.random.rand(1000000)
 
     # Run
@@ -1418,8 +1417,15 @@ def test_cm_numpy_array_input():
     assert np.issubdtype(cm_value.dtype, float)
 
 
+# The wall-clock speedup assertions that used to live in the n_jobs tests below
+# were removed (flaky by nature); the timing measurement now lives in the
+# `ccc-gpu-bench scaling` CLI mode. What remains here is a determinism check:
+# parallel results must equal the single-thread result. Marked `slow` because
+# they run large inputs through the parallel path.
+
+
+@pytest.mark.slow
 @pytest.mark.skipif(os.cpu_count() < 2, reason="requires at least 2 cores")
-@pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test doesn't work in Github Actions.")
 def test_cm_numpy_array_input_with_n_jobs():
     # Prepare
     np.random.seed(123)
@@ -1427,18 +1433,11 @@ def test_cm_numpy_array_input_with_n_jobs():
     # here I force
     data = np.random.rand(100, 1000)
 
-    # Run
-    start_time = time.time()
+    # Run: single-thread vs multi-thread must agree
     res0 = ccc(data, n_jobs=1)
-    elapsed_time_single_thread = time.time() - start_time
-
-    start_time = time.time()
     res1 = ccc(data, n_jobs=2)
-    elapsed_time_multi_thread = time.time() - start_time
 
     # Validate
-    assert elapsed_time_multi_thread < 0.75 * elapsed_time_single_thread
-
     assert res0 is not None
     assert isinstance(res0, np.ndarray)
     assert res0.shape == (int(data.shape[0] * (data.shape[0] - 1) / 2),)
@@ -1446,8 +1445,8 @@ def test_cm_numpy_array_input_with_n_jobs():
     np.testing.assert_array_equal(res0, res1)
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(os.cpu_count() < 2, reason="requires at least 2 cores")
-@pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test doesn't work in Github Actions.")
 def test_cm_two_features_input_with_n_jobs():
     # Prepare
     np.random.seed(123)
@@ -1456,25 +1455,18 @@ def test_cm_two_features_input_with_n_jobs():
     x = np.random.rand(100000)
     y = np.random.rand(100000)
 
-    # Run
-    start_time = time.time()
+    # Run: single-thread vs multi-thread must agree
     res0 = ccc(x, y, n_jobs=1)
-    elapsed_time_single_thread = time.time() - start_time
-
-    start_time = time.time()
     res1 = ccc(x, y, n_jobs=2)
-    elapsed_time_multi_thread = time.time() - start_time
 
     # Validate
-    assert elapsed_time_multi_thread < 0.75 * elapsed_time_single_thread
-
     assert res0 is not None
     assert isinstance(res0, float)
     assert res0 == res1
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(os.cpu_count() < 2, reason="requires at least 2 cores")
-@pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test doesn't work in Github Actions.")
 def test_cm_two_features_input_with_n_jobs_using_threads_for_partitioning():
     # Prepare
     np.random.seed(123)
@@ -1483,25 +1475,18 @@ def test_cm_two_features_input_with_n_jobs_using_threads_for_partitioning():
     x = np.random.rand(100000)
     y = np.random.rand(100000)
 
-    # Run
-    start_time = time.time()
+    # Run: thread-based partitioning must agree with the single-thread result
     res0 = ccc(x, y, n_jobs=1)
-    elapsed_time_single_thread = time.time() - start_time
-
-    start_time = time.time()
     res1 = ccc(x, y, n_jobs=2, partitioning_executor="thread")
-    elapsed_time_multi_thread = time.time() - start_time
 
     # Validate
-    assert elapsed_time_multi_thread < 0.75 * elapsed_time_single_thread
-
     assert res0 is not None
     assert isinstance(res0, float)
     assert res0 == res1
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(os.cpu_count() < 2, reason="requires at least 2 cores")
-@pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test doesn't work in Github Actions.")
 def test_cm_two_features_input_with_n_jobs_using_process_for_partitioning():
     # Prepare
     np.random.seed(123)
@@ -1510,20 +1495,11 @@ def test_cm_two_features_input_with_n_jobs_using_process_for_partitioning():
     x = np.random.rand(1000000)
     y = np.random.rand(1000000)
 
-    # Run
-    start_time = time.time()
+    # Run: process-based partitioning must agree with the single-thread result
     res0 = ccc(x, y, n_jobs=1)
-    elapsed_time_single_thread = time.time() - start_time
-
-    start_time = time.time()
     res1 = ccc(x, y, n_jobs=2, partitioning_executor="process")
-    elapsed_time_multi_thread = time.time() - start_time
 
     # Validate
-    # less stringent than with threads, because the overhead of using processes
-    # seems to be larger
-    assert elapsed_time_multi_thread < elapsed_time_single_thread
-
     assert res0 is not None
     assert isinstance(res0, float)
     assert res0 == res1

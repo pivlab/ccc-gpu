@@ -313,6 +313,19 @@ TEST_P(PairwiseAriTest, RandomPartitions)
 {
     const auto params = GetParam();
 
+    // The reference results are computed by a Python loop over every partition
+    // pair (n_feature_comp * n_parts^2). For large feature counts that loop is
+    // far too slow for a unit test (and the largest case would OOM). Skip those;
+    // large-input CUDA parity is exercised by the pytest test_pairwise_ari suite.
+    // (tracked: restructure-tests coverage backlog)
+    const uint64_t n_feature_comp = static_cast<uint64_t>(params.n_features) * (params.n_features - 1) / 2;
+    const uint64_t n_ref_pairs = n_feature_comp * static_cast<uint64_t>(params.n_parts) * params.n_parts;
+    if (n_ref_pairs > 100000)
+    {
+        GTEST_SKIP() << "Skipping large case: Python reference over " << n_ref_pairs
+                     << " partition pairs is too slow for a unit test.";
+    }
+
     // Generate test data
     auto parts = TestDataGenerator::generate_random_partitions(
         params.n_features, params.n_parts, params.n_objs, params.k);
