@@ -316,6 +316,11 @@ __device__ R computePermutedARI(const T *part_i, const T *part_j, const uint32_t
     return static_cast<R>(ari);
 }
 
+// Per-thread local scratch capacity for the permutation contingency + row/col
+// sums (k*k + 2*k ints). Covers k <= 16, which spans essentially all CCC usage
+// (internal_n_clusters rarely exceeds ~10). Larger k falls back to global scratch.
+static constexpr int PERM_LOCAL_CAP = 16 * 16 + 2 * 16;
+
 /**
  * @brief Batched permutation-CCC kernel: one thread per (comparison, permutation).
  *
@@ -371,7 +376,15 @@ __global__ void computePermutationCCCBatched(const T *d_parts, const uint32_t *v
     }
 
     const uint32_t *perm = &perm_indices[static_cast<uint64_t>(perm_idx) * n_objects];
-    int *thread_scratch = scratch + gid * scratch_stride;
+
+    // Contingency/sum scratch. For the common small-k case, use a per-thread LOCAL
+    // array: CUDA interleaves local memory across threads so a warp's accesses are
+    // coalesced, unlike the strided global `scratch + gid*stride` (each warp lane's
+    // contingency lives `scratch_stride` ints apart). This also avoids allocating a
+    // large global scratch buffer. Fall back to global scratch for large k.
+    int local_scratch[PERM_LOCAL_CAP];
+    int *thread_scratch =
+        (scratch_stride <= static_cast<uint64_t>(PERM_LOCAL_CAP)) ? local_scratch : (scratch + gid * scratch_stride);
 
     R max_ari = 0.0f;
     bool found_valid_ari = false;
@@ -759,18 +772,28 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts, const size_t 
             k_global = 1;
         const uint64_t scratch_stride = static_cast<uint64_t>(k_global) * k_global + 2ULL * k_global;
 
-        // Per-thread contingency/sum scratch for the batched permutation kernel:
-        // one slot per (comparison, permutation) thread. Its size scales as k^2
-        // per thread, so bound the number of comparisons processed per launch to
-        // a memory budget and loop over comparison sub-batches (`comps_per_launch`);
-        // large k simply takes more passes rather than exhausting memory.
-        size_t free_scratch = 0, total_scratch = 0;
-        cudaMemGetInfo(&free_scratch, &total_scratch);
-        const uint64_t scratch_elem_bytes = std::max<uint64_t>(scratch_stride * sizeof(int), 1);
-        const uint64_t scratch_budget =
-            std::min<uint64_t>(free_scratch / 4, static_cast<uint64_t>(1) << 30); // cap at 1 GiB
-        const uint64_t scratch_per_comp = std::max<uint64_t>(static_cast<uint64_t>(n_perms) * scratch_elem_bytes, 1);
-        const uint64_t comps_per_launch = std::max<uint64_t>(1, scratch_budget / scratch_per_comp);
+        // Scratch strategy for the batched permutation kernel's per-thread
+        // contingency (k*k + 2*k ints). For small k the kernel uses fast, coalesced
+        // per-thread LOCAL memory (no global buffer, no per-launch bound); only for
+        // large k (> PERM_LOCAL_CAP) do we fall back to a global scratch buffer,
+        // bounding the comparisons per launch to a memory budget so it cannot OOM.
+        const bool use_local_scratch = scratch_stride <= static_cast<uint64_t>(PERM_LOCAL_CAP);
+        uint64_t comps_per_launch;
+        if (use_local_scratch)
+        {
+            comps_per_launch = n_feature_comp; // scratch is not a constraint
+        }
+        else
+        {
+            size_t free_scratch = 0, total_scratch = 0;
+            cudaMemGetInfo(&free_scratch, &total_scratch);
+            const uint64_t scratch_elem_bytes = std::max<uint64_t>(scratch_stride * sizeof(int), 1);
+            const uint64_t scratch_budget =
+                std::min<uint64_t>(free_scratch / 4, static_cast<uint64_t>(1) << 30); // cap at 1 GiB
+            const uint64_t scratch_per_comp =
+                std::max<uint64_t>(static_cast<uint64_t>(n_perms) * scratch_elem_bytes, 1);
+            comps_per_launch = std::max<uint64_t>(1, scratch_budget / scratch_per_comp);
+        }
 
         // Precompute, once per feature, the number of valid (non-categorical,
         // non-singleton) partitions. The batched kernel uses this to choose which
@@ -828,7 +851,11 @@ auto compute_coef(const py::array_t<T, py::array::c_style> &parts, const size_t 
             step = 1;
 
         thrust::device_vector<R> d_perm_ccc_values(static_cast<size_t>(step) * n_perms);
-        thrust::device_vector<int> d_perm_scratch(static_cast<size_t>(step) * n_perms * scratch_stride);
+        // Global scratch only for the large-k fallback; a single element otherwise
+        // (the kernel uses per-thread local memory and never dereferences it).
+        const size_t global_scratch_elems =
+            use_local_scratch ? 1 : static_cast<size_t>(step) * n_perms * scratch_stride;
+        thrust::device_vector<int> d_perm_scratch(global_scratch_elems);
 
         spdlog::debug("Computing permutation CCC values for {} comparisons ({} per launch, k={})", n_feature_comp, step,
                       k_global);
