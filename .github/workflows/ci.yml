@@ -100,12 +100,12 @@ jobs:
           PY
 
   # ---------------------------------------------------------------------- #
-  # (c) CPU-only tests: the CPU subset of the suite. GPU, network, and
-  #     undeclared-dep tests are ignored (see BASELINE). The two known
-  #     np.unicode_ test-only failures are deselected until restructure-tests
-  #     (PR D) fixes the NumPy-2 alias.
-  #     TODO(PR D): once pytest markers land, replace the --ignore/--deselect
-  #     list with `-m "not gpu and not slow and not network"`.
+  # (c) CPU-only tests: the CPU subset of the suite, selected by pytest
+  #     markers (`-m "not gpu and not slow and not network"`). GPU tests are
+  #     additionally skipped at collection when cupy/ccc_cuda_ext are absent
+  #     (tests/gpu/conftest.py). The research-only modules import undeclared
+  #     heavy deps (requests/minepy/IPython) and are excluded from the wheel,
+  #     so they are still `--ignore`d here (owned by improve-docs / PR E).
   # ---------------------------------------------------------------------- #
   test-cpu:
     name: CPU tests
@@ -141,11 +141,9 @@ jobs:
           PATH: /opt/conda/bin:/usr/local/cuda/bin:/usr/bin:/bin
         run: |
           python -m pytest tests/ \
-            --ignore=tests/gpu \
             --ignore=tests/test_giant.py \
             --ignore=tests/test_methods.py \
             --ignore=tests/test_plots.py \
             --ignore=tests/test_corr.py \
-            --deselect "tests/test_coef_pval.py::test_cm_numerical_and_categorical_features_perfect_relationship_pvalue" \
-            --deselect "tests/test_coef_pval.py::test_cm_numerical_and_categorical_features_weakly_relationship_pvalue" \
+            -m "not gpu and not slow and not network" \
             -q -ra -p no:cacheprovider -o addopts=""

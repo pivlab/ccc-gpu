@@ -4,7 +4,9 @@ import pytest
 from ccc.coef.impl import ccc
 from ccc.coef.impl_gpu import ccc as ccc_gpu
 from scipy.spatial.distance import squareform
-from utils import clean_gpu_memory
+
+# This test downloads the Titanic dataset over the network.
+pytestmark = pytest.mark.network
 
 
 @pytest.fixture
@@ -29,7 +31,6 @@ def print_correlation_matrix(correlations, title):
         print(" ".join(f"{x:8.4f}" for x in row))
 
 
-@clean_gpu_memory
 def test_ccc_gpu_with_titanic_dataset(titanic_data):
     """
     Test the CCC (Categorical Correlation Coefficient) computation on the Titanic dataset.
