@@ -6,6 +6,7 @@ memory pool is freed between cases.
 """
 
 import itertools
+import sys
 import time
 from datetime import datetime, timezone
 
@@ -136,7 +137,7 @@ def _print_coef(r: dict) -> None:
         parts.append(f"CPU={r['cpu_time_min_s']:.4f}s")
     if r["speedup"] is not None:
         parts.append(f"speedup={r['speedup']:.2f}x")
-    print("  " + "  ".join(parts))
+    print("  " + "  ".join(parts), file=sys.stderr)
 
 
 # --------------------------------------------------------------------------- #
@@ -235,7 +236,7 @@ def run_ari(
                 msg.append(f"CPU={cpu_min:.4f}s")
             if speedup is not None:
                 msg.append(f"speedup={speedup:.2f}x")
-            print("  " + "  ".join(msg))
+            print("  " + "  ".join(msg), file=sys.stderr)
     return records
 
 
@@ -300,6 +301,7 @@ def run_scaling(
             if verbose:
                 sp = f"{speedup:.2f}x" if speedup is not None else "n/a"
                 print(
-                    f"  scaling f={nf} n={ns} jobs={nj} CPU={t_min:.4f}s speedup={sp}"
+                    f"  scaling f={nf} n={ns} jobs={nj} CPU={t_min:.4f}s speedup={sp}",
+                    file=sys.stderr,
                 )
     return records
