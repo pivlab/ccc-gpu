@@ -9,4 +9,4 @@
 # Append the SHA of the isolated "apply ruff-format + clang-format" commit
 # from the add-lint-tooling change below, e.g.:
 #   <full-40-char-sha>  # style: apply ruff-format + clang-format (add-lint-tooling)
-c0ae4ad8d21dacad7a5a44cde670497f936a3ca8  # style: apply ruff-format + clang-format (add-lint-tooling)
+a7fc68c2a89dffd0932772df11f46b775c235f51  # style: apply ruff-format + clang-format (add-lint-tooling)
