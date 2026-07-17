@@ -132,7 +132,7 @@ def _maybe_profile(mode: str, args: argparse.Namespace, grid: dict) -> None:
     if mode == "ari":
         nf = grid["n_features"][0]
         no = grid["n_objs"][0]
-        print("\n" + profiling.nsys_suggestion(nf, no, args.seed))
+        print("\n" + profiling.nsys_suggestion(nf, no, args.seed), file=sys.stderr)
         return
 
     nf = grid["features"][0]
@@ -157,7 +157,7 @@ def _maybe_profile(mode: str, args: argparse.Namespace, grid: dict) -> None:
         profiling.print_cpu_profile(prof)
 
     if not cpu_only and gpu_available():
-        print("\n" + profiling.nsys_suggestion(nf, ns, args.seed))
+        print("\n" + profiling.nsys_suggestion(nf, ns, args.seed), file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -174,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise SystemExit("--gpu-only and --cpu-only are mutually exclusive")
             grid = _resolve_grid("coef", args, ["features", "samples", "n_jobs"])
             _require_gpu(args.cpu_only)
-            print(f"Running coef benchmark: {grid}")
+            print(f"Running coef benchmark: {grid}", file=sys.stderr)
             runners.run_coef(
                 writer=writer,
                 env=env,
@@ -196,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise SystemExit("--gpu-only and --cpu-only are mutually exclusive")
             grid = _resolve_grid("ari", args, ["n_features", "n_parts", "n_objs", "k"])
             _require_gpu(args.cpu_only)
-            print(f"Running ari benchmark: {grid}")
+            print(f"Running ari benchmark: {grid}", file=sys.stderr)
             runners.run_ari(
                 writer=writer,
                 env=env,
@@ -214,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
 
         elif mode == "scaling":
             grid = _resolve_grid("scaling", args, ["features", "samples", "n_jobs"])
-            print(f"Running scaling benchmark: {grid}")
+            print(f"Running scaling benchmark: {grid}", file=sys.stderr)
             runners.run_scaling(
                 writer=writer,
                 env=env,

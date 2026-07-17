@@ -12,10 +12,23 @@ import subprocess
 
 
 def gpu_available() -> bool:
-    """True when both cupy and the compiled CUDA extension are importable."""
-    return all(
-        importlib.util.find_spec(name) is not None for name in ("cupy", "ccc_cuda_ext")
-    )
+    """True when the CUDA extension is importable AND a CUDA device is accessible.
+
+    Module importability alone is not proof of a usable GPU: a CUDA-enabled
+    environment on a device-less host (e.g. a CPU CI runner) imports cupy and
+    the extension fine but has no device. Probe the runtime for a device count
+    so callers fail fast with a clear message instead of a low-level CUDA error.
+    """
+    if importlib.util.find_spec("ccc_cuda_ext") is None:
+        return False
+    if importlib.util.find_spec("cupy") is None:
+        return False
+    try:
+        import cupy as cp
+
+        return cp.cuda.runtime.getDeviceCount() > 0
+    except Exception:
+        return False
 
 
 def _package_version() -> str | None:
