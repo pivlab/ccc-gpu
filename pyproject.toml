@@ -39,13 +39,14 @@ Homepage = "https://github.com/pivlab/ccc-gpu"
 Issues = "https://github.com/pivlab/ccc-gpu/issues"
 
 [project.optional-dependencies]
-# Plotting helpers used by `ccc.plots` (research/analysis only; not in the wheel).
-plots = ["matplotlib", "seaborn", "upsetplot", "ipython"]
-# Extra deps for the in-repo research/analysis modules (`ccc.methods`,
-# `ccc.giant`); installable from a source checkout, kept out of the core install.
-research = ["minepy", "requests"]
 # Test-only dependencies.
 test = ["pytest"]
+# NOTE: the research/plotting modules (ccc.plots/methods/giant/corr) are
+# intentionally NOT part of the published wheel (see wheel.exclude below); they
+# live in the repo for the `analysis/` work. Their dependencies
+# (matplotlib/seaborn/upsetplot/ipython/minepy/requests) are provided by the
+# development environment (`environment/environment-gpu.yml`), not as PyPI
+# extras, since an extra cannot ship the excluded modules.
 
 [project.scripts]
 ccc-gpu-bench = "ccc.bench.cli:main"

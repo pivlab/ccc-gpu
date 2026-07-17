@@ -2,13 +2,16 @@
 
 | File | Purpose |
 |------|---------|
-| `environment-gpu.yml` | **Source of truth** for the development / CI environment (Python 3.12, NumPy 2.x, numba ≥0.61, CUDA 12.x, the build toolchain, and test/docs/research extras). This is the single source file that `../conda-lock.yml` is generated from. |
+| `environment-gpu.yml` | **Source of truth** for the development / CI environment: Python 3.12, NumPy 2.x, numba ≥0.61, the CUDA 12.5 toolchain, pybind11 3.x, and the test + docs tooling needed to build the extension and run the suite. This is the single source file that `../conda-lock.yml` is generated from. |
 | `environment-dev.yaml` | Tiny helper env (`sphinx`, `mamba`, `conda-lock`) for building the docs and regenerating the lock without polluting `base`. |
 
-The `plots`/`research`/`test` package extras in `pyproject.toml`
-(`pip install ".[plots,research,test]"`) replace the former
-`environment-benchmark.yaml` and `environment-toolchain.yaml` files, which were
-removed to reduce drift.
+The reproducible environment above deliberately excludes the research/analysis
+dependencies (`matplotlib`, `seaborn`, `upsetplot`, `ipython`, `minepy`,
+`requests`). Those back the in-repo `ccc.plots`/`methods`/`giant`/`corr` modules,
+which are **not** part of the published wheel; install them separately in a
+source checkout when running the `analysis/` notebooks. The former
+`environment-benchmark.yaml` and `environment-toolchain.yaml` files were removed
+to reduce drift. The only published package extra is `test` (`pip install ".[test]"`).
 
 ## Regenerating the lock file
 
@@ -32,7 +35,7 @@ Install the locked environment with:
 conda-lock install --name ccc-gpu conda-lock.yml  # add `--conda mamba` for speed
 ```
 
-> Note: solving a full CUDA-bundled environment can take several minutes. The
-> checked-in `conda-lock.yml` may still list the historical two-source command
-> in its header comment; a regeneration with the command above rewrites it to
-> the single `environment-gpu.yml` source.
+> Note: solving a full CUDA-bundled environment can take several minutes. After
+> changing channels or pins, regenerate from scratch (delete `conda-lock.yml`
+> first) rather than using `--update`, which refuses to run across channel
+> changes.
