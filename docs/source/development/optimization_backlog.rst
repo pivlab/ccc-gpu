@@ -303,9 +303,22 @@ Kernel-level profiling — the counter data needed to *confirm* the ranks of the
   ``NVreg_RestrictProfilingToAdminUsers=0`` in the ``nvidia`` kernel module and
   rebooting (see https://developer.nvidia.com/ERR_NVGPUCTRPERM).
 
+- **The categorical-heavy workload for A2 was not measured**, and cannot be with
+  the CLI as shipped: ``ccc-gpu-bench coef`` generates continuous random data and
+  exposes no ``--n-parts`` / categorical-fraction knob, so it cannot hold
+  ``n_parts`` fixed or vary the invalid-partition (categorical/singleton) fraction
+  that A2's payoff depends on. Ranking A2 therefore requires **both** a small
+  benchmark enhancement (a categorical/mixed data generator with a controllable
+  invalid-partition fraction) **and** the kernel counters above. Until then A2
+  stays in *needs profiling*.
+
 **No kernel-level numbers are fabricated in this document.** Every profile-dependent
 item stays flagged *needs profiling* with the exact command to run once tools and
-permissions are available (see :ref:`profiling-procedure`).
+permissions are available (see :ref:`profiling-procedure`). The wall-clock
+baselines above (coefficient scaling, GPU-vs-CPU speedups, the CPU category split,
+and the p-value blow-up) are captured and confirm the *inspection-justified*
+tranche-1 items; they do not substitute for the counter data the tranche-2 and
+"needs profiling" items still require.
 
 .. _profiling-procedure:
 
