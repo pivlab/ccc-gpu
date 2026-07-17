@@ -124,15 +124,13 @@ If you use CCC-GPU in your research, please cite:
 
 .. code-block:: bibtex
 
-    @article{zhang2025cccgpu,
-      title={CCC-GPU: A graphics processing unit (GPU)-optimized nonlinear correlation coefficient for large transcriptomic analyses},
-      author={Zhang, Hang and Fotso, Kenneth and Pividori, Milton},
-      journal={bioRxiv},
-      year={2025},
-      publisher={Cold Spring Harbor Laboratory},
-      doi={10.1101/2025.06.03.657735},
-      pmid={40502087},
-      pmcid={PMC12157546}
+    @article{zhang2026cccgpu,
+      title={CCC-GPU: A graphics processing unit (GPU)-accelerated nonlinear correlation coefficient for large-scale transcriptomic analyses},
+      author={Zhang, Haoyu and Fotso, Kevin and Subirana-Gran{\'e}s, Marc and Pividori, Milton},
+      journal={Bioinformatics},
+      year={2026},
+      pages={btag068},
+      doi={10.1093/bioinformatics/btag068},
     }
 
 The original CCC implementation and methodology can be found at: https://github.com/greenelab/ccc

@@ -143,6 +143,38 @@ Before building a new release:
       git tag -a v0.2.1 -m "Release version 0.2.1"
       git push origin v0.2.1
 
+Release checklist
+-----------------
+
+``pyproject.toml`` ``[project].version`` is the single source of truth for the
+version: ``ccc.__version__`` and the Sphinx docs read it from the installed
+package metadata, so they update automatically. A few files are **not**
+auto-synced and must be updated by hand at release time:
+
+1. **Version**
+
+   - Bump ``[project].version`` in ``pyproject.toml``.
+   - Update ``version:`` in ``CITATION.cff`` to match.
+   - Update the fallback literal in ``libs/ccc/__init__.py`` (used only when the
+     package is run from a source checkout without an install) and the fallback
+     in ``docs/source/conf.py``.
+
+2. **Citation / license**
+
+   - Keep the citation consistent across ``CITATION.cff``, ``README.md``, and
+     ``docs/source/introduction.rst`` (authors, journal/year, DOI).
+   - Keep the license consistent across the ``LICENSE`` file (authoritative),
+     ``CITATION.cff``, ``README.md``, and the ``pyproject.toml`` ``license`` field.
+
+3. **Support claims**
+
+   - If the CUDA architecture list (``CMAKE_CUDA_ARCHITECTURES``) or the
+     Python/CUDA support range changes, update the README badges/text, the docs
+     ``installation`` page, and the ``pyproject.toml`` classifiers together.
+
+4. Build, run ``twine check dist/*``, publish to Test PyPI, verify, then publish
+   to production PyPI.
+
 Platform Tag Compatibility
 --------------------------
 
