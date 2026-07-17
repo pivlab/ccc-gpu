@@ -23,6 +23,22 @@ from .output import open_writer
 from .presets import get_preset
 
 
+def _positive_int(value: str) -> int:
+    """argparse type: a strictly positive integer (>= 1)."""
+    ivalue = int(value)
+    if ivalue < 1:
+        raise argparse.ArgumentTypeError(f"must be >= 1, got {ivalue}")
+    return ivalue
+
+
+def _nonneg_int(value: str) -> int:
+    """argparse type: a non-negative integer (>= 0)."""
+    ivalue = int(value)
+    if ivalue < 0:
+        raise argparse.ArgumentTypeError(f"must be >= 0, got {ivalue}")
+    return ivalue
+
+
 def _add_common(sub: argparse.ArgumentParser) -> None:
     sub.add_argument(
         "--preset",
@@ -44,10 +60,16 @@ def _add_common(sub: argparse.ArgumentParser) -> None:
     )
     sub.add_argument("--seed", type=int, default=42, help="random seed (default: 42)")
     sub.add_argument(
-        "--repeats", type=int, default=3, help="timed repeats per case (default: 3)"
+        "--repeats",
+        type=_positive_int,
+        default=3,
+        help="timed repeats per case, >= 1 (default: 3)",
     )
     sub.add_argument(
-        "--warmup", type=int, default=1, help="untimed warmup calls (default: 1)"
+        "--warmup",
+        type=_nonneg_int,
+        default=1,
+        help="untimed warmup calls, >= 0 (default: 1)",
     )
     sub.add_argument(
         "--profile",
